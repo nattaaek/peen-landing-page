@@ -122,14 +122,6 @@
       radial-gradient(1000px 500px at 80% 10%,rgba(250,227,185,.12),transparent),
       radial-gradient(800px 420px at 20% 20%,rgba(212,200,249,.1),transparent),
       linear-gradient(to bottom,var(--bg),#111 60%)}
-    .hero-glb-container{position:absolute;inset:0;z-index:0;pointer-events:none}
-    .hero-glb-container canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .4s ease}
-    .hero-glb-container.canvas-ready canvas{opacity:1}
-    .hero-glb-fallback{position:absolute;inset:0;background:
-      radial-gradient(1000px 500px at 80% 10%,rgba(250,227,185,.08),transparent),
-      radial-gradient(800px 420px at 20% 20%,rgba(212,200,249,.06),transparent),
-      linear-gradient(to bottom,var(--bg),#111 70%);pointer-events:none}
-    .hero-glb-container.canvas-ready .hero-glb-fallback{opacity:0;pointer-events:none;transition:opacity .4s ease}
     .p-scene{position:absolute;inset:0;pointer-events:none;perspective:1000px;transform-style:preserve-3d}
     .p-layer{position:absolute;inset:auto;will-change:transform;transform-style:preserve-3d}
 
@@ -338,11 +330,6 @@
   <main id="top">
     <!-- ===== HERO ===== -->
     <section class="hero" aria-label="Hero">
-      <!-- Decorative 3D hero (lazy-loaded, respects reduced motion & WebGL); fallback gradient when disabled or loading -->
-      <div class="hero-glb-container" id="heroGlbContainer" aria-hidden="true">
-        <canvas id="heroGlbCanvas"></canvas>
-        <div class="hero-glb-fallback"></div>
-      </div>
       <div class="p-scene" id="pScene" aria-hidden="true">
         <!-- Clouds -->
         <div class="p-layer p-clouds2" data-depth="-220" aria-hidden="true">
@@ -537,12 +524,6 @@
     </div>
   </footer>
 
-  <!-- 3D hero only loads over http(s); opening as file:// shows gradient fallback and avoids CORS -->
-  <script>
-    (function(){ if (location.protocol === 'http:' || location.protocol === 'https:') {
-      var s = document.createElement('script'); s.type = 'module'; s.src = 'hero-3d.js'; document.body.appendChild(s);
-    } })();
-  </script>
   <script>
     // ===== Helpers =====
     const clamp=(n,min,max)=>Math.min(Math.max(n,min),max);
