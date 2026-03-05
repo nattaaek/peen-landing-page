@@ -1,0 +1,6 @@
+# IDE / editor
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db

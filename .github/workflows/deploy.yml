@@ -1,0 +1,27 @@
+# CI for Peen landing page — link check and key files. Deploy is done by Vercel via Git integration.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify key files exist
+        run: |
+          for f in index.html privacy.html terms.html hero-3d.js; do
+            test -f "$f" || { echo "Missing: $f"; exit 1; }
+          done
+          echo "Key files OK"
+
+      - name: Lychee link checker (internal/relative links)
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --verbose --no-progress --base "file://${{ github.workspace }}/" --exclude '^https?://' ./index.html ./privacy.html ./terms.html
+          fail: true
+          failIfEmpty: false

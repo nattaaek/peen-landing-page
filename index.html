@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Peen — Climbing App for Route Planning, Session Logs & Offline Maps</title>
+  <meta name="description" content="Peen helps climbers plan routes, log sends, and track progress with offline maps, privacy-first controls, and a fast, beautiful UI." />
+  <meta name="robots" content="index,follow" />
+  <!-- Set absolute canonical and og:image when deploying (e.g. https://peen.app, https://peen.app/og-image.jpg) -->
+  <link rel="canonical" href="https://peen.app/" />
+  <!-- Open Graph -->
+  <meta property="og:title" content="Peen — Climbing App for Route Planning, Session Logs & Offline Maps" />
+  <meta property="og:description" content="Plan routes, log sends, and climb smarter. Offline-ready, privacy-first." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://peen.app/" />
+  <meta property="og:image" content="https://peen.app/og-image.jpg" />
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Peen — Climbing App" />
+  <meta name="twitter:description" content="Plan routes, log sends, and climb smarter. Offline-ready, privacy-first." />
+  <meta name="twitter:image" content="https://peen.app/og-image.jpg" />
+
+  <!-- Google Fonts - Lexend -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    /* Peen CI — tokens and components per docs/CI_STYLE_GUIDE.md */
+    :root{
+      /* CI: color system */
+      --primary-black:#000; --primary-white:#fff; --primary-light-gray:#d9d7d1;
+      --secondary-cream:#fae3b9; --secondary-blue-gray:#d7e5e6; --secondary-sage:#d6e7d4; --secondary-lavender:#d4c8f9;
+      --bg:var(--primary-black); --bg-soft:#111; --card:#1a1a1a;
+      --text:var(--primary-white); --muted:#a0a0a0;
+      --brand:var(--secondary-lavender); --brand-2:var(--secondary-cream);
+      --text-on-brand:#041013; --logo-mark-text:#071014; --success:#7DFFAF;
+      --border-default:rgba(255,255,255,.06); --border-muted:rgba(255,255,255,.08); --border-strong:rgba(255,255,255,.12); --border-emphasis:rgba(255,255,255,.15);
+      --control-border:rgba(255,255,255,.30); --control-surface:#222;
+      /* CI: spacing, radius, shadow */
+      --radius:16px; --radius-input:12px; --radius-panel-link:10px; --radius-screen:28px;
+      --shadow:0 10px 30px rgba(0,0,0,.35); --shadow-strong:0 20px 60px rgba(0,0,0,.5);
+      --maxw:1200px; --header-blur:10px; --navTop:64px;
+      --videoY:50%;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;font-family:'Lexend',ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      color:var(--text);background:var(--bg);line-height:1.6;-webkit-font-smoothing:antialiased;
+      padding-left:env(safe-area-inset-left); padding-right:env(safe-area-inset-right);
+    }
+    a{color:inherit;text-decoration:none}
+    .container{width:min(100% - 2rem,var(--maxw));margin-inline:auto}
+    .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap}
+    .skip-link{position:absolute;top:-100px;left:0;padding:.75rem 1rem;background:var(--brand);color:var(--text-on-brand);font-weight:700;z-index:100;transition:top .2s ease}
+    .skip-link:focus{top:0;outline:3px solid #fff;outline-offset:2px}
+
+    /* ===== Header / Mobile dropdown ===== */
+    header{
+      position:sticky;top:0;z-index:60;
+      backdrop-filter:blur(var(--header-blur));
+      background:linear-gradient(to bottom,rgba(0,0,0,.9),rgba(0,0,0,.55));
+      border-bottom:1px solid var(--border-default);
+      padding-top:env(safe-area-inset-top);
+    }
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:.8rem 0;gap:.75rem}
+    .logo{display:inline-flex;align-items:center;gap:.6rem;font-weight:800}
+    .logo-mark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:var(--logo-mark-text);font-weight:900}
+
+    .nav-right{display:flex;align-items:center;gap:.75rem}
+    .right a{color:var(--muted);font-weight:600;margin-left:.25rem}
+
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;gap:.6rem;
+      padding:.9rem 1.15rem;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--brand-2));
+      color:var(--text-on-brand);font-weight:800;border:0;cursor:pointer;box-shadow:var(--shadow);
+      min-height:44px; touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+    }
+    .btn.secondary{background:transparent;border:1px solid var(--border-emphasis);color:var(--text);box-shadow:none}
+    .btn.cta{padding:.65rem 1rem}
+    .btn:focus-visible{outline:3px solid #fff;outline-offset:2px}
+    @media (max-width:360px){.btn.cta span{display:none}.btn.cta::after{content:"Get App"}}
+
+    .icon-btn{
+      width:44px;height:44px;border-radius:999px;border:1px solid rgba(255,255,255,.18);
+      background:var(--border-default);color:var(--text);display:inline-grid;place-items:center;cursor:pointer;box-shadow:var(--shadow)
+    }
+    .icon-btn:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+    /* Inline links visible on desktop, hidden on mobile */
+    nav[aria-label="Primary"] a{color:var(--muted);font-weight:600}
+    @media (max-width:720px){ nav[aria-label="Primary"] a{display:none} }
+    /* Hide hamburger on desktop */
+    @media (min-width:721px){ #menuBtn{display:none} }
+
+    /* dropdown panel + scrim (mobile) */
+    .nav-scrim{position:fixed;inset:0;background:rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .16s ease;z-index:65}
+    .nav-scrim.open{opacity:1;pointer-events:auto}
+    .nav-panel{
+      position:fixed;left:0;right:0;top:var(--navTop);
+      margin:8px auto 0;width:min(100% - 1.5rem,640px);
+      background:#0f0f0f;border:1px solid var(--border-strong);border-radius:var(--radius);
+      box-shadow:var(--shadow-strong);
+      transform:translateY(-8px);opacity:0;visibility:hidden;
+      transition:transform .18s ease,opacity .18s ease,visibility 0s linear .18s;
+      z-index:70;padding:10px 10px 12px;
+    }
+    .nav-panel.open{transform:translateY(0);opacity:1;visibility:visible;transition-delay:0s}
+    .nav-panel a{display:block;padding:14px 12px;border-radius:var(--radius-panel-link);color:#eaeaea;font-weight:700}
+    .nav-panel a:hover{background:var(--border-default)}
+    .nav-panel .panel-actions{display:flex;gap:.5rem;padding:4px 6px 0}
+    @media (max-width:720px){ .no-scroll{overflow:hidden;height:100%} }
+
+    /* ===== Sections / visuals ===== */
+    main{isolation:isolate}
+    section{padding:4.5rem 0;position:relative}
+    .section-title{font-size:clamp(1.4rem,3vw,2rem);margin:0 0 1.25rem}
+
+    /* HERO */
+    .hero{position:relative;min-height:92svh;display:grid;align-items:center;overflow:clip;background:
+      radial-gradient(1000px 500px at 80% 10%,rgba(250,227,185,.12),transparent),
+      radial-gradient(800px 420px at 20% 20%,rgba(212,200,249,.1),transparent),
+      linear-gradient(to bottom,var(--bg),#111 60%)}
+    .hero-glb-container{position:absolute;inset:0;z-index:0;pointer-events:none}
+    .hero-glb-container canvas{display:block;width:100%;height:100%;opacity:0;transition:opacity .4s ease}
+    .hero-glb-container.canvas-ready canvas{opacity:1}
+    .hero-glb-fallback{position:absolute;inset:0;background:
+      radial-gradient(1000px 500px at 80% 10%,rgba(250,227,185,.08),transparent),
+      radial-gradient(800px 420px at 20% 20%,rgba(212,200,249,.06),transparent),
+      linear-gradient(to bottom,var(--bg),#111 70%);pointer-events:none}
+    .hero-glb-container.canvas-ready .hero-glb-fallback{opacity:0;pointer-events:none;transition:opacity .4s ease}
+    .p-scene{position:absolute;inset:0;pointer-events:none;perspective:1000px;transform-style:preserve-3d}
+    .p-layer{position:absolute;inset:auto;will-change:transform;transform-style:preserve-3d}
+
+    /* Clouds / mountains */
+    .cloud{width:200px;height:60px;position:absolute;animation-timing-function:linear;animation-iteration-count:infinite}
+    @keyframes linemove{from{left:-250px}to{left:1456px}}
+    [data-speed="1"]{animation:linemove 45s infinite linear}
+    [data-speed="2"]{animation:linemove 28s infinite linear}
+    [data-speed="3"]{animation:linemove 35s infinite linear}
+    .p-clouds2{position:absolute;inset:0;left:0;width:100%;pointer-events:none;opacity:.35;filter:blur(0.3px);z-index:1;
+      -webkit-mask-image:radial-gradient(ellipse at 50% 25%,transparent 0 25%,#000 35%);mask-image:radial-gradient(ellipse at 50% 25%,transparent 0 25%,#000 35%)}
+    .p-clouds2 .cloud{position:absolute;left:-260px;will-change:transform;filter:drop-shadow(0 2px 6px rgba(0,0,0,.15));
+      animation:heroCloudMove var(--dur,32s) linear infinite;height:1em;border-radius:1em;background:#E4EFF3;opacity:.8}
+    .p-clouds2 .cloud::before{content:'';position:absolute;bottom:40%;right:20%;height:1.25em;width:1.25em;border-radius:50%;background:inherit}
+    .cloud-big{width:12.25em}
+    .cloud-big::before{box-shadow:-1.5em -0.2em 0 0.5em currentColor,-6em -0.5em 0 0.75em currentColor,-8.75em -1.15em 0 1.5em currentColor}
+    .cloud-small{width:5em}
+    .cloud-small::before{bottom:0;left:15%;height:2.25em;width:2.25em}
+    .cloud-light{background:var(--secondary-blue-gray);color:var(--secondary-blue-gray)}
+    .cloud-dark{background:var(--secondary-sage);color:var(--secondary-sage)}
+    .p-clouds-mid{position:absolute;inset:0;left:0;width:100%;pointer-events:none;opacity:.25;filter:blur(0.2px)}
+    .p-clouds-mid .cloud{position:absolute;left:-260px;will-change:transform;animation:heroCloudMove var(--dur,32s) linear infinite;height:1em;border-radius:1em;opacity:.6}
+    .hero .content{position:relative;z-index:2;padding:4rem 0 3rem}
+    @keyframes heroCloudMove{from{transform:translateX(0)}to{transform:translateX(calc(100vw + 260px))}}
+    .mountain-layer,.mountain-small-layer,.mountain-right-layer,.mountain-far-right-layer,.hills-layer{position:absolute;inset:0;pointer-events:none}
+    .mountain-main{position:absolute;bottom:0;left:-90px;border-width:38em 30em;border-style:solid;border-color:transparent transparent #1a1a1a transparent}
+    .mountain-main .peak{position:absolute;right:0;top:0;transform:translate(50%)}
+    .mountain-main .mountain-shadow{position:absolute;right:0;top:0;transform:translate(50%);opacity:.7;width:676px;height:540px}
+    .mountain-small{position:absolute;bottom:0;left:30%;border-width:33em 26em;border-style:solid;border-color:transparent transparent #2a2a2a transparent}
+    .mountain-small::after{content:'';position:absolute;left:100%;top:100%;border-width:33em 26em;border-style:solid;border-color:transparent transparent #1a1a1a #1a1a1a;opacity:.5}
+    .mountain-small .peak{position:absolute;right:0;top:0;transform:translate(50%)}
+    .mountain-right{position:absolute;bottom:0;right:10%;border-width:28em 24em;border-style:solid;border-color:transparent transparent #1a1a1a transparent}
+    .mountain-right .peak{position:absolute;left:0;top:0;transform:translate(-50%)}
+    .mountain-far-right{position:absolute;bottom:0;right:-5%;border-width:22em 18em;border-style:solid;border-color:transparent transparent #2a2a2a transparent}
+    .mountain-far-right .peak{position:absolute;left:0;top:0;transform:translate(-50%)}
+    .hills-layer .hill{position:absolute;bottom:0;border-width:10em 20em;border-style:solid}
+    .hill-right{right:0;border-color:transparent #2a2a2a #2a2a2a transparent}
+    .hill-left{z-index:2;left:0;border-color:transparent transparent var(--bg) var(--bg)}
+
+    .hero h1{font-size:clamp(2rem,5vw,4rem);line-height:1.08;margin:.7rem 0 1rem}
+    .hero p{color:var(--muted);font-size:clamp(1rem,1.5vw,1.15rem);margin:0 0 1.2rem}
+    .hero .actions{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:.6rem}
+
+    .features{display:grid;grid-template-columns:repeat(12,1fr);gap:1rem}
+    .feature-card{grid-column:span 12;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));border:1px solid var(--border-muted);border-radius:var(--radius);padding:1.2rem;box-shadow:var(--shadow)}
+    @media(min-width:700px){.feature-card{grid-column:span 6}}
+    @media(min-width:1024px){.feature-card{grid-column:span 4}}
+    .feature-card h3{margin:.2rem 0 .4rem;font-size:1.1rem}
+    .feature-card p{color:var(--muted);margin:0}
+
+    .showcase{position:relative;overflow:hidden;background:linear-gradient(to bottom,#111,var(--bg-soft))}
+    .screen-grid{display:grid;grid-template-columns:1fr;gap:1rem}
+    @media(min-width:900px){.screen-grid{grid-template-columns:repeat(3,1fr)}}
+    .screen{aspect-ratio:9/16;border-radius:var(--radius-screen);border:1px solid var(--border-muted);background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));position:relative;overflow:hidden;box-shadow:var(--shadow);transform-style:preserve-3d;will-change:transform}
+    .screen .inner{position:absolute;inset:0;background:conic-gradient(from 120deg at 50% 50%,rgba(212,200,249,.22),rgba(250,227,185,.18),rgba(255,255,255,.08),rgba(212,200,249,.22));mix-blend-mode:screen;opacity:.25}
+
+    .lead{background:linear-gradient(180deg,var(--bg-soft),#0a0a0a);overflow:hidden}
+    .lead-grid{display:grid;grid-template-columns:1fr;gap:1rem;align-items:center}
+    @media(min-width:900px){.lead-grid{grid-template-columns:1.2fr .8fr}}
+    form{display:grid;gap:.8rem;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.03));border:1px solid var(--border-strong);padding:1rem;border-radius:var(--radius)}
+    label{font-weight:700}
+    input[type=email]{width:100%;padding:.9rem 1rem;border-radius:var(--radius-input);background:var(--control-surface);color:var(--text);border:1px solid var(--control-border)}
+    .form-note{color:var(--muted);font-size:.9rem}
+    .success{display:none;color:var(--success);font-weight:800}
+
+    .faq-grid{display:grid;grid-template-columns:1fr;gap:.6rem}
+    details{background:rgba(255,255,255,.04);border:1px solid var(--border-muted);padding:.9rem 1rem;border-radius:var(--radius-input)}
+    summary::-webkit-details-marker{display:none}
+    footer{padding:2.2rem 0;color:var(--muted);border-top:1px solid var(--border-default)}
+    .footer-inner{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+    .footer-links{display:flex;flex-wrap:wrap;gap:1rem;align-items:center}
+    .footer-links a{color:var(--muted);font-weight:600}
+    .footer-links a:hover{color:var(--text)}
+
+    .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease}
+    .reveal.is-visible{opacity:1;transform:translateY(0)}
+    .motion{--ty:0px;--rx:0deg;--ry:0deg;--tz:0px;transform:translate3d(0,var(--ty),0) rotateX(var(--rx)) rotateY(var(--ry)) translateZ(var(--tz));transform-style:preserve-3d;will-change:transform}
+    @media(prefers-reduced-motion:reduce){.p-layer,.screen,.motion{transform:none!important}.reveal{opacity:1!important;transform:none!important}}
+
+    /* ===== iPhone 16 Pro Max mockup ===== */
+    .hero3d{position:relative;margin-top:1.4rem;display:grid;place-items:center;pointer-events:none}
+    .iphone-16pm{
+      position:relative;width:min(62vw,420px);aspect-ratio:9/19.5;border-radius:32px;
+      transform-style:preserve-3d;pointer-events:auto;will-change:transform;
+      filter:drop-shadow(0 14px 40px rgba(0,0,0,.55))
+    }
+    .iphone-16pm .shell{
+      position:absolute;inset:0;border-radius:inherit;
+      background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.04));
+      border:1px solid rgba(255,255,255,.2);box-shadow:0 30px 80px rgba(0,0,0,.45)
+    }
+    .iphone-16pm .shell::before{
+      content:"";position:absolute;inset:1px;border-radius:inherit;
+      background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+      -webkit-mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+      mask:linear-gradient(#000,#000) content-box,linear-gradient(#000,#000);
+      -webkit-mask-composite:xor; mask-composite:exclude;padding:2px
+    }
+    .iphone-16pm .glass{position:absolute;inset:10px;border-radius:26px;overflow:hidden;background:#000;display:block}
+    .iphone-16pm .island{
+      position:absolute;top:12px;left:50%;transform:translateX(-50%);width:40%;
+      height:clamp(14px,5.2%,22px);background:#0e0e0e;border-radius:999px;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);display:grid;place-items:center;z-index:2
+    }
+    .iphone-16pm .island::after{
+      content:"";width:8px;height:8px;border-radius:50%;
+      background:radial-gradient(circle at 30% 30%, #5ff, #124 60%, #0000 70%)
+    }
+
+    /* Full-bleed video fit (even when object-fit bugs) */
+    .iphone-16pm .screen{position:absolute;inset:0; height: 100%;}
+    .iphone-16pm .video-fit{position:absolute;inset:0;overflow:hidden}
+    .iphone-16pm .video-fit > video{
+      position:absolute;top:50%;left:50%;
+      min-width:100%;min-height:100%;
+      width:auto;height:auto;transform:translate(-50%,-50%);
+      object-fit:cover;object-position:50% var(--videoY);
+      display:block; /* avoids inline baseline gaps */
+    }
+
+    .iphone-16pm .screen .overlay{
+      position:absolute;inset:0;background:
+        radial-gradient(120% 80% at 20% 10%,rgba(250,227,185,.18),transparent),
+        radial-gradient(110% 70% at 80% 90%,rgba(212,200,249,.15),transparent);
+      mix-blend-mode:screen;opacity:.25;pointer-events:none
+    }
+    /* Side buttons */
+    .iphone-16pm .btn{
+      position:absolute;width:6px;border-radius:6px;
+      background:linear-gradient(90deg,rgba(255,255,255,.25),rgba(255,255,255,.08));
+      box-shadow:0 0 0 1px rgba(255,255,255,.06)
+    }
+    .iphone-16pm .btn.volume.up{left:-6px;top:33%;height:8%}
+    .iphone-16pm .btn.volume.down{left:-6px;top:43%;height:8%}
+    .iphone-16pm .btn.action{left:-6px;top:24%;height:6%}
+    .iphone-16pm .btn.power{right:-6px;top:36%;height:12%}
+    .iphone-16pm .device-shadow{
+      position:absolute;inset:auto 0 -40px 0;height:100px;filter:blur(18px);
+      background:radial-gradient(55% 60% at 50% 20%,rgba(0,0,0,.55),transparent 70%);transform:translateZ(-80px)
+    }
+
+    /* Climbing SVG */
+    .climb-wrap{position:absolute;top:-12px;right:-70px;left:auto;width:min(28vw,260px);z-index:1;pointer-events:auto}
+    .climbing-svg{width:100%;height:auto;overflow:visible}
+    .climbing-svg .cliff{fill:transparent}
+    .climbing-svg .ledge{fill:none!important;stroke:none!important;pointer-events:none}
+    .climbing-svg .anchor{fill:#bdbdbd;stroke:#8a8a8a;stroke-width:.8}
+    .climbing-svg .bolt-chain{stroke:#bdbdbd;stroke-width:1.2;opacity:.9}
+    .climbing-svg .rope{stroke:#e74c3c;stroke-width:2.6;fill:none}
+    .climbing-svg .climber line,.climbing-svg .climber circle{stroke:#fff;stroke-width:2.6;fill:transparent;filter:drop-shadow(0 0 2px rgba(255,255,255,.5))}
+    .climbing-svg .bubble{opacity:0;transition:opacity .25s ease;pointer-events:none}
+    .climbing-svg .bubble rect{fill:#fff;stroke:#e74c3c;stroke-width:1.2;rx:6;ry:6}
+    .climbing-svg .bubble text{fill:#000;font-weight:900;font-family:inherit;font-size:10px;letter-spacing:.3px}
+    .climbing-svg .bubble polygon{fill:#fff;stroke:#e74c3c;stroke-width:1.2}
+    @media (max-width:900px){.climb-wrap{width:min(38vw,220px);top:-6px;right:-8px;left:auto}}
+    @media (max-width:520px){.climb-wrap{display:none}}
+  </style>
+
+  <!-- JSON-LD -->
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Peen","applicationCategory":"MobileApplication","operatingSystem":"iOS, Android","description":"Peen helps climbers plan routes, log sends, track progress, and use offline maps with privacy-first controls.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Peen"}}
+  </script>
+</head>
+<body>
+  <a href="#top" class="skip-link">Skip to main content</a>
+  <!-- ===== Header ===== -->
+  <header aria-label="Top navigation" id="siteHeader">
+    <div class="container nav">
+      <a href="index.html" class="logo" aria-label="Peen home">
+        <span class="logo-mark">⛰</span><span>Peen</span>
+      </a>
+
+      <div class="nav-right">
+        <button id="menuBtn" class="icon-btn" type="button" aria-label="Open menu" aria-controls="navPanel" aria-expanded="false">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+
+        <nav class="right" aria-label="Primary">
+          <a href="index.html#features">Features</a>
+          <a href="index.html#showcase">Screens</a>
+          <a href="index.html#faq">FAQ</a>
+        </nav>
+
+        <a href="#lead" class="btn cta"><span>Get the App</span></a>
+      </div>
+    </div>
+
+    <div id="navScrim" class="nav-scrim" hidden></div>
+    <nav id="navPanel" class="nav-panel" aria-label="Mobile navigation" aria-labelledby="navTitle" hidden>
+      <h2 id="navTitle" class="visually-hidden">Navigation</h2>
+      <div class="container" style="max-width:620px">
+        <a href="index.html#features" data-close>Features</a>
+        <a href="index.html#showcase" data-close>Screens</a>
+        <a href="index.html#faq" data-close>FAQ</a>
+        <a href="privacy.html" data-close>Privacy Policy</a>
+        <a href="terms.html" data-close>Terms of Use</a>
+        <div class="panel-actions">
+          <a href="index.html#lead" class="btn cta" data-close style="flex:1">Get the App</a>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top">
+    <!-- ===== HERO ===== -->
+    <section class="hero" aria-label="Hero">
+      <!-- Decorative 3D hero (lazy-loaded, respects reduced motion & WebGL); fallback gradient when disabled or loading -->
+      <div class="hero-glb-container" id="heroGlbContainer" aria-hidden="true">
+        <canvas id="heroGlbCanvas"></canvas>
+        <div class="hero-glb-fallback"></div>
+      </div>
+      <div class="p-scene" id="pScene" aria-hidden="true">
+        <!-- Clouds -->
+        <div class="p-layer p-clouds2" data-depth="-220" aria-hidden="true">
+          <div class="cloud cloud-big cloud-light" style="top:45%;--dur:20s;font-size:1.25em"></div>
+          <div class="cloud cloud-small cloud-light" style="top:52%;--dur:15s;font-size:.75em"></div>
+          <div class="cloud cloud-big cloud-dark"  style="top:58%;--dur:18s;font-size:1em"></div>
+          <div class="cloud cloud-small cloud-dark" style="top:48%;--dur:22s;font-size:.9em"></div>
+          <div class="cloud cloud-big cloud-light" style="top:55%;--dur:25s;font-size:1.1em"></div>
+          <div class="cloud cloud-small cloud-dark" style="top:50%;--dur:28s;font-size:.8em"></div>
+          <div class="cloud cloud-big cloud-dark"  style="top:62%;--dur:16s;font-size:1.3em"></div>
+        </div>
+        <!-- Mountains -->
+        <div class="p-layer mountain-layer" data-depth="-120" data-speed="0.22">
+          <div class="mountain-main">
+            <svg class="peak" width="254" height="320"><polyline points="127,0 16,140 26,140 56,110 127,160 160,90 185,90 185,120 213,110 127,0" fill="#1a1a1a"/></svg>
+            <svg class="mountain-shadow"><polyline points="338,0 338,60 300,135 300,200 370,250 320,380 260,350 150,600 773,550" fill="var(--bg)"/></svg>
+          </div>
+        </div>
+        <div class="p-layer mountain-small-layer" data-depth="-80" data-speed="0.28">
+          <div class="mountain-small">
+            <svg class="peak" width="178" height="112"><polyline points="89,0 0,112 40,95 56,112 89,70 110,70 125,90 145,70" fill="#2a2a2a"/></svg>
+          </div>
+        </div>
+        <div class="p-layer mountain-right-layer" data-depth="-100" data-speed="0.25">
+          <div class="mountain-right">
+            <svg class="peak" width="200" height="180"><polyline points="100,0 10,180 30,165 50,180 100,120 140,80 165,95 190,75 200,180 100,0" fill="#1a1a1a"/></svg>
+          </div>
+        </div>
+        <div class="p-layer mountain-far-right-layer" data-depth="-140" data-speed="0.20">
+          <div class="mountain-far-right">
+            <svg class="peak" width="150" height="140"><polyline points="75,0 5,140 20,130 35,140 75,100 105,85 125,95 145,85 150,140 75,0" fill="#2a2a2a"/></svg>
+          </div>
+        </div>
+        <div class="p-layer p-clouds-mid" data-depth="-90" aria-hidden="true">
+          <div class="cloud cloud-small cloud-light" style="top:60%;--dur:30s;font-size:.6em"></div>
+          <div class="cloud cloud-big cloud-dark"  style="top:65%;--dur:35s;font-size:.9em"></div>
+          <div class="cloud cloud-small cloud-dark" style="top:58%;--dur:24s;font-size:.7em"></div>
+        </div>
+        <div class="p-layer hills-layer" data-depth="40" data-speed="0.32">
+          <div class="hill hill-right"></div>
+          <div class="hill hill-left"></div>
+        </div>
+      </div>
+
+      <div class="container content">
+        <div class="climb-wrap" aria-hidden="false">
+          <svg class="climbing-svg" viewBox="0 0 220 180" role="img" aria-label="Climber whipper animation">
+            <polygon class="cliff" points="0,0 60,0 48,60 44,110 44,180 0,180" />
+            <polygon class="ledge" points="44,110 52,118 20,124 14,120" />
+            <g transform="translate(45,20)">
+              <circle class="anchor" r="4" />
+              <line class="bolt-chain" x1="0" y1="4" x2="0" y2="14" />
+              <circle class="anchor" cy="14" r="3" />
+            </g>
+            <path id="ropePath" class="rope" d="M 45 20 L 60 60" />
+            <g class="climber">
+              <circle id="climberHead" cx="0" cy="0" r="6" />
+              <line id="climberTorso" x1="0" y1="0" x2="0" y2="0" />
+              <line id="climberArmL" x1="0" y1="0" x2="0" y2="0" />
+              <line id="climberArmR" x1="0" y1="0" x2="0" y2="0" />
+              <line id="climberLegL" x1="0" y1="0" x2="0" y2="0" />
+              <line id="climberLegR" x1="0" y1="0" x2="0" y2="0" />
+            </g>
+            <g id="shout" class="bubble" aria-hidden="true">
+              <rect id="shoutRect" x="0" y="0" width="40" height="22" rx="6" ry="6" />
+              <polygon id="shoutTail" points="0,0 0,0 0,0" />
+              <text id="shoutText" x="0" y="0" dominant-baseline="hanging">Aaaah!</text>
+            </g>
+          </svg>
+        </div>
+
+        <span class="chip" style="display:inline-flex;align-items:center;padding:.35rem .7rem;border-radius:999px;background:rgba(255,255,255,.08);font-size:.85rem;color:var(--muted)">Your climbing, reimagined</span>
+        <h1>Conquer routes. Log sends. Push higher.</h1>
+        <p>Keep your beta, grades, and progress in one beautiful place. Built for speed and the outdoors—works offline when you do.</p>
+        <div class="actions">
+          <a href="#lead" class="btn" aria-label="Jump to download/join section">Get Started Free</a>
+          <a href="#showcase" class="btn secondary" aria-label="See product screens">View Screens</a>
+        </div>
+        <div class="proof" style="color:var(--muted);margin-top:1rem">Trusted by early adopters • Rated 4.9/5 • No ads</div>
+
+        <div class="hero3d">
+          <!-- iPhone 16 Pro Max mockup -->
+          <div class="iphone-16pm" id="phone3d" data-idle="true" data-tilt="soft" aria-label="iPhone 16 Pro Max mockup">
+            <div class="shell" aria-hidden="true"></div>
+            <div class="glass">
+              <div class="island" aria-hidden="true"></div>
+              <div class="screen" role="img" aria-label="App preview video">
+                <div class="video-fit">
+                  <video
+                    class=""
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    preload="auto">
+                    <source src="videos/app-hero.webm" type="video/webm" />
+                    <source src="videos/app-hero.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                <div class="overlay" aria-hidden="true"></div>
+              </div>
+            </div>
+            <!-- Buttons -->
+            <span class="btn volume up" aria-hidden="true"></span>
+            <span class="btn volume down" aria-hidden="true"></span>
+            <span class="btn action" aria-hidden="true" title="Action button"></span>
+            <span class="btn power" aria-hidden="true" title="Power"></span>
+            <div class="device-shadow" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" aria-label="Key features">
+      <div class="container">
+        <h2 class="section-title">Everything you need to send your project</h2>
+        <div class="features">
+          <article class="feature-card"><h3>Guidebook-grade topos</h3><p>Browse crags and gyms with readable topos and filters for grade, style, and protection.</p></article>
+          <article class="feature-card"><h3>Session tracking</h3><p>Log attempts, conditions, and sends in seconds. Charts show progress by grade and style.</p></article>
+          <article class="feature-card"><h3>Beta notes & media</h3><p>Attach photos or clips and jot beta so you always remember the crux—online or off.</p></article>
+          <article class="feature-card"><h3>Offline maps</h3><p>Download areas before you lose signal so the approach and descent are always clear.</p></article>
+          <article class="feature-card"><h3>Privacy controls</h3><p>Own your data. Export anytime. Share only what you choose with partners.</p></article>
+          <article class="feature-card"><h3>Battery-friendly</h3><p>Lightweight and tuned for long days out. Animations pause to save power.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Showcase -->
+    <section id="showcase" class="showcase" aria-label="Screens showcase">
+      <div class="container">
+        <h2 class="section-title">A quick look at the experience</h2>
+        <p style="color:var(--muted);margin-top:-.2rem">Real app screenshots below. Each card has a gentle scroll drift and tilts slightly on hover.</p>
+        <div class="screen-grid" style="margin-top:1rem;">
+          <div class="screen"><div class="inner"></div><img src="images/1.webp" alt="Area → Crag → Route screen" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" /></div>
+          <div class="screen"><div class="inner"></div><img src="images/2.webp" alt="List / details screen" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" /></div>
+          <div class="screen"><div class="inner"></div><img src="images/3.webp" alt="Stats / logging screen" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" /></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Lead -->
+    <section id="lead" class="lead" aria-label="Get the app">
+      <div class="container lead-grid">
+        <div>
+          <h2 class="section-title">Get early access</h2>
+          <p style="color:var(--muted);margin-top:-.2rem">Join the waitlist to be notified when downloads open. No spam, unsubscribe anytime.</p>
+          <form id="waitlist" novalidate>
+            <input type="text" name="hp_name" id="hp_name" autocomplete="off" tabindex="-1" style="position:absolute;left:-5000px;opacity:0" aria-hidden="true">
+            <div>
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" inputmode="email" autocomplete="email" required placeholder="you@example.com" aria-describedby="emailHelp" />
+              <div id="emailHelp" class="form-note">We'll only use this to send launch updates.</div>
+            </div>
+            <button class="btn" type="submit">Join the waitlist</button>
+            <p class="form-note" style="margin:0">We collect your email and referral info (e.g. where you came from) to send launch updates. By joining you agree to our <a href="terms.html" style="color:var(--brand)">Terms of Use</a> and <a href="privacy.html" style="color:var(--brand)">Privacy Policy</a>.</p>
+            <div class="success" role="status" aria-live="polite">Submitted—if your email is valid, you'll receive updates when we launch.</div>
+            <p class="form-note form-note-after" style="margin:0;display:none" data-success-note>We can't confirm delivery from this page; check your inbox or try again later.</p>
+          </form>
+        </div>
+        <div>
+          <div class="screen" style="margin-left:auto;max-width:420px;">
+            <div class="inner"></div>
+            <img src="images/4.webp" alt="App preview" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" loading="lazy" decoding="async" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" aria-label="Frequently asked questions" style="z-index:2;">
+      <div class="container">
+        <h2 class="section-title">FAQ</h2>
+        <div class="faq-grid">
+          <details><summary>Does this work offline?</summary><div>Yes. You can pre-download areas and keep logging sessions without signal.</div></details>
+          <details><summary>Is my data private?</summary><div>Yes. Your notes stay on your device and any sync is opt-in.</div></details>
+          <details><summary>What platforms do you support?</summary><div>iOS and Android at launch; web companion later.</div></details>
+          <details><summary>How much will it cost?</summary><div>Final pricing will be announced at public launch. Early access is free.</div></details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <div>© <span id="year"></span> Peen</div>
+      <nav class="footer-links" aria-label="Legal and contact">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms of Use</a>
+        <a href="mailto:hello@peen.app">Contact: hello@peen.app</a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- 3D hero only loads over http(s); opening as file:// shows gradient fallback and avoids CORS -->
+  <script>
+    (function(){ if (location.protocol === 'http:' || location.protocol === 'https:') {
+      var s = document.createElement('script'); s.type = 'module'; s.src = 'hero-3d.js'; document.body.appendChild(s);
+    } })();
+  </script>
+  <script>
+    // ===== Helpers =====
+    const clamp=(n,min,max)=>Math.min(Math.max(n,min),max);
+    const url=new URL(location.href);
+    const FORCE_ANIM = url.searchParams.get('anim')==='on';
+    const reduce=()=>!FORCE_ANIM && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ===== Dropdown menu =====
+    (function dropdownMenu(){
+      const header=document.getElementById('siteHeader');
+      const btn=document.getElementById('menuBtn');
+      const panel=document.getElementById('navPanel');
+      const scrim=document.getElementById('navScrim');
+      const root=document.documentElement;
+
+      function setNavTop(){ const h=header.getBoundingClientRect().height; root.style.setProperty('--navTop', `${Math.max(56,h)}px`); }
+      setNavTop(); addEventListener('resize',setNavTop); addEventListener('orientationchange',setNavTop); addEventListener('scroll',setNavTop,{passive:true});
+
+      function setOpen(open){
+        btn.setAttribute('aria-expanded', String(open));
+        panel.classList.toggle('open', open);
+        scrim.classList.toggle('open', open);
+        panel.hidden=!open; scrim.hidden=!open;
+        root.classList.toggle('no-scroll', open && matchMedia('(max-width:720px)').matches);
+        if(open){ (panel.querySelector('a,button,[tabindex]:not([tabindex="-1"])')||btn).focus(); } else { btn.focus(); }
+      }
+      function toggle(){ setOpen(btn.getAttribute('aria-expanded')!=='true'); }
+      function close(){ setOpen(false); }
+
+      btn.addEventListener('click',toggle);
+      scrim.addEventListener('click',close);
+      panel.addEventListener('click',(e)=>{ if(e.target.matches('[data-close]')) close(); });
+      document.addEventListener('keydown',(e)=>{ if(e.key==='Escape' && panel.classList.contains('open')) close(); });
+
+      const mq = matchMedia('(min-width:721px)');
+      const onChange = ()=>{ if(mq.matches) close(); };
+      mq.addEventListener ? mq.addEventListener('change', onChange) : mq.addListener(onChange);
+    })();
+
+    // ===== Parallax =====
+    (function initParallax(){
+      if(reduce())return;
+      const scene=document.getElementById('pScene'); if(!scene) return;
+      const layers=[...scene.querySelectorAll('.p-layer')]; let ticking=false;
+      layers.forEach(el=>{ const d=parseFloat(el.getAttribute('data-depth')||0); const s=1+Math.abs(d)/600; el.style.transform=`translateZ(${d}px) scale(${s})`; });
+      function onMove(e){ const r=scene.getBoundingClientRect(); const x=(e.clientX-r.left)/r.width-.5; const y=.5-(e.clientY-r.top)/r.height; scene.style.transform=`rotateX(${(y*6).toFixed(2)}deg) rotateY(${(x*8).toFixed(2)}deg)`; }
+      function onScroll(){ if(!ticking){ requestAnimationFrame(update); ticking=true; } }
+      function update(){ const y=scrollY||pageYOffset; layers.forEach(el=>{ const speed=parseFloat(el.getAttribute('data-speed')||0); const d=parseFloat(el.getAttribute('data-depth')||0); const s=1+Math.abs(d)/600; el.style.transform=`translate3d(0, ${(y*speed).toFixed(2)}px, ${d}px) scale(${s})`; }); ticking=false; }
+      scene.addEventListener('mousemove', onMove, {passive:true}); addEventListener('scroll', onScroll, {passive:true}); update();
+    })();
+
+    // ===== Motion engine =====
+    (function motionEngine(){
+      if(reduce()) return;
+      const candidates=[...document.querySelectorAll('.motion,[data-tilt],[data-speed]')];
+      if(!candidates.length) return;
+      for(const el of candidates){ if(!el.classList.contains('motion')) el.classList.add('motion'); }
+      const els=[...document.querySelectorAll('.motion')]; const S=new WeakMap();
+      els.forEach(el=>{
+        S.set(el,{ty:0,rx:0,ry:0,tz:0,t_ty:0,t_rx:0,t_ry:0,t_tz:0,speed:parseFloat(el.getAttribute('data-speed')||0),soft:el.getAttribute('data-tilt')==='soft'});
+        const io=new IntersectionObserver((ents)=>{ for(const e of ents){ if(e.isIntersecting){ const st=S.get(el); st.t_tz=st.soft?18:36; setTimeout(()=>{ st.t_tz=0; },50); io.disconnect(); } } },{threshold:0.25});
+        io.observe(el);
+        if(matchMedia('(hover:hover)').matches && el.hasAttribute('data-tilt')){
+          el.addEventListener('mousemove',(e)=>{ const r=el.getBoundingClientRect(); const x=(e.clientX-r.left)/r.width-.5; const y=.5-(e.clientY-r.top)/r.height; const st=S.get(el); const MAXX=st.soft?6:10; const MAXY=st.soft?5:8; st.t_ry=x*MAXX; st.t_rx=y*MAXY; });
+          el.addEventListener('mouseleave',()=>{ const st=S.get(el); st.t_rx=0; st.t_ry=0; });
+        }
+      });
+      function onScroll(){ const y=scrollY||pageYOffset; for(const el of els){ const st=S.get(el); const s=st.speed||0; st.t_ty=Math.max(-160,Math.min(160,y*s)); } }
+      addEventListener('scroll', onScroll, {passive:true}); onScroll();
+      function tick(){ for(const el of els){ const st=S.get(el); const D=st.soft?0.12:0.10; st.ty+=(st.t_ty-st.ty)*D; st.rx+=(st.t_rx-st.rx)*(st.soft?0.14:0.12); st.ry+=(st.t_ry-st.ry)*(st.soft?0.14:0.12); st.tz+=(st.t_tz-st.tz)*0.08; el.style.setProperty('--ty', st.ty.toFixed(2)+'px'); el.style.setProperty('--rx', st.rx.toFixed(2)+'deg'); el.style.setProperty('--ry', st.ry.toFixed(2)+'deg'); el.style.setProperty('--tz', st.tz.toFixed(1)+'px'); } requestAnimationFrame(tick); }
+      requestAnimationFrame(tick);
+    })();
+
+    // ===== Phone tilt =====
+    (function phone3D(){
+      const el=document.getElementById('phone3d'); if(!el || reduce()) return;
+      let rx=0,ry=0,rz=0,tz=0; const D=.12, MAXX=12, MAXY=10;
+      function loop(){ el.style.transform=`translateZ(${tz.toFixed(1)}px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) rotateZ(${rz.toFixed(2)}deg)`; requestAnimationFrame(loop); }
+      requestAnimationFrame(loop);
+      el.addEventListener('mousemove',(e)=>{ const r=el.getBoundingClientRect(); const x=(e.clientX-r.left)/r.width-.5; const y=.5-(e.clientY-r.top)/r.height; ry+=((x*MAXX)-ry)*D; rx+=((y*MAXY)-rx)*D; el.dataset.idle="false"; });
+      el.addEventListener('mouseleave',()=>{ el.dataset.idle="true"; });
+      addEventListener('deviceorientation',(ev)=>{ if(!ev.beta&&!ev.gamma) return; const x=clamp(ev.gamma/45,-1,1), y=clamp(ev.beta/45,-1,1); ry+=((x*MAXX)-ry)*D; rx+=((y*MAXY)-rx)*D; el.dataset.idle="false"; },{passive:true});
+      const hero=document.querySelector('.hero');
+      function onScroll(){ const rect=hero.getBoundingClientRect(); const vh=innerHeight||1; const p=Math.max(0,Math.min(1,1-(rect.bottom/vh))); tz=-80*p; rz=6*p; ry+=(0-ry)*0.03*p; rx+=(0-rx)*0.03*p; }
+      addEventListener('scroll', onScroll, {passive:true}); onScroll();
+    })();
+
+    // ===== Reveal =====
+    (function initReveal(){
+      const els=document.querySelectorAll('.reveal');
+      if(reduce()){ els.forEach(el=>el.classList.add('is-visible')); return; }
+      const io=new IntersectionObserver((ents)=>{ for(const e of ents){ if(e.isIntersecting) e.target.classList.add('is-visible'); } }, {rootMargin:'0px 0px -10% 0px',threshold:0.1});
+      els.forEach(el=>io.observe(el));
+    })();
+
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxppbXPeIjaXK53MltWP84kP-r0dbjt5DRikbPOKODyNDY9xGUgEFE5Cl-6Oy6sZQ/exec';
+
+    (function initForm(){
+    const form = document.getElementById('waitlist'); if(!form) return;
+    const email = document.getElementById('email');
+    const hp = document.getElementById('hp_name'); // honeypot
+    const success = form.querySelector('.success');
+
+    const successNote = form.querySelector('[data-success-note]');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Basic validity
+      if (!email.checkValidity()) { email.focus(); email.reportValidity(); return; }
+
+      // Honeypot trip?
+      if (hp && hp.value.trim() !== '') {
+        success.style.display = 'block';
+        if (successNote) successNote.style.display = 'block';
+        form.reset();
+        return;
+      }
+
+      // Build payload
+      const url = new URL(location.href);
+      const payload = {
+        email: email.value.trim(),
+        source: 'landing',
+        utm_source: url.searchParams.get('utm_source') || '',
+        utm_medium: url.searchParams.get('utm_medium') || '',
+        utm_campaign: url.searchParams.get('utm_campaign') || '',
+        utm_term: url.searchParams.get('utm_term') || '',
+        utm_content: url.searchParams.get('utm_content') || ''
+      };
+
+      // Optimistic UI
+      const btn = form.querySelector('button[type="submit"]');
+      const originalBtnText = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Joining…';
+
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        success.textContent = "Submitted—if your email is valid, you'll receive updates when we launch.";
+        success.style.display = 'block';
+        if (successNote) successNote.style.display = 'block';
+        form.reset();
+      } catch (err) {
+        alert('Hmm, something went wrong joining the waitlist. Please try again in a moment.');
+        console.error(err);
+      } finally {
+        btn.disabled = false; btn.textContent = originalBtnText;
+      }
+    });
+  })();
+
+  // Year
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+    // ===== Climber physics =====
+    (function initEnhancedRopeAnimation(){
+      if(reduce()) return;
+      const svg=document.querySelector('.climbing-svg'); if(!svg) return;
+
+      const anchor={x:45,y:20}, wallX=45;
+      const headR=6, torsoLen=28, armLen=20, legLen=22;
+
+      const ropeEl=document.getElementById('ropePath');
+      const headEl=document.getElementById('climberHead');
+      const torsoEl=document.getElementById('climberTorso');
+      const armLEl=document.getElementById('climberArmL');
+      const armREl=document.getElementById('climberArmR');
+      const legLEl=document.getElementById('climberLegL');
+      const legREl=document.getElementById('climberLegR');
+
+      const shout=document.getElementById('shout');
+      const shoutRect=document.getElementById('shoutRect');
+      const shoutText=document.getElementById('shoutText');
+      const shoutTail=document.getElementById('shoutTail');
+
+      if(!ropeEl||!headEl||!torsoEl||!armLEl||!armREl||!legLEl||!shout||!shoutRect||!shoutText||!shoutTail) return;
+
+      const FACE=-1;
+
+      let state, t=0, lastTime=null;
+      const body={ px:55, py:110, vx:5, vy:0, L:0, phi:0, w:0 };
+      const G=1200, climbUpPerSec=-35, preludeSec=1.8, slackExtra=80, damp=0.055;
+      let ropeSlackLen=0;
+
+      const AUTO_LOOP = url.searchParams.get('loop')!=='off';
+      const cyclePauseSec = 0.6, maxCycleSec = 12;
+      let settleTimer = 0, cycleClock = 0, nextResetAt = 0;
+
+      function scheduleAutoReset(initialPhi, initialW){
+        const amp = Math.min(0.5, Math.abs(initialPhi)) + Math.min(0.8, Math.abs(initialW));
+        const swingHoldMs = 4200 + amp*1600;
+        nextResetAt = performance.now() + swingHoldMs;
+      }
+
+      const SHOUTS=["Aaaah!","Woooah!","Nooo!","Yikes!","อ๊าาา!"];
+      function pickShout(){ return SHOUTS[(Math.random()*SHOUTS.length)|0]; }
+      function showShout(show){ shout.style.opacity = show? 1 : 0; }
+      function positionShout(hx,hy){
+        const pad=6;
+        if(!shoutText.textContent) shoutText.textContent = pickShout();
+        const bb=shoutText.getBBox();
+        const w=Math.max(28, bb.width + pad*2);
+        const h=Math.max(18, bb.height + pad*2);
+        const bx = hx + 14, by = hy - 20 - h/2;
+        shoutRect.setAttribute('x', bx.toFixed(2));
+        shoutRect.setAttribute('y', by.toFixed(2));
+        shoutRect.setAttribute('width', w.toFixed(2));
+        shoutRect.setAttribute('height', h.toFixed(2));
+        shoutText.setAttribute('x', (bx + pad).toFixed(2));
+        shoutText.setAttribute('y', (by + pad).toFixed(2));
+        const tx = bx, ty = by + h/2;
+        shoutTail.setAttribute('points', [[tx,ty-4],[tx-8,hy+2],[tx,ty+4]].map(p=>p[0].toFixed(2)+","+p[1].toFixed(2)).join(' '));
+      }
+
+      function setLine(el,x1,y1,x2,y2){ el.setAttribute('x1',x1.toFixed(2)); el.setAttribute('y1',y1.toFixed(2)); el.setAttribute('x2',x2.toFixed(2)); el.setAttribute('y2',y2.toFixed(2)); }
+      function setCircle(el,cx,cy,r){ el.setAttribute('cx',cx.toFixed(2)); el.setAttribute('cy',cy.toFixed(2)); if(r!=null) el.setAttribute('r',r.toFixed(2)); }
+      function rotate(vx,vy,a){ const c=Math.cos(a), s=Math.sin(a); return {x:vx*c - vy*s, y:vx*s + vy*c}; }
+      function distanceToAnchor(){ return Math.hypot(body.px-anchor.x, body.py-anchor.y); }
+
+      function drawStickman(px,py,torsoAngle,motionT){
+        const dir={x:Math.sin(torsoAngle), y:Math.cos(torsoAngle)};
+        const sx=px - dir.x*torsoLen, sy=py - dir.y*torsoLen;
+        const hx=sx - dir.x*(headR*1.3), hy=sy - dir.y*(headR*1.3);
+        const flail=0.8*Math.sin(motionT*3.2);
+        let armDirL=rotate(dir.x,dir.y,-1.9 + 0.5*Math.sin(motionT*2.4) + flail*0.1);
+        let armDirR=rotate(dir.x,dir.y,-0.9 + 0.6*Math.sin(motionT*2.0 + 1.2) - flail*0.12);
+        let legDirL=rotate(dir.x,dir.y, 0.9 + 0.5*Math.sin(motionT*2.1) + 0.9*Math.sin(motionT*2.7+0.6)*0.08);
+        let legDirR=rotate(dir.x,dir.y, 0.2 + 0.4*Math.sin(motionT*1.8 + 2.2) - 0.9*Math.sin(motionT*2.7+0.6)*0.05);
+        if (FACE === -1){ armDirL.x*=-1; armDirR.x*=-1; legDirL.x*=-1; legDirR.x*=-1; }
+        setLine(torsoEl,sx,sy,px,py); setCircle(headEl,hx,hy,headR);
+        setLine(armLEl,sx,sy,sx+armDirL.x*armLen,sy+armDirL.y*armLen);
+        setLine(armREl,sx,sy,sx+armDirR.x*armLen,sy+armDirR.y*armLen);
+        setLine(legLEl,px,py,px+legDirL.x*legLen,py+legDirL.y*legLen);
+        setLine(legREl,px,py,px+legDirR.x*legLen,py+legDirR.y*legLen);
+        return {hx,hy};
+      }
+
+      function drawRopeLoose(){
+        const midx=(anchor.x+body.px)/2 + 30, midy=(anchor.y+body.py)/2 + 20;
+        ropeEl.setAttribute('d',`M ${anchor.x} ${anchor.y} Q ${midx.toFixed(2)} ${midy.toFixed(2)} ${body.px.toFixed(2)} ${body.py.toFixed(2)}`);
+      }
+      function drawRopeTaut(){ ropeEl.setAttribute('d',`M ${anchor.x} ${anchor.y} L ${body.px.toFixed(2)} ${body.py.toFixed(2)}`); }
+
+      function reset(){
+        state='climb'; t=0; lastTime=null;
+        body.px=55; body.py=110; body.vx=5; body.vy=0; body.L=0; body.phi=0; body.w=0;
+        ropeSlackLen=distanceToAnchor()+slackExtra;
+        const parts = drawStickman(body.px,body.py,-0.08,0);
+        drawRopeLoose(); showShout(false); positionShout(parts.hx, parts.hy);
+        settleTimer=0; cycleClock=0; nextResetAt=0;
+      }
+
+      function step(ts){
+        if(lastTime==null) lastTime=ts;
+        const dt=Math.min(Math.max((ts-lastTime)/1000,0), 1/20);
+        lastTime=ts; t+=dt; cycleClock+=dt;
+        update(dt);
+        requestAnimationFrame(step);
+      }
+
+      function update(dt){
+        if(state==='climb'){
+          body.py += climbUpPerSec*dt;
+          body.px = Math.max(wallX+3, body.px + body.vx*dt + Math.sin(t*2.2)*0.3);
+          const parts = drawStickman(body.px,body.py,-0.08,t);
+          drawRopeLoose(); positionShout(parts.hx, parts.hy); showShout(false);
+
+          if(t>=preludeSec){
+            state='fall'; body.vx=40; body.vy=0;
+            ropeSlackLen=distanceToAnchor()+slackExtra;
+            shoutText.textContent = pickShout(); showShout(true);
+          }
+
+        } else if(state==='fall'){
+          body.vy += G*dt; body.px += body.vx*dt; body.py += body.vy*dt;
+          body.px = Math.max(body.px, wallX+8);
+          const parts = drawStickman(body.px,body.py,-0.20 + 0.25*Math.sin(t*6),t);
+          drawRopeLoose(); positionShout(parts.hx, parts.hy); showShout(true);
+
+          const d=distanceToAnchor();
+          if(d>=ropeSlackLen){
+            state='swing'; body.L=d;
+            body.phi = Math.atan2(body.px-anchor.x, body.py-anchor.y);
+            const rx=body.px-anchor.x, ry=body.py-anchor.y;
+            body.w = (rx*body.vy - ry*body.vx) / (body.L*body.L);
+            showShout(false);
+            if (AUTO_LOOP) scheduleAutoReset(body.phi, body.w);
+          }
+
+        } else if(state==='swing'){
+          const accel = -(G/body.L)*Math.sin(body.phi) - damp*body.w;
+          body.w += accel*dt; body.phi += body.w*dt;
+          if(Math.abs(body.w)<0.005 && Math.abs(body.phi)<0.01) body.w*=0.985;
+
+          body.px = anchor.x + body.L*Math.sin(body.phi);
+          body.py = anchor.y + body.L*Math.cos(body.phi);
+
+          if(body.px < wallX+8){
+            body.px = wallX+8;
+            body.phi = Math.atan2(body.px-anchor.x, body.py-anchor.y);
+            body.w*=0.7;
+          }
+
+          const parts = drawStickman(body.px,body.py, body.phi + 0.05*Math.sin(t*3.5), t);
+          drawRopeTaut(); positionShout(parts.hx, parts.hy);
+
+          if (AUTO_LOOP){
+            if (nextResetAt && performance.now() >= nextResetAt){ reset(); return; }
+            const energy = Math.abs(body.phi) + 0.7*Math.abs(body.w);
+            if (energy < 0.03){ settleTimer += dt; } else { settleTimer = 0; }
+            if (settleTimer >= cyclePauseSec){ reset(); return; }
+            if (cycleClock >= maxCycleSec){ reset(); return; }
+          }
+        }
+      }
+
+      svg.addEventListener('click', reset);
+      reset(); requestAnimationFrame(step);
+    })();
+  </script>
+</body>
+</html>

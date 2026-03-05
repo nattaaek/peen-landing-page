@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Peen CI Design Tokens",
+  "description": "Machine-readable design tokens for Peen. See CI_STYLE_GUIDE.md for usage.",
+  "version": "1.0",
+  "colors": {
+    "bg": { "value": "#000000", "role": "background" },
+    "bgSoft": { "value": "#111111", "role": "background" },
+    "card": { "value": "#1a1a1a", "role": "surface" },
+    "text": { "value": "#ffffff", "role": "text" },
+    "muted": { "value": "#a0a0a0", "role": "text" },
+    "brand": { "value": "#d4c8f9", "role": "accent" },
+    "brand2": { "value": "#fae3b9", "role": "accent" },
+    "success": { "value": "#7DFFAF", "role": "feedback" },
+    "primaryBlack": { "value": "#000000" },
+    "primaryWhite": { "value": "#ffffff" },
+    "secondaryCream": { "value": "#fae3b9" },
+    "secondaryBlueGray": { "value": "#d7e5e6" },
+    "secondarySage": { "value": "#d6e7d4" },
+    "secondaryLavender": { "value": "#d4c8f9" },
+    "textOnBrand": { "value": "#041013", "role": "text on brand gradient" },
+    "logoMarkText": { "value": "#071014" },
+    "controlBorder": { "value": "rgba(255,255,255,0.30)", "role": "interactive controls, non-text contrast" },
+    "controlSurface": { "value": "#222222", "role": "input/toggle bg for outdoor legibility" }
+  },
+  "topo": {
+    "routeNormal": { "value": "#tbd", "role": "topo route line default" },
+    "routeSelected": { "value": "#tbd", "role": "selected route" },
+    "routeDone": { "value": "#tbd", "role": "completed/sent route" },
+    "anchor": { "value": "#tbd", "role": "anchors, bolts, fixed gear" },
+    "hazard": { "value": "#tbd", "role": "hazard, warning" },
+    "statusOfflineDone": { "value": "#tbd", "role": "area downloaded" },
+    "statusOfflineDownloading": { "value": "#tbd", "role": "downloading" },
+    "statusOfflineFailed": { "value": "#tbd", "role": "download failed" },
+    "gpsGood": { "value": "#tbd" },
+    "gpsPoor": { "value": "#tbd" },
+    "gpsNone": { "value": "#tbd" }
+  },
+  "typography": {
+    "fontFamily": "Lexend, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial",
+    "weights": { "regular": 400, "semibold": 600, "bold": 700, "extrabold": 800 },
+    "heroH1": { "size": "clamp(2rem, 5vw, 4rem)", "lineHeight": 1.08 },
+    "sectionTitle": { "size": "clamp(1.4rem, 3vw, 2rem)" },
+    "body": { "size": "clamp(1rem, 1.5vw, 1.15rem)", "lineHeight": 1.6 },
+    "legalH1": { "size": "clamp(1.5rem, 4vw, 2rem)" },
+    "legalH2": { "size": "1.2rem" },
+    "small": { "size": "0.9rem" },
+    "featureCardTitle": { "size": "1.1rem" }
+  },
+  "spacing": {
+    "sectionPadding": "4.5rem",
+    "containerMaxWidth": "1200px",
+    "legalMaxWidth": "720px",
+    "gapSm": "0.5rem",
+    "gapMd": "0.75rem",
+    "gapLg": "1rem",
+    "gapXl": "1.5rem"
+  },
+  "radius": {
+    "default": "16px",
+    "pill": "999px",
+    "logoMark": "8px",
+    "input": "12px",
+    "navPanelLink": "10px",
+    "screenCard": "28px"
+  },
+  "shadow": {
+    "default": "0 10px 30px rgba(0,0,0,0.35)",
+    "strong": "0 20px 60px rgba(0,0,0,0.5)"
+  },
+  "motion": {
+    "durationShort": "0.16s",
+    "durationMedium": "0.4s",
+    "durationLong": "0.6s",
+    "easing": "ease",
+    "prefersReducedMotion": "honor media query; disable parallax/3D/reveal"
+  },
+  "accessibility": {
+    "focusRing": "3px solid #ffffff",
+    "focusRingOffset": "2px",
+    "minTouchTarget": "44px"
+  }
+}
