@@ -14,7 +14,7 @@ jobs:
 
       - name: Verify key files exist
         run: |
-          for f in index.html privacy.html terms.html; do
+          for f in index.html privacy.html terms.html .well-known/apple-app-site-association; do
             test -f "$f" || { echo "Missing: $f"; exit 1; }
           done
           echo "Key files OK"

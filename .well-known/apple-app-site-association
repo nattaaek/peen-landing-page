@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["NCFY8Z7D97.com.harvestidea.peen"],
+        "components": [
+          {
+            "/": "/auth/callback",
+            "comment": "Handles Supabase auth deep links (email confirmation, password reset)"
+          }
+        ]
+      }
+    ]
+  }
+}
