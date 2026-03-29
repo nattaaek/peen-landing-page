@@ -85,7 +85,7 @@ Use these for gradients, hero glows, and subtle UI tints. Never as primary text.
 ## 3. Core Components
 
 ### Buttons
-- **Primary:** Gradient `brand` → `brand-2`, text `#041013`, weight 800, pill radius, min-height 44px, shadow default. Use for main CTAs (Get the App, Join waitlist).
+- **Primary:** Gradient `brand` → `brand-2`, text `#041013`, weight 800, pill radius, min-height 44px, shadow default. Use for main CTAs (Get the App, App Store / Google Play).
 - **Secondary:** Transparent bg, border `rgba(255,255,255,.15)`, text `text`. Use for secondary actions (View Screens).
 - **CTA (compact):** Same as primary with smaller padding (e.g. `.65rem 1rem`) for nav.
 - **Icon button:** 44×44px, pill, border `rgba(255,255,255,.18)`, bg `rgba(255,255,255,.06)`. Use for menu toggle.
@@ -158,11 +158,10 @@ Define hex (or refs to the main palette) in `ci-tokens.json`; use in topo view, 
 ### Voice and tone
 - **Headlines:** Short, action-oriented (“Conquer routes. Log sends. Push higher.”).
 - **Body:** Clear, benefit-led; mention offline, privacy, and control.
-- **CTAs:** Direct (“Get the App,” “Join the waitlist,” “Get Started Free”).
+- **CTAs:** Direct (“Get the App,” “App Store,” “Google Play,” “See features”).
 
 ### Trust and legal
-- **Placement:** Legal links in footer and (on mobile) in nav panel. Waitlist form must include “By joining you agree to our Terms of Use and Privacy Policy” with links.
-- **Waitlist disclosure:** If the form collects more than email (e.g. referral/UTM data), disclose what is collected and why (in Privacy Policy and optionally one line near the form).
+- **Placement:** Legal links in footer and (on mobile) in nav panel. If you add an email signup form, include “By joining you agree to our Terms of Use and Privacy Policy” with links and disclose what is collected (Privacy Policy + optional line near the form).
 - **Legal pages:** Same header/footer as landing; body max-width 720px; H1 + last updated; sections with H2; contact mailto in brand color.
 
 ### Social proof
@@ -230,7 +229,7 @@ Define hex (or refs to the main palette) in `ci-tokens.json`; use in topo view, 
 - Introduce new accent colors or typefaces without updating this guide.
 - Use motion for critical feedback only (e.g. focus); keep heavy animation decorative.
 - Put primary CTAs inside or behind 3D canvas.
-- Omit Privacy/Terms from footer or waitlist context.
+- Omit Privacy/Terms from footer or download CTA context.
 
 ---
 
@@ -241,7 +240,7 @@ Define hex (or refs to the main palette) in `ci-tokens.json`; use in topo view, 
 - [ ] Buttons and links have focus ring and min 44px target.
 - [ ] Skip link present (landing/legal); main landmark has id for skip target.
 - [ ] Reduced motion respected (parallax/3D/reveal disabled or static).
-- [ ] Footer includes Privacy, Terms, Contact; waitlist form includes legal line.
+- [ ] Footer includes Privacy, Terms, Contact; store links point to live listings.
 - [ ] No new one-off styles that should be tokens or components (refactor into CI first).
 - [ ] Interactive form controls and toggles use `control-border` (not decorative border tokens).
 
