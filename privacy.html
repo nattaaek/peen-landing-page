@@ -6,57 +6,69 @@
   <title>Privacy Policy — Peen</title>
   <meta name="description" content="Privacy Policy for Peen climbing app. How we collect, use, and protect your data." />
   <link rel="canonical" href="https://peen.app/privacy.html" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="assets/app-icon.jpg"/>
+  <link rel="stylesheet" href="tokens.css"/>
   <style>
-    /* Peen CI — docs/CI_STYLE_GUIDE.md */
-    :root{
-      --primary-black:#000; --primary-white:#fff;
-      --bg:var(--primary-black); --bg-soft:#111; --card:#1a1a1a;
-      --text:var(--primary-white); --muted:#a0a0a0;
-      --brand:#d4c8f9; --brand-2:#fae3b9; --text-on-brand:#041013;
-      --border-default:rgba(255,255,255,.06); --border-muted:rgba(255,255,255,.08);
-      --control-border:rgba(255,255,255,.30); --control-surface:#222;
-      --radius:16px; --maxw:1200px; --legal-maxw:720px;
-    }
+    :root{--maxw:1240px;--legal-maxw:860px;}
     *{box-sizing:border-box}
-    body{margin:0;font-family:'Lexend',system-ui,sans-serif;color:var(--text);background:var(--bg);line-height:1.7;-webkit-font-smoothing:antialiased;padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left)}
-    a{color:inherit;text-decoration:none}
+    html,body{margin:0;padding:0;background:var(--peen-paper);color:var(--peen-charcoal);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+    a{color:inherit}
+
     .container{width:min(100% - 2rem,var(--maxw));margin-inline:auto}
-    header{position:sticky;top:0;z-index:60;backdrop-filter:blur(10px);background:linear-gradient(to bottom,rgba(0,0,0,.9),rgba(0,0,0,.55));border-bottom:1px solid var(--border-default);padding-top:env(safe-area-inset-top)}
-    .nav{display:flex;align-items:center;justify-content:space-between;padding:.8rem 0;gap:.75rem}
-    .logo{display:inline-flex;align-items:center;gap:.6rem;font-weight:800}
-    .logo-mark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:var(--text-on-brand);font-weight:900}
-    .nav a{color:var(--muted);font-weight:600}
-    .nav a:hover{color:var(--text)}
-    .btn{display:inline-flex;align-items:center;padding:.65rem 1rem;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--brand-2));color:var(--text-on-brand);font-weight:800;border:0;cursor:pointer}
-    .btn:focus-visible{outline:3px solid #fff;outline-offset:2px}
-    main{padding:3rem 0 4rem}
+    .skip-link{position:absolute;top:-100px;left:0;padding:.75rem 1rem;background:var(--tint);color:#fff;font-weight:700;z-index:100;transition:top .2s ease}
+    .skip-link:focus{top:12px;outline:3px solid #fff;outline-offset:2px}
+
+    header{
+      position:sticky;top:0;z-index:60;
+      padding:14px max(16px, 5vw);
+      background:rgba(252,251,254,0.78);
+      backdrop-filter:blur(14px) saturate(140%);
+      border-bottom:1px solid var(--separator);
+    }
+    .nav{max-width:var(--maxw);margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+    .brand img{width:32px;height:32px;border-radius:8px}
+    .brand span{font-size:22px;font-weight:700;letter-spacing:-1px}
+    .navlinks{display:flex;align-items:center;gap:16px}
+    .navlinks a{text-decoration:none;font-size:14px;font-weight:500;opacity:.85}
+    .navlinks a:hover{opacity:1}
+    .btn{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:9px 16px;background:var(--peen-charcoal);color:#fff;border-radius:999px;
+      font-size:13px;font-weight:600;text-decoration:none;
+      box-shadow:0 6px 14px rgba(0,0,0,0.10)
+    }
+
+    main{padding:44px 0 80px}
     .legal-content{max-width:var(--legal-maxw);margin-inline:auto}
-    .legal-content h1{font-size:clamp(1.5rem,4vw,2rem);margin:0 0 0.5rem}
-    .legal-content .updated{color:var(--muted);font-size:0.9rem;margin-bottom:2rem}
-    .legal-content h2{font-size:1.2rem;margin:2rem 0 0.75rem}
-    .legal-content p,.legal-content li{margin:0 0 0.75rem;color:var(--text)}
-    .legal-content ul{padding-left:1.5rem;margin:0 0 1rem}
-    .legal-placeholder{background:rgba(255,255,255,.06);border:1px dashed rgba(255,255,255,.2);border-radius:var(--radius);padding:1.5rem;color:var(--muted);font-style:italic;margin:1rem 0}
-    footer{padding:2.2rem 0;color:var(--muted);border-top:1px solid var(--border-default)}
-    .footer-inner{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
-    .footer-links{display:flex;flex-wrap:wrap;gap:1rem;align-items:center}
-    .footer-links a{color:var(--muted);font-weight:600}
-    .footer-links a:hover{color:var(--text)}
-    .skip-link{position:absolute;top:-100px;left:0;padding:.75rem 1rem;background:var(--brand);color:var(--text-on-brand);font-weight:700;z-index:100;transition:top .2s ease}
-    .skip-link:focus{top:0;outline:3px solid #fff;outline-offset:2px}
+    .legal-content h1{margin:0 0 8px;font-size:clamp(34px,4vw,44px);line-height:1.02;letter-spacing:-1.2px}
+    .legal-content .updated{color:var(--fg-2);font-size:14px;margin:0 0 22px}
+    .legal-content h2{font-size:20px;letter-spacing:-0.4px;margin:28px 0 10px}
+    .legal-content p,.legal-content li{margin:0 0 12px;color:var(--peen-charcoal);line-height:1.75}
+    .legal-content ul{padding-left:1.2rem;margin:0 0 14px}
+    .legal-meta{color:var(--fg-2);font-size:14px;line-height:1.6;margin:0 0 26px}
+    .legal-meta a{color:var(--tint);text-decoration:none}
+    .legal-meta a:hover{text-decoration:underline}
+
+    footer{background:var(--peen-charcoal);color:rgba(255,255,255,0.72);padding:44px 0 24px;margin-top:40px}
+    .footer-inner{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap}
+    .footer-links{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+    .footer-links a{color:rgba(255,255,255,0.72);text-decoration:none;font-weight:500}
+    .footer-links a:hover{color:#fff}
   </style>
 </head>
 <body>
   <a href="#main-content" class="skip-link">Skip to main content</a>
   <header aria-label="Top navigation">
-    <div class="container nav">
-      <a href="index.html" class="logo" aria-label="Peen home"><span class="logo-mark">⛰</span><span>Peen</span></a>
-      <nav aria-label="Primary">
+    <div class="nav">
+      <a href="index.html" class="brand" aria-label="peen home">
+        <img src="assets/app-icon.jpg" alt="" />
+        <span>peen</span>
+      </a>
+      <nav class="navlinks" aria-label="Primary">
         <a href="index.html">Home</a>
-        <a href="index.html#download" class="btn">Get the App</a>
+        <a href="terms.html">Terms</a>
+        <a href="index.html#download" class="btn">Get the app</a>
       </nav>
     </div>
   </header>
@@ -64,11 +76,11 @@
     <article class="container legal-content">
       <h1>Privacy Policy</h1>
       <p class="updated">Effective Date: February 22, 2025</p>
-      <p class="legal-content-meta" style="color:var(--muted);font-size:0.9rem;margin-bottom:2rem">
+      <p class="legal-meta">
         App Name: Peen<br>
         Company: Harvest Idea Co., Ltd<br>
-        Website: <a href="https://peen.app/" style="color:var(--brand)">https://peen.app/</a><br>
-        Contact Email: <a href="mailto:hello@peen.app" style="color:var(--brand)">hello@peen.app</a>
+        Website: <a href="https://peen.app/">https://peen.app/</a><br>
+        Contact Email: <a href="mailto:hello@peen.app">hello@peen.app</a>
       </p>
 
       <section aria-labelledby="intro-heading">
@@ -129,7 +141,7 @@
           <li>Data portability</li>
           <li>Withdraw consent (where consent is the basis)</li>
         </ul>
-        <p>To exercise these rights, contact us at <a href="mailto:hello@peen.app" style="color:var(--brand)">hello@peen.app</a>.</p>
+        <p>To exercise these rights, contact us at <a href="mailto:hello@peen.app" style="color:var(--tint)">hello@peen.app</a>.</p>
       </section>
 
       <section aria-labelledby="sharing-heading">
@@ -162,15 +174,15 @@
         <p>
           Harvest Idea Co., Ltd<br>
           Bangkok, Thailand<br>
-          Website: <a href="https://peen.app/" style="color:var(--brand)">https://peen.app/</a><br>
-          Email: <a href="mailto:hello@peen.app" style="color:var(--brand)">hello@peen.app</a>
+          Website: <a href="https://peen.app/" style="color:var(--tint)">https://peen.app/</a><br>
+          Email: <a href="mailto:hello@peen.app" style="color:var(--tint)">hello@peen.app</a>
         </p>
       </section>
     </article>
   </main>
   <footer>
     <div class="container footer-inner">
-      <div>© <span id="year"></span> Peen</div>
+      <div>© <span id="year"></span> peen</div>
       <nav class="footer-links" aria-label="Legal and contact">
         <a href="privacy.html">Privacy Policy</a>
         <a href="terms.html">Terms of Use</a>

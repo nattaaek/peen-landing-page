@@ -1,0 +1,12 @@
+{
+  "name": "peen-landing-page",
+  "private": true,
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "build:hero": "esbuild js/legacy/hero-glb.js --bundle --format=iife --minify --outfile=js/legacy/hero-glb.bundle.js --legal-comments=none"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "three": "0.170.0"
+  }
+}
