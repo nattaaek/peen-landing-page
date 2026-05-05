@@ -2,6 +2,7 @@
 // Uses primitives.jsx + phone-screens.jsx
 
 function Nav({ tweaks, setTweak }) {
+  const APP_STORE_URL = 'https://apps.apple.com/th/app/peen-climbing-companion/id6759548288';
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
@@ -19,7 +20,7 @@ function Nav({ tweaks, setTweak }) {
           <a key={l} href={h} style={{ fontFamily: PFONT, fontSize: 14, fontWeight: 500, color: PEEN.fg1, textDecoration: 'none', opacity: 0.85 }}>{l}</a>
         ))}
       </div>
-      <a href="https://apps.apple.com/app/peen" target="_blank" rel="noopener noreferrer" style={{
+      <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '9px 16px', background: PEEN.fg1, color: '#fff',
         borderRadius: 999, fontFamily: PFONT, fontSize: 13, fontWeight: 600,
@@ -32,6 +33,7 @@ function Nav({ tweaks, setTweak }) {
 }
 
 function Hero({ tweaks }) {
+  const APP_STORE_URL = 'https://apps.apple.com/th/app/peen-climbing-companion/id6759548288';
   return (
     <section id="top" style={{
       position: 'relative', minHeight: '100vh', overflow: 'hidden',
@@ -93,7 +95,7 @@ function Hero({ tweaks }) {
           </p>
 
           <div style={{ marginTop: 30, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <a href="https://apps.apple.com/app/peen" target="_blank" rel="noopener noreferrer" style={{
+            <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
               padding: '14px 22px', borderRadius: 14,
               background: '#000', color: '#fff', textDecoration: 'none',
@@ -478,6 +480,7 @@ function ForGyms({ tweaks }) {
 
 // ----- Final CTA -----
 function FinalCTA({ tweaks }) {
+  const APP_STORE_URL = 'https://apps.apple.com/th/app/peen-climbing-companion/id6759548288';
   return (
     <section id="download" style={{
       padding: '120px max(20px, 5vw)',
@@ -503,7 +506,7 @@ function FinalCTA({ tweaks }) {
         </Reveal>
         <Reveal delay={280}>
           <div style={{ marginTop: 36, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="https://apps.apple.com/app/peen" target="_blank" rel="noopener noreferrer" style={{
+            <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" style={{
               display: 'inline-flex', alignItems: 'center', gap: 10,
               padding: '16px 26px', borderRadius: 14,
               background: '#000', color: '#fff', textDecoration: 'none',
