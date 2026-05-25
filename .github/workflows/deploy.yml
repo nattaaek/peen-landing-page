@@ -12,9 +12,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web-app/package-lock.json
+
+      - name: Build web app
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-anon-key
+          VITE_PEEN_API_URL: https://api.peen.app
+        run: npm ci --prefix web-app && npm run build --prefix web-app
+
       - name: Verify key files exist
         run: |
-          for f in index.html privacy.html terms.html .well-known/apple-app-site-association; do
+          for f in index.html privacy.html terms.html .well-known/apple-app-site-association app/index.html auth/callback/index.html; do
             test -f "$f" || { echo "Missing: $f"; exit 1; }
           done
           echo "Key files OK"

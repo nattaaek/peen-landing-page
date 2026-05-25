@@ -1,5 +1,14 @@
 # Dependencies
 node_modules/
+web-app/node_modules/
+
+# Vite build output (built in CI / Vercel)
+app/
+auth/callback/
+
+# Local env
+web-app/.env.local
+.env.local
 
 # IDE / editor
 .cursor/
@@ -7,3 +16,5 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+.vercel
+.env*

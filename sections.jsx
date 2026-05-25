@@ -3,6 +3,7 @@
 
 function Nav({ tweaks, setTweak }) {
   const APP_STORE_URL = 'https://apps.apple.com/th/app/peen-climbing-companion/id6759548288';
+  const WEB_APP_URL = '/app/';
   return (
     <nav style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
@@ -20,14 +21,24 @@ function Nav({ tweaks, setTweak }) {
           <a key={l} href={h} style={{ fontFamily: PFONT, fontSize: 14, fontWeight: 500, color: PEEN.fg1, textDecoration: 'none', opacity: 0.85 }}>{l}</a>
         ))}
       </div>
-      <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '9px 16px', background: PEEN.fg1, color: '#fff',
-        borderRadius: 999, fontFamily: PFONT, fontSize: 13, fontWeight: 600,
-        textDecoration: 'none', boxShadow: '0 6px 14px rgba(0,0,0,0.10)',
-      }}>
-        <PIcon name="apple" size={14} color="#fff"/> {tweaks.ctaText}
-      </a>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <a href={WEB_APP_URL} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '9px 16px', background: '#fff', color: PEEN.fg1,
+          borderRadius: 999, fontFamily: PFONT, fontSize: 13, fontWeight: 600,
+          textDecoration: 'none', border: `1px solid ${PEEN.sep}`,
+        }}>
+          Use on web
+        </a>
+        <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '9px 16px', background: PEEN.fg1, color: '#fff',
+          borderRadius: 999, fontFamily: PFONT, fontSize: 13, fontWeight: 600,
+          textDecoration: 'none', boxShadow: '0 6px 14px rgba(0,0,0,0.10)',
+        }}>
+          <PIcon name="apple" size={14} color="#fff"/> {tweaks.ctaText}
+        </a>
+      </div>
     </nav>
   );
 }
@@ -481,6 +492,7 @@ function ForGyms({ tweaks }) {
 // ----- Final CTA -----
 function FinalCTA({ tweaks }) {
   const APP_STORE_URL = 'https://apps.apple.com/th/app/peen-climbing-companion/id6759548288';
+  const WEB_APP_URL = '/app/';
   return (
     <section id="download" style={{
       padding: '120px max(20px, 5vw)',
@@ -519,6 +531,15 @@ function FinalCTA({ tweaks }) {
                 <span style={{ fontSize: 17, fontWeight: 700 }}>App Store</span>
               </span>
             </a>
+            <a href={WEB_APP_URL} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 10,
+              padding: '16px 26px', borderRadius: 14,
+              background: PEEN.tint, color: '#fff',
+              textDecoration: 'none', fontFamily: PFONT, fontSize: 16, fontWeight: 600,
+              boxShadow: '0 12px 22px rgba(213,90,31,0.28)',
+            }}>
+              Open web app
+            </a>
             <a href="mailto:hello@peen.app?subject=Launch%20flyer%20for%20my%20gym" style={{
               display: 'inline-flex', alignItems: 'center', gap: 10,
               padding: '16px 26px', borderRadius: 14,
@@ -552,7 +573,7 @@ function Footer() {
           {[
             { h: 'product', items: [['Features','#features'],['Send types','#sends'],['Stats','#community'],['Maps','#community']] },
             { h: 'community', items: [['Crew','#community'],['Partners','#community'],['Challenges','#community']] },
-            { h: 'company', items: [['About','#top'],['Privacy','mailto:hello@peen.app?subject=Privacy'],['Terms','mailto:hello@peen.app?subject=Terms'],['Press kit','mailto:hello@peen.app?subject=Press%20kit']] },
+            { h: 'company', items: [['About','#top'],['Use on web','/app/'],['Privacy','privacy.html'],['Terms','terms.html'],['Press kit','mailto:hello@peen.app?subject=Press%20kit']] },
           ].map(col => (
             <div key={col.h}>
               <div style={{ fontFamily: PFONT, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: PEEN.tint, marginBottom: 12 }}>{col.h}</div>

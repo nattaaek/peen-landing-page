@@ -1,6 +1,8 @@
 # Deployment (Vercel)
 
-The site is deployed on **Vercel**. Push to `main` triggers a deploy via Vercel’s Git integration. CI runs in GitHub Actions (link check + key files); it does not perform the deploy.
+The site is deployed on **Vercel**. Push to `main` triggers a deploy via Vercel’s Git integration. CI runs in GitHub Actions (link check + key files + web app build); it does not perform the deploy.
+
+The **web app** at `/app/` is built from [`web-app/`](../web-app/). See [WEB_APP.md](./WEB_APP.md) for env vars (`VITE_SUPABASE_*`, `VITE_PEEN_API_URL`) and local dev.
 
 ## Post-deploy: social preview image
 

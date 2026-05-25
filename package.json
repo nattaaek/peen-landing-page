@@ -5,7 +5,9 @@
     "start": "python3 -m http.server 8080",
     "build:vendor:three": "esbuild js/vendor-three.js --bundle --format=iife --minify --outfile=js/vendor-three.bundle.js --legal-comments=none",
     "build:landing:js": "esbuild tweaks-panel.jsx primitives.jsx hero-3d.jsx phone-screens.jsx sections.jsx app.jsx --format=iife --minify --outdir=js --entry-names=[name].bundle --jsx=transform --legal-comments=none",
-    "build:hero": "esbuild js/legacy/hero-glb.js --bundle --format=iife --minify --outfile=js/legacy/hero-glb.bundle.js --legal-comments=none"
+    "build:hero": "esbuild js/legacy/hero-glb.js --bundle --format=iife --minify --outfile=js/legacy/hero-glb.bundle.js --legal-comments=none",
+    "build:web-app": "npm ci --prefix web-app && npm run build --prefix web-app",
+    "build": "npm run build:landing:js && npm run build:vendor:three && npm run build:web-app"
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
