@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Icon } from '../../components/Icon'
 import { useAuth } from './AuthProvider'
 
@@ -11,6 +12,19 @@ export function LoginGate({
   onClose: () => void
 }) {
   const { signInWithGoogle, signInWithApple } = useAuth()
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const runOAuth = async (signIn: () => Promise<void>) => {
+    setError(null)
+    setBusy(true)
+    try {
+      await signIn()
+    } catch (e) {
+      setBusy(false)
+      setError(e instanceof Error ? e.message : 'Could not start sign-in.')
+    }
+  }
 
   if (!open) return null
 
@@ -25,11 +39,17 @@ export function LoginGate({
         <p style={{ color: 'var(--fg-2)', marginBottom: 20, lineHeight: 1.5 }}>
           {message ?? 'Use the same account as iOS and Android — your sends, crew, and projects stay in sync.'}
         </p>
+        {error ? (
+          <p style={{ color: 'var(--danger, #b3261e)', marginBottom: 12, lineHeight: 1.4 }} role="alert">
+            {error}
+          </p>
+        ) : null}
         <button
           type="button"
           className="btn btn-secondary"
           style={{ width: '100%', marginBottom: 10, justifyContent: 'center', gap: 10 }}
-          onClick={() => signInWithGoogle()}
+          disabled={busy}
+          onClick={() => runOAuth(signInWithGoogle)}
         >
           <Icon name="google" size={18} /> Continue with Google
         </button>
@@ -37,7 +57,8 @@ export function LoginGate({
           type="button"
           className="btn btn-secondary"
           style={{ width: '100%', justifyContent: 'center' }}
-          onClick={() => signInWithApple()}
+          disabled={busy}
+          onClick={() => runOAuth(signInWithApple)}
         >
           Continue with Apple
         </button>

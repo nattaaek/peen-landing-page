@@ -32,7 +32,19 @@ Vercel runs `npm run build` (landing JS + web app). Set the same `VITE_*` variab
 
 ## Supabase redirect URLs
 
-Allow:
+In [Supabase Dashboard](https://supabase.com/dashboard) → **Authentication** → **URL Configuration**:
 
-- `https://peen.app/auth/callback`
-- `http://localhost:5173/auth/callback` (if testing OAuth against dev)
+- **Site URL:** `https://peen.app`
+- **Redirect URLs** (add each):
+  - `https://peen.app/auth/callback`
+  - `http://localhost:5173/auth/callback` (Vite dev OAuth)
+
+Enable **Google** under **Authentication** → **Providers**. In Google Cloud Console, the OAuth client’s **Authorized redirect URI** must be Supabase’s callback (shown on the Google provider page), e.g. `https://agylfcrvetijpfavhndc.supabase.co/auth/v1/callback`.
+
+The web app uses **PKCE**: sign-in starts on `/app/`, Google redirects to `/auth/callback?code=…`, and the callback page exchanges that code (same browser tab/storage as the sign-in click).
+
+### Google sign-in still fails?
+
+1. Confirm redirect URLs above are saved in Supabase (not only in local `supabase/config.toml`).
+2. After deploying a callback fix, hard-refresh and try again in one tab (PKCE verifier lives in `localStorage` until callback runs).
+3. If the callback page shows an error message, use that text — common cases are redirect URL not allowlisted or Google provider disabled.
