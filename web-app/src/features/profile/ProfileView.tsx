@@ -11,11 +11,20 @@ export function ProfileView({ onSignIn }: { onSignIn: () => void }) {
 
   if (!accessToken) {
     return (
-      <LoginRequired
-        title="Your profile"
-        hint="Sign in to see sends, grade pyramid, and activity."
-        onSignIn={onSignIn}
-      />
+      <div className="view-profile">
+        <div className="page-head">
+          <div>
+            <h1 className="page-title">Profile</h1>
+            <p className="page-sub">Sends, grade pyramid, and activity heatmap.</p>
+          </div>
+        </div>
+        <LoginRequired
+          icon="profile"
+          title="Your climbing identity"
+          body="Sign in to see sends, grade pyramid, and recent activity — synced with iOS."
+          onSignIn={onSignIn}
+        />
+      </div>
     )
   }
 
@@ -25,8 +34,16 @@ export function ProfileView({ onSignIn }: { onSignIn: () => void }) {
 
   return (
     <div className="view-profile">
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">{profile?.nickname ?? profile?.username ?? 'Climber'}</h1>
+          {profile?.bio && <p className="page-sub">{profile.bio}</p>}
+        </div>
+      </div>
       <div className="profile-hero card">
-        <h1>{profile?.nickname ?? profile?.username ?? 'Climber'}</h1>
+        <h2 className="h4" style={{ margin: '0 0 12px' }}>
+          Stats
+        </h2>
         {profile?.bio && <p className="muted">{profile.bio}</p>}
         <div className="stat-row">
           <Stat label="Sends" value={String(stats.total)} />

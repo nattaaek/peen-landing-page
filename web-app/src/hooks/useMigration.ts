@@ -23,6 +23,26 @@ export function usePublicFeed(limit = 30) {
   })
 }
 
+/** Follow graph for Following feed tab (same as iOS SocialFeedManager). */
+export function useFollowingIds() {
+  const { accessToken, user } = useAuth()
+  return useQuery({
+    queryKey: ['social', 'following', user?.id],
+    queryFn: async () => {
+      const rows = await migrationInvoke<{ followed_id?: string; followedId?: string }[]>(
+        'social',
+        'loadFollowing',
+        { user_id: user!.id },
+        accessToken!,
+      )
+      return new Set(
+        rows.map((r) => r.followed_id ?? r.followedId).filter((id): id is string => !!id),
+      )
+    },
+    enabled: !!accessToken && !!user?.id,
+  })
+}
+
 export function useMyLogs() {
   const { accessToken, user } = useAuth()
   return useQuery({

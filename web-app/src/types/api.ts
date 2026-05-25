@@ -50,7 +50,7 @@ export interface FeedClimbRow {
   personal_rating?: number
   created_at?: string
   route?: ApiRoute
-  profile?: { nickname?: string; username?: string; avatar_url?: string }
+  profile?: { id?: string; nickname?: string; username?: string; avatar_url?: string }
 }
 
 export interface ClimbLogRow {

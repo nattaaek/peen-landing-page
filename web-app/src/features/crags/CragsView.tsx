@@ -25,8 +25,11 @@ export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => v
 
   return (
     <div className="view-crags">
-      <div className="view-head">
-        <h1>Crags & gyms</h1>
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">Crags & gyms</h1>
+          <p className="page-sub">Browse outdoor areas and gyms — same catalog as the app.</p>
+        </div>
         <div className="chip-row">
           {(['all', 'crag', 'gym'] as const).map((f) => (
             <button

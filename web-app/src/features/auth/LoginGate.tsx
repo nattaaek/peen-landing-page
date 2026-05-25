@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { Icon } from '../../components/Icon'
+import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { Icon, type IconName } from '../../components/Icon'
 import { useAuth } from './AuthProvider'
 
 export function LoginGate({
@@ -68,22 +69,53 @@ export function LoginGate({
 }
 
 export function LoginRequired({
+  icon = 'profile',
   title,
   hint,
+  body,
   onSignIn,
+  secondary,
 }: {
+  icon?: IconName
   title: string
-  hint: string
+  hint?: string
+  body?: string
   onSignIn: () => void
+  secondary?: ReactNode
 }) {
+  const text = body ?? hint ?? ''
   return (
-    <div className="empty-state">
-      <div className="empty-blur" aria-hidden />
-      <h2>{title}</h2>
-      <p>{hint}</p>
-      <button type="button" className="btn btn-primary" onClick={onSignIn}>
-        <Icon name="google" size={16} /> Continue with Google
-      </button>
+    <div className="login-required">
+      <svg className="login-required-topo" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" aria-hidden>
+        <g fill="none" stroke="#1F1F20" strokeWidth="0.8">
+          <path d="M-10 160 C 60 130, 120 150, 180 120 S 320 100, 410 120" />
+          <path d="M-10 130 C 60 100, 120 120, 180 90  S 320 70,  410 90" />
+          <path d="M-10 100 C 60 70,  120 90,  180 60  S 320 40,  410 60" />
+          <path d="M-10 70  C 60 40,  120 60,  180 30  S 320 10,  410 30" />
+        </g>
+      </svg>
+      <div className="login-required-inner">
+        <div className="login-required-icon">
+          <Icon name={icon} size={30} />
+        </div>
+        <h2>{title}</h2>
+        <p>{text}</p>
+        <div className="login-required-actions">
+          <button type="button" className="btn btn-primary" onClick={onSignIn}>
+            <Icon name="google" size={18} /> Continue with Google
+          </button>
+          {secondary}
+        </div>
+        <p className="login-required-foot">You can keep browsing crags without an account.</p>
+      </div>
     </div>
+  )
+}
+
+export function BrowseCragsLink() {
+  return (
+    <Link to="/crags" className="btn btn-secondary" style={{ height: 46 }}>
+      Browse crags instead
+    </Link>
   )
 }

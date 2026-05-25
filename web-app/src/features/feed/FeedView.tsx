@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Avatar, Icon, SendBadge, Stars } from '../../components/Icon'
-import { LoginRequired } from '../auth/LoginGate'
+import { BrowseCragsLink, LoginRequired } from '../auth/LoginGate'
 import { useAuth } from '../auth/AuthProvider'
-import { useLikeClimb, usePublicFeed } from '../../hooks/useMigration'
+import { useFollowingIds, useLikeClimb, usePublicFeed } from '../../hooks/useMigration'
 import type { FeedClimbRow } from '../../types/api'
 
 export function FeedView({
@@ -15,40 +15,68 @@ export function FeedView({
   const { accessToken } = useAuth()
   const [tab, setTab] = useState<'Following' | 'Everyone'>('Everyone')
   const feedQ = usePublicFeed()
+  const followingQ = useFollowingIds()
   const like = useLikeClimb()
+
+  const allRows = feedQ.data ?? []
+  const followingIds = followingQ.data ?? new Set<string>()
+  const rows = useMemo(() => {
+    if (tab !== 'Following') return allRows
+    return allRows.filter((post) => {
+      const authorId = post.user_id ?? post.profile?.id
+      return authorId != null && followingIds.has(authorId)
+    })
+  }, [allRows, tab, followingIds])
 
   if (!accessToken) {
     return (
-      <LoginRequired
-        title="Your feed lives here"
-        hint="Sign in to see sends from climbers you follow and the wider community."
-        onSignIn={onSignIn}
-      />
+      <div className="view-feed">
+        <div className="page-head">
+          <div>
+            <h1 className="page-title">Feed</h1>
+            <p className="page-sub">Sends from your crew and the wider community.</p>
+          </div>
+        </div>
+        <LoginRequired
+          icon="feed"
+          title="Sign in to see the feed"
+          body="Follow climbers, like sends, comment, and post your own — the same feed as on iOS."
+          onSignIn={onSignIn}
+          secondary={<BrowseCragsLink />}
+        />
+        <div className="feed-guest-teaser" aria-hidden>
+          <div className="feed-guest-teaser-fade" />
+          <div className="feed-list feed-guest-teaser-blur">
+            {MOCK_TEASER.map((post) => (
+              <FeedCard key={post.id} post={post} onOpenRoute={() => {}} onLike={() => {}} />
+            ))}
+          </div>
+        </div>
+      </div>
     )
   }
 
-  const rows = feedQ.data ?? []
-
   return (
     <div className="view-feed">
-      <div className="view-head">
-        <h1>Feed</h1>
-        <div className="seg-control">
+      <div className="page-head">
+        <div>
+          <h1 className="page-title">Feed</h1>
+          <p className="page-sub">Sends from your crew and the wider community.</p>
+        </div>
+        <div className="segmented">
           {(['Following', 'Everyone'] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              className={tab === t ? 'active' : ''}
-              onClick={() => setTab(t)}
-            >
+            <button key={t} type="button" className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
               {t}
             </button>
           ))}
         </div>
       </div>
-      {tab === 'Following' && (
-        <p className="muted" style={{ padding: '0 24px 16px' }}>
-          Following feed uses the same API as Everyone once your follow graph has activity.
+      {tab === 'Following' && followingQ.isSuccess && rows.length === 0 && (
+        <p className="muted" style={{ padding: '0 0 16px' }}>
+          No sends from people you follow yet.{' '}
+          <button type="button" className="link-btn" onClick={() => setTab('Everyone')}>
+            Browse everyone
+          </button>
         </p>
       )}
       {feedQ.isLoading && <p className="muted">Loading feed…</p>}
@@ -62,7 +90,7 @@ export function FeedView({
             onLike={() => like.mutate(post.id)}
           />
         ))}
-        {!feedQ.isLoading && rows.length === 0 && (
+        {!feedQ.isLoading && rows.length === 0 && tab === 'Everyone' && (
           <p className="muted">No public sends yet. Log a climb to show up here.</p>
         )}
       </div>
@@ -110,3 +138,23 @@ function FeedCard({
     </article>
   )
 }
+
+const MOCK_TEASER: FeedClimbRow[] = [
+  {
+    id: 't1',
+    send_type: 'onsight',
+    notes: 'Stuck the crux on the second go.',
+    like_count: 12,
+    comment_count: 3,
+    route: { id: 'mock-1', name: 'The Coffin', grade: '7a' },
+    profile: { nickname: 'Maya' },
+  },
+  {
+    id: 't2',
+    send_type: 'flash',
+    like_count: 28,
+    comment_count: 5,
+    route: { id: 'mock-2', name: 'Heart of Darkness', grade: '7b+' },
+    profile: { nickname: 'Alex' },
+  },
+]

@@ -34,10 +34,13 @@ Vercel runs `npm run build` (landing JS + web app). Set the same `VITE_*` variab
 
 In [Supabase Dashboard](https://supabase.com/dashboard) → **Authentication** → **URL Configuration**:
 
-- **Site URL:** `https://peen.app`
-- **Redirect URLs** (add each):
-  - `https://peen.app/auth/callback`
+- **Site URL:** `https://peen.app` (not `com.harvestidea.peen://callback` — that scheme is for the native app only; Safari cannot open it during web Google sign-in and shows “address is invalid”.)
+- **Redirect URLs** — keep the iOS scheme if you still use it, **and** add the web URL (Supabase allows multiple):
+  - `https://peen.app/auth/callback` ← **required for website + iOS Universal Links**
+  - `com.harvestidea.peen://callback` (optional legacy native deep link)
   - `http://localhost:5173/auth/callback` (Vite dev OAuth)
+
+Click **Save changes** on both sections after editing.
 
 Enable **Google** under **Authentication** → **Providers**. In Google Cloud Console, the OAuth client’s **Authorized redirect URI** must be Supabase’s callback (shown on the Google provider page), e.g. `https://agylfcrvetijpfavhndc.supabase.co/auth/v1/callback`.
 
