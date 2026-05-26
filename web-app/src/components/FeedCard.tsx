@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { profileDisplayName, profileHandle } from '../lib/peen-api/profiles'
 import { Icon, SendBadge } from './Icon'
+import { PhotoLightbox } from './PhotoLightbox'
 import { SEND_COLORS } from '../types/api'
 import type { FeedClimbRow } from '../types/api'
 
@@ -32,6 +34,11 @@ function routeMeta(route: FeedClimbRow['route']) {
     route.length_meters != null ? `${route.length_meters}m` : null,
   ].filter(Boolean)
   return parts.join(' · ')
+}
+
+/** Only real uploaded photos — no placeholders. */
+function climbPhotoUrls(post: FeedClimbRow): string[] {
+  return (post.photo_urls ?? []).filter((u) => u?.trim().startsWith('http')).slice(0, 3)
 }
 
 function FeedUserAvatar({
@@ -73,6 +80,57 @@ function FeedUserAvatar({
   )
 }
 
+function FeedPhotoGrid({
+  urls,
+  onOpen,
+}: {
+  urls: string[]
+  onOpen: (index: number) => void
+}) {
+  const n = urls.length
+  const layout = n === 1 ? 'one' : n === 2 ? 'two' : 'three'
+  const show = urls.slice(0, 3)
+
+  return (
+    <div className={`feed-media ${layout}`}>
+      {layout === 'three' ? (
+        <>
+          <FeedPhotoButton url={show[0]} index={0} onOpen={onOpen} />
+          <div className="col">
+            <FeedPhotoButton url={show[1]} index={1} onOpen={onOpen} />
+            <FeedPhotoButton url={show[2]} index={2} onOpen={onOpen} />
+          </div>
+        </>
+      ) : (
+        show.map((url, i) => <FeedPhotoButton key={url} url={url} index={i} onOpen={onOpen} />)
+      )}
+    </div>
+  )
+}
+
+function FeedPhotoButton({
+  url,
+  index,
+  onOpen,
+}: {
+  url: string
+  index: number
+  onOpen: (index: number) => void
+}) {
+  return (
+    <button
+      type="button"
+      className="ph ph-btn"
+      style={{ backgroundImage: `url(${url})` }}
+      onClick={(e) => {
+        e.stopPropagation()
+        onOpen(index)
+      }}
+      aria-label="View full-size photo"
+    />
+  )
+}
+
 export function FeedCard({
   post,
   liked,
@@ -97,6 +155,8 @@ export function FeedCard({
   const when = formatWhen(post.created_at)
   const likes = post.like_count ?? 0
   const comments = post.comment_count ?? 0
+  const photos = climbPhotoUrls(post)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   return (
     <article className="feed-card">
@@ -147,6 +207,10 @@ export function FeedCard({
         <span className="grade">{post.route?.grade ?? '—'}</span>
       </div>
 
+      {photos.length > 0 ? (
+        <FeedPhotoGrid urls={photos} onOpen={(index) => setLightboxIndex(index)} />
+      ) : null}
+
       {post.notes ? <div className="feed-body">{post.notes}</div> : null}
 
       <footer className="feed-actions">
@@ -174,6 +238,15 @@ export function FeedCard({
           {sendItOn ? 'Sent it' : 'Send it'}
         </button>
       </footer>
+
+      {lightboxIndex != null ? (
+        <PhotoLightbox
+          urls={photos}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onIndexChange={setLightboxIndex}
+        />
+      ) : null}
     </article>
   )
 }

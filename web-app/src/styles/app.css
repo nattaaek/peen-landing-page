@@ -277,7 +277,58 @@ button.feed-route {
 .feed-media.two { grid-template-columns: 1fr 1fr; }
 .feed-media.three { grid-template-columns: 2fr 1fr; }
 .feed-media .ph { aspect-ratio: 4/3; background: var(--surface) center/cover; background-size: cover; position: relative; overflow: hidden; }
+.feed-media .ph-btn {
+  border: none; padding: 0; margin: 0; width: 100%; cursor: zoom-in;
+  display: block; font: inherit; color: inherit;
+}
+.feed-media .ph-btn:focus-visible { outline: 2px solid var(--tint); outline-offset: 2px; }
 .feed-media.three .col { display: grid; grid-template-rows: 1fr 1fr; gap: 2px; }
+
+.photo-lightbox-backdrop {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(0, 0, 0, 0.92);
+  animation: fadeIn .2s ease;
+}
+.photo-lightbox {
+  position: fixed; inset: 0; z-index: 81;
+  display: flex; align-items: center; justify-content: center;
+  padding: 56px 72px;
+  pointer-events: none;
+}
+.photo-lightbox > * { pointer-events: auto; }
+.photo-lightbox-img {
+  max-width: min(100%, 1200px);
+  max-height: calc(100vh - 112px);
+  width: auto; height: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  user-select: none;
+}
+.photo-lightbox-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 44px; height: 44px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 50%;
+}
+.photo-lightbox-close:hover { background: rgba(255, 255, 255, 0.22); }
+.photo-lightbox-nav {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 48px; height: 48px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 28px; line-height: 1;
+}
+.photo-lightbox-nav:hover { background: rgba(255, 255, 255, 0.22); }
+.photo-lightbox-prev { left: 16px; }
+.photo-lightbox-next { right: 16px; }
+.photo-lightbox-counter {
+  position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px; font-weight: 600;
+  pointer-events: none;
+}
 
 .feed-actions {
   display: flex; align-items: center; gap: 16px;
