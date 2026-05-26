@@ -111,6 +111,37 @@ export function Icon({
           <path d="M12 5v14M5 12h14" />
         </svg>,
       )
+    case 'mountain':
+      return wrap(
+        <svg {...p}>
+          <path d="m3 20 6-10 4 6 3-4 5 8z" />
+          <circle cx="17" cy="6" r="1.5" />
+        </svg>,
+      )
+    case 'share':
+      return wrap(
+        <svg {...p}>
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" />
+        </svg>,
+      )
+    case 'more':
+      return wrap(
+        <svg {...p}>
+          <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" />
+        </svg>,
+      )
+    case 'pin':
+      return wrap(
+        <svg {...p}>
+          <path d="M12 22s7-7 7-12a7 7 0 0 0-14 0c0 5 7 12 7 12z" />
+          <circle cx="12" cy="10" r="2.5" />
+        </svg>,
+      )
     case 'close':
       return wrap(
         <svg {...p}>
