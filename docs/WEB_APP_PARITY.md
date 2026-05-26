@@ -4,7 +4,11 @@ Reference design: `Peen Design System-10/peen-web/` (designer prototype).
 Production app: `peen-landing-page/web-app/` at [peen.app/app/](https://peen.app/app/).  
 Mobile reference: `peen-ios/peen/`.
 
-## Current state (~35–40% of iOS)
+## Honest status (May 2026)
+
+**Shell + layout** are close to the designer `peen-web` prototype. **Feed content** depends on real API data (photos, handles, route metadata); empty or sparse fields will still look simpler than mock data. **Filter chips** on Feed are visual-only until wired. **Partner names** in the right rail need richer `community.fetchPartners` payloads (today often shows crag only).
+
+## Current state (~45–50% of iOS)
 
 | Area | Design match | Feature parity |
 |------|--------------|----------------|

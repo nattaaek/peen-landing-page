@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Avatar, Icon, SendBadge, Stars } from '../../components/Icon'
+import { FeedCard } from '../../components/FeedCard'
+import { Icon } from '../../components/Icon'
 import { BrowseCragsLink, LoginRequired } from '../auth/LoginGate'
 import { useAuth } from '../auth/AuthProvider'
 import { CommentsSheet } from './CommentsSheet'
@@ -84,6 +85,23 @@ export function FeedView({
     }
   }
 
+  const filterChips = (
+    <div className="feed-filters">
+      <span className="chip outline">
+        <Icon name="bolt" size={12} /> Flash only
+      </span>
+      <span className="chip outline">
+        <Icon name="grade" size={12} /> 6c – 7b
+      </span>
+      <span className="chip outline">
+        <Icon name="pin" size={12} /> Within 50 km
+      </span>
+      <span className="chip outline">
+        <Icon name="calendar" size={12} /> Last 7 days
+      </span>
+    </div>
+  )
+
   if (!accessToken) {
     return (
       <div className="view-feed">
@@ -128,7 +146,7 @@ export function FeedView({
           <h1 className="page-title">Feed</h1>
           <p className="page-sub">Sends from your crew and the wider community.</p>
         </div>
-        <div className="segmented">
+        <div className="segmented" role="tablist">
           {(['Following', 'Everyone'] as const).map((t) => (
             <button key={t} type="button" className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
               {t}
@@ -136,16 +154,20 @@ export function FeedView({
           ))}
         </div>
       </div>
+
+      {filterChips}
+
       {tab === 'Following' && followingQ.isSuccess && rows.length === 0 && (
-        <p className="muted" style={{ padding: '0 0 16px' }}>
+        <p className="muted" style={{ maxWidth: 720, margin: '0 auto 16px' }}>
           No sends from people you follow yet.{' '}
           <button type="button" className="link-btn" onClick={() => setTab('Everyone')}>
             Browse everyone
           </button>
         </p>
       )}
-      {feedQ.isLoading && <p className="muted">Loading feed…</p>}
-      {feedQ.isError && <p className="error">Could not load feed.</p>}
+      {feedQ.isLoading && <p className="muted" style={{ maxWidth: 720, margin: '0 auto' }}>Loading feed…</p>}
+      {feedQ.isError && <p className="error" style={{ maxWidth: 720, margin: '0 auto' }}>Could not load feed.</p>}
+
       <div className="feed-list">
         {rows.map((post) => (
           <FeedCard
@@ -163,90 +185,37 @@ export function FeedView({
           <p className="muted">No public sends yet. Log a climb to show up here.</p>
         )}
       </div>
+
+      {!feedQ.isLoading && rows.length > 0 && (
+        <div className="feed-end">
+          That&apos;s everything. <a href="/app/crags">Find new climbers →</a>
+        </div>
+      )}
+
       <CommentsSheet post={commentPost} open={!!commentPost} onClose={() => setCommentPost(null)} />
     </div>
-  )
-}
-
-function FeedCard({
-  post,
-  liked,
-  sendItOn,
-  onOpenRoute,
-  onLike,
-  onSendIt,
-  onComment,
-}: {
-  post: FeedClimbRow
-  liked: boolean
-  sendItOn: boolean
-  onOpenRoute: () => void
-  onLike: () => void
-  onSendIt: () => void
-  onComment: () => void
-}) {
-  const name = post.profile?.nickname ?? post.profile?.username ?? 'Climber'
-  return (
-    <article className="feed-card">
-      <div className="feed-card-head">
-        <Avatar name={name} />
-        <div>
-          <strong>{name}</strong>
-          <div className="muted" style={{ fontSize: 13 }}>
-            {post.route?.name ?? 'Route'} · <SendBadge type={post.send_type} />
-          </div>
-        </div>
-      </div>
-      {post.notes && <p style={{ margin: '12px 0', lineHeight: 1.5 }}>{post.notes}</p>}
-      <button type="button" className="route-stripe" onClick={onOpenRoute}>
-        <span className="chip">{post.route?.grade}</span>
-        <span>{post.route?.name}</span>
-      </button>
-      <div className="feed-actions">
-        <button
-          type="button"
-          className={`icon-btn ${liked ? 'active' : ''}`}
-          onClick={onLike}
-          aria-label="Like"
-        >
-          <Icon name="heart" size={18} />
-          {post.like_count ?? 0}
-        </button>
-        <button type="button" className="icon-btn" onClick={onComment} aria-label="Comments">
-          <Icon name="comment" size={18} />
-          {post.comment_count ?? 0}
-        </button>
-        <button
-          type="button"
-          className={`icon-btn ${sendItOn ? 'active' : ''}`}
-          onClick={onSendIt}
-          aria-label="Send it"
-        >
-          <Icon name="share" size={18} />
-          Send it
-        </button>
-        {post.personal_rating != null && <Stars value={Math.round(post.personal_rating)} />}
-      </div>
-    </article>
   )
 }
 
 const MOCK_TEASER: FeedClimbRow[] = [
   {
     id: 't1',
-    send_type: 'onsight',
+    send_type: 'flash',
     notes: 'Stuck the crux on the second go.',
     like_count: 12,
     comment_count: 3,
-    route: { id: 'mock-1', name: 'The Coffin', grade: '7a' },
-    profile: { nickname: 'Maya' },
+    created_at: new Date(Date.now() - 2 * 3_600_000).toISOString(),
+    route: { id: 'mock-1', name: 'The Coffin', grade: '7a', area: { id: 'a1', name: 'Tonsai' }, length_meters: 18 },
+    profile: { nickname: 'Maya', username: 'maya' },
+    photo_urls: [''],
   },
   {
     id: 't2',
-    send_type: 'flash',
+    send_type: 'onsight',
     like_count: 28,
     comment_count: 5,
-    route: { id: 'mock-2', name: 'Heart of Darkness', grade: '7b+' },
-    profile: { nickname: 'Alex' },
+    created_at: new Date(Date.now() - 5 * 3_600_000).toISOString(),
+    route: { id: 'mock-2', name: 'Heart of Darkness', grade: '7b+', gym: { id: 'g1', name: 'Stone Locker' } },
+    profile: { nickname: 'Alex', username: 'alex' },
   },
 ]

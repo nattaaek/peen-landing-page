@@ -253,6 +253,15 @@ function RightRail({
             </div>
           </div>
         </div>
+        <div className="rail-weather-forecast">
+          {['Fri', 'Sat', 'Sun', 'Mon', 'Tue'].map((d, i) => (
+            <div key={d} className={`rail-weather-day ${i === 0 ? 'active' : ''}`}>
+              <div className="day-label">{d}</div>
+              <Icon name={i === 3 ? 'cloud' : 'sun'} size={16} />
+              <div className="day-temp">{[29, 30, 28, 25, 29][i]}°</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="rail-card">
@@ -279,13 +288,26 @@ function RightRail({
         ) : (
           partners.slice(0, 3).map((p) => (
             <div key={p.id} className="row" style={{ gap: 12, alignItems: 'flex-start' }}>
-              <Avatar name={p.crag_name ?? 'Partner'} size={36} />
+              <Avatar name={p.crag_name ?? 'P'} size={36} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{p.crag_name ?? 'Crag TBD'}</div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>Partner · {p.crag_name ?? 'Crag TBD'}</div>
                 <div className="muted" style={{ fontSize: 12 }}>
-                  {p.when_text ?? 'Flexible'} · {p.grade_band ?? 'Any grade'}
+                  {p.when_text ?? 'Flexible'} · {p.crag_name ?? 'Crag'}
+                </div>
+                <div className="chip-row" style={{ marginTop: 6 }}>
+                  {(p.styles ?? []).slice(0, 2).map((s) => (
+                    <span key={s} className="chip outline" style={{ height: 22, fontSize: 11 }}>
+                      {s}
+                    </span>
+                  ))}
+                  {p.grade_band && (
+                    <span className="chip green" style={{ height: 22, fontSize: 11 }}>
+                      {p.grade_band}
+                    </span>
+                  )}
                 </div>
               </div>
+              <Icon name="chevR" size={16} />
             </div>
           ))
         )}

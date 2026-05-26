@@ -263,7 +263,7 @@ input, textarea { font-family: inherit; color: inherit; }
 .feed-media.one { grid-template-columns: 1fr; }
 .feed-media.two { grid-template-columns: 1fr 1fr; }
 .feed-media.three { grid-template-columns: 2fr 1fr; }
-.feed-media .ph { aspect-ratio: 4/3; background: var(--surface) center/cover; position: relative; overflow: hidden; }
+.feed-media .ph { aspect-ratio: 4/3; background: var(--surface) center/cover; background-size: cover; position: relative; overflow: hidden; }
 .feed-media.three .col { display: grid; grid-template-rows: 1fr 1fr; gap: 2px; }
 
 .feed-actions {

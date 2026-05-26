@@ -83,24 +83,26 @@
 }
 .crag-row:hover { background: var(--surface); }
 
-.feed-list { padding: 0 24px 48px; display: flex; flex-direction: column; gap: 16px; }
-.feed-card {
-  background: var(--card-fill);
-  border: 1px solid var(--separator);
-  border-radius: var(--radius-lg);
-  padding: 18px;
-}
-.feed-card-head { display: flex; gap: 12px; align-items: center; }
-.feed-actions { display: flex; gap: 12px; align-items: center; margin-top: 12px; }
-.route-stripe {
+.feed-filters {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  margin-top: 12px;
-  padding: 12px;
-  background: var(--surface);
-  border-radius: var(--radius-md);
+  gap: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.feed-end {
+  text-align: center;
+  padding: 32px 0;
+  color: var(--fg-2);
+  font-size: 13px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+.feed-end a {
+  color: var(--tint);
+  font-weight: 700;
 }
 
 .empty-state {
@@ -327,6 +329,34 @@
 }
 .rail-weather-temp { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
 .rail-weather-temp span { font-size: 14px; color: var(--fg-2); font-weight: 500; }
+.rail-weather-forecast {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+}
+.rail-weather-day {
+  flex: 1;
+  border-radius: 8px;
+  padding: 6px 4px;
+  text-align: center;
+  border: 1px solid var(--separator);
+}
+.rail-weather-day.active {
+  background: var(--surface);
+  border-color: transparent;
+}
+.rail-weather-day .day-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--fg-2);
+}
+.rail-weather-day .day-temp {
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 2px;
+}
 .rail-link {
   margin-left: auto;
   color: var(--tint);
@@ -451,8 +481,13 @@
   text-align: left;
   padding: 10px 0;
 }
-.feed-actions .icon-btn.active {
-  color: var(--tint);
+.feed-route {
+  width: 100%;
+  text-align: left;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
 }
 
 .side-link {

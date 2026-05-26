@@ -26,8 +26,11 @@ export type IconName =
   | 'cloud'
   | 'sun'
   | 'upload'
-    | 'eye'
-    | 'starSolid'
+  | 'eye'
+  | 'bolt'
+  | 'heartFilled'
+  | 'grade'
+  | 'calendar'
 
 const strokeProps = (size: number, stroke: number): SVGProps<SVGSVGElement> => ({
   width: size,
@@ -138,6 +141,32 @@ export function Icon({
           <path d="M21 12a8 8 0 0 1-12.5 6.6L3 20l1.4-5.5A8 8 0 1 1 21 12z" />
         </svg>,
       )
+    case 'bolt':
+      return wrap(
+        <svg {...p} fill="currentColor" stroke="none">
+          <path d="M13 2 4 14h6l-1 8 9-12h-6z" />
+        </svg>,
+      )
+    case 'heartFilled':
+      return wrap(
+        <svg {...p} fill="currentColor" stroke="none">
+          <path d="M12 21s-7-4.5-9-9c-1.5-3.5 1-7 4.5-7 2 0 3.5 1.5 4.5 3 1-1.5 2.5-3 4.5-3 3.5 0 6 3.5 4.5 7-2 4.5-9 9-9 9z" />
+        </svg>,
+      )
+    case 'grade':
+      return wrap(
+        <svg {...p}>
+          <path d="M5 21V8l7-5 7 5v13" />
+          <path d="M9 21v-6h6v6" />
+        </svg>,
+      )
+    case 'calendar':
+      return wrap(
+        <svg {...p}>
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M3 9h18M8 3v4M16 3v4" />
+        </svg>,
+      )
     case 'google':
       return wrap(
         <svg width={size} height={size} viewBox="0 0 24 24">
@@ -196,19 +225,8 @@ export function Avatar({
 
 export function SendBadge({ type }: { type?: string }) {
   const key = (type ?? 'attempt').toLowerCase()
-  const bg = {
-    flash: 'var(--peen-flash)',
-    onsight: 'var(--peen-blue)',
-    redpoint: 'var(--peen-orange)',
-    repeat: 'var(--peen-green)',
-    dog: 'var(--peen-purple)',
-    attempt: 'var(--fg-3)',
-  }[key] ?? 'var(--fg-3)'
-  return (
-    <span className="chip" style={{ background: bg, color: key === 'flash' ? '#1f1f20' : '#fff', fontWeight: 700 }}>
-      {type ?? 'send'}
-    </span>
-  )
+  const label = key === 'send' ? 'send' : key
+  return <span className={`send-badge ${label}`}>{type ?? 'send'}</span>
 }
 
 export function Stars({ value, max = 5 }: { value: number; max?: number }) {
