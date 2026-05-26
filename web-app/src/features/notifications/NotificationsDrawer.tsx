@@ -1,9 +1,15 @@
 import { Icon } from '../../components/Icon'
-import { useInbox, useMarkNotificationRead } from '../../hooks/useMigration'
-import { migrationInvoke } from '../../lib/peen-api/migration'
-import { useAuth } from '../auth/AuthProvider'
-import { useQueryClient } from '@tanstack/react-query'
+import {
+  useInbox,
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+} from '../../hooks/useMigration'
 import type { InboxNotification } from '../../types/api'
+import { notificationMessage } from './notificationCopy'
+
+function isUnread(n: InboxNotification): boolean {
+  return n.read_at == null && n.read !== true
+}
 
 function relativeTime(iso?: string): string {
   if (!iso) return ''
@@ -69,8 +75,8 @@ function NotifRow({
   n: InboxNotification
   onTap: (n: InboxNotification) => void
 }) {
-  const unread = !n.read && n.read_at == null
-  const senderLabel = n.sender_name ?? n.title ?? 'Someone'
+  const unread = isUnread(n)
+  const { sender, action } = notificationMessage(n)
 
   return (
     <button
@@ -89,11 +95,10 @@ function NotifRow({
         textAlign: 'left',
       }}
     >
-      <SenderAvatar name={senderLabel} src={n.sender_avatar} size={40} />
+      <SenderAvatar name={sender} src={n.sender_avatar} size={40} />
       <div style={{ flex: 1, minWidth: 0, fontSize: 14, lineHeight: 1.4 }}>
         <div>
-          <b>{senderLabel}</b>
-          {n.body ? ` ${n.body}` : ''}
+          <b>{sender}</b> {action}
         </div>
         <div style={{ color: 'var(--fg-2, #888)', fontSize: 12, marginTop: 3 }}>
           {relativeTime(n.created_at)}
@@ -130,16 +135,15 @@ export function NotificationsDrawer({
 }) {
   const inboxQ = useInbox()
   const markRead = useMarkNotificationRead()
-  const { accessToken } = useAuth()
-  const qc = useQueryClient()
+  const markAllRead = useMarkAllNotificationsRead()
 
   if (!open) return null
 
   const items = inboxQ.data ?? []
-  const hasUnread = items.some((n) => !n.read && n.read_at == null)
+  const hasUnread = items.some(isUnread)
 
   const openItem = async (n: InboxNotification) => {
-    if (!n.read && n.read_at == null) {
+    if (isUnread(n)) {
       try {
         await markRead.mutateAsync(n.id)
       } catch {
@@ -148,11 +152,6 @@ export function NotificationsDrawer({
     }
     onNavigate?.(n.entity_type, n.entity_id)
     onClose()
-  }
-
-  const markAllRead = async () => {
-    await migrationInvoke('notifications', 'markAllRead', {}, accessToken!)
-    qc.invalidateQueries({ queryKey: ['notifications'] })
   }
 
   return (
@@ -171,7 +170,8 @@ export function NotificationsDrawer({
           {hasUnread && (
             <button
               type="button"
-              onClick={markAllRead}
+              onClick={() => markAllRead.mutate()}
+              disabled={markAllRead.isPending}
               style={{
                 background: 'none',
                 border: 'none',
@@ -202,7 +202,12 @@ export function NotificationsDrawer({
               {inboxQ.isLoading && (
                 <p style={{ padding: 24, color: 'var(--fg-2, #888)', fontSize: 14 }}>Loading…</p>
               )}
-              {!inboxQ.isLoading && items.length === 0 && (
+              {inboxQ.isError && (
+                <p style={{ padding: 24, color: 'var(--fg-2, #888)', fontSize: 14 }}>
+                  Couldn&apos;t load notifications. Try again.
+                </p>
+              )}
+              {!inboxQ.isLoading && !inboxQ.isError && items.length === 0 && (
                 <p style={{ padding: 24, color: 'var(--fg-2, #888)', fontSize: 14 }}>All caught up.</p>
               )}
               <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>

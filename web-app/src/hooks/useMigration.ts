@@ -182,40 +182,45 @@ export function useInbox() {
   return useQuery({
     queryKey: ['notifications', 'inbox'],
     queryFn: async () => {
-      const rows = await migrationInvoke<InboxNotification[]>(
+      const raw = await migrationInvoke<InboxNotification[] | { items?: InboxNotification[] }>(
         'notifications',
         'loadInbox',
         { limit: 40 },
         accessToken!,
       )
+      const rows = Array.isArray(raw) ? raw : (raw.items ?? [])
       const actorIds = [...new Set(rows.map((r) => r.actor_id).filter((id): id is string => !!id))]
       if (actorIds.length === 0) return rows
-      const [identities, avatarRows] = await Promise.all([
-        fetchProfileIdentities(accessToken!, actorIds),
-        migrationInvoke<{ user_id: string; avatar_url?: string | null }[]>(
-          'community',
-          'fetchAvatarUrls',
-          { user_ids: actorIds },
-          accessToken!,
-        ),
-      ])
-      const byId = new Map(identities.map((i) => [i.user_id, i]))
-      const avatarById = new Map(
-        avatarRows
-          .map((r) => [r.user_id, r.avatar_url?.trim() ?? ''] as const)
-          .filter(([, url]) => url.startsWith('http')),
-      )
-      return rows.map((n) => {
-        const id = n.actor_id
-        if (!id) return n
-        const ident = byId.get(id)
-        return {
-          ...n,
-          sender_name: ident?.nickname ?? ident?.username ?? undefined,
-          sender_username: ident?.username ?? undefined,
-          sender_avatar: avatarById.get(id) ?? undefined,
-        }
-      })
+      try {
+        const [identities, avatarRows] = await Promise.all([
+          fetchProfileIdentities(accessToken!, actorIds),
+          migrationInvoke<{ user_id: string; avatar_url?: string | null }[]>(
+            'community',
+            'fetchAvatarUrls',
+            { user_ids: actorIds },
+            accessToken!,
+          ),
+        ])
+        const byId = new Map(identities.map((i) => [i.user_id, i]))
+        const avatarById = new Map(
+          avatarRows
+            .map((r) => [r.user_id, r.avatar_url?.trim() ?? ''] as const)
+            .filter(([, url]) => url.startsWith('http')),
+        )
+        return rows.map((n) => {
+          const id = n.actor_id
+          if (!id) return n
+          const ident = byId.get(id)
+          return {
+            ...n,
+            sender_name: ident?.nickname ?? ident?.username ?? undefined,
+            sender_username: ident?.username ?? undefined,
+            sender_avatar: avatarById.get(id) ?? undefined,
+          }
+        })
+      } catch {
+        return rows
+      }
     },
     enabled: !!accessToken,
   })
@@ -412,6 +417,15 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: (notificationId: string) =>
       migrationInvoke('notifications', 'markRead', { notification_id: notificationId }, accessToken!),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
+export function useMarkAllNotificationsRead() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => migrationInvoke('notifications', 'markAllRead', {}, accessToken!),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   })
 }
