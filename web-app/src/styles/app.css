@@ -236,11 +236,15 @@ input, textarea { font-family: inherit; color: inherit; }
 .feed-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px 10px; }
 .feed-head .av { width: 40px; height: 40px; border-radius: 50%; background-size: cover; background-position: center; flex: 0 0 40px; border: 1px solid var(--separator); overflow: hidden; }
 .feed-head .av img { width: 100%; height: 100%; object-fit: cover; }
-.feed-head .who { font-weight: 700; font-size: 15px; }
-.feed-head .when { color: var(--fg-2); font-size: 12px; margin-top: 1px; }
-.feed-head .act { margin-left: auto; }
+.feed-head .who { font-weight: 700; font-size: 15px; line-height: 1.35; }
+.feed-head .when {
+  color: var(--fg-2); font-size: 12px; margin-top: 2px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px; line-height: 1.4;
+}
+.feed-head .act { margin-left: auto; flex: 0 0 auto; }
 
-.feed-route {
+.feed-route,
+button.feed-route {
   margin: 0 18px 12px;
   padding: 12px 14px;
   border-radius: 12px;
@@ -248,6 +252,15 @@ input, textarea { font-family: inherit; color: inherit; }
   display: flex; align-items: center; gap: 12px;
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
+  cursor: pointer;
+  text-align: left;
+  width: auto;
+}
+button.feed-route {
+  border: none;
+  font: inherit;
+  color: inherit;
 }
 .feed-route .stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--tint); }
 .feed-route .info { flex: 1; min-width: 0; }

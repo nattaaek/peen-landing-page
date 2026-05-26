@@ -481,14 +481,7 @@
   text-align: left;
   padding: 10px 0;
 }
-.feed-route {
-  width: 100%;
-  text-align: left;
-  border: none;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
-}
+/* feed-route layout lives in app.css (peen-web prototype) */
 
 .side-link {
   display: flex;
