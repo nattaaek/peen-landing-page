@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { FeedCard } from '../../components/FeedCard'
 import { Icon } from '../../components/Icon'
 import { BrowseCragsLink, LoginRequired } from '../auth/LoginGate'
@@ -6,8 +6,8 @@ import { useAuth } from '../auth/AuthProvider'
 import { CommentsSheet } from './CommentsSheet'
 import {
   useFollowingIds,
+  useInfinitePublicFeed,
   useLikeClimb,
-  usePublicFeed,
   useSendItClimb,
   useUnlikeClimb,
   useUnsendItClimb,
@@ -26,21 +26,32 @@ export function FeedView({
   const [commentPost, setCommentPost] = useState<FeedClimbRow | null>(null)
   const [liked, setLiked] = useState<Set<string>>(new Set())
   const [sendIt, setSendIt] = useState<Set<string>>(new Set())
-  const feedQ = usePublicFeed()
+  const feedQ = useInfinitePublicFeed()
   const followingQ = useFollowingIds()
   const like = useLikeClimb()
   const unlike = useUnlikeClimb()
   const sendItMut = useSendItClimb()
   const unsendIt = useUnsendItClimb()
+  const loadMoreRef = useRef<HTMLDivElement>(null)
 
-  const allRows = feedQ.data?.posts ?? []
+  const allRows = useMemo(
+    () => feedQ.data?.pages.flatMap((page) => page.posts) ?? [],
+    [feedQ.data],
+  )
   const followingIds = followingQ.data ?? new Set<string>()
 
   useEffect(() => {
     if (!feedQ.data) return
-    setLiked(new Set(feedQ.data.likedClimbIds))
-    setSendIt(new Set(feedQ.data.sendItClimbIds))
+    const likedIds = new Set<string>()
+    const sendItIds = new Set<string>()
+    for (const page of feedQ.data.pages) {
+      for (const id of page.likedClimbIds) likedIds.add(id)
+      for (const id of page.sendItClimbIds) sendItIds.add(id)
+    }
+    setLiked(likedIds)
+    setSendIt(sendItIds)
   }, [feedQ.data])
+
   const rows = useMemo(() => {
     if (tab !== 'Following') return allRows
     return allRows.filter((post) => {
@@ -48,6 +59,20 @@ export function FeedView({
       return authorId != null && followingIds.has(authorId)
     })
   }, [allRows, tab, followingIds])
+
+  useEffect(() => {
+    const el = loadMoreRef.current
+    if (!el || !feedQ.hasNextPage || feedQ.isFetchingNextPage) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) feedQ.fetchNextPage()
+      },
+      { rootMargin: '240px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [feedQ.hasNextPage, feedQ.isFetchingNextPage, feedQ.fetchNextPage])
 
   const toggleLike = async (postId: string) => {
     const was = liked.has(postId)
@@ -163,7 +188,7 @@ export function FeedView({
 
       {filterChips}
 
-      {tab === 'Following' && followingQ.isSuccess && rows.length === 0 && (
+      {tab === 'Following' && followingQ.isSuccess && rows.length === 0 && !feedQ.isLoading && (
         <p className="muted" style={{ maxWidth: 720, margin: '0 auto 16px' }}>
           No sends from people you follow yet.{' '}
           <button type="button" className="link-btn" onClick={() => setTab('Everyone')}>
@@ -171,7 +196,9 @@ export function FeedView({
           </button>
         </p>
       )}
-      {feedQ.isLoading && <p className="muted" style={{ maxWidth: 720, margin: '0 auto' }}>Loading feed…</p>}
+      {feedQ.isLoading && !feedQ.data && (
+        <p className="muted" style={{ maxWidth: 720, margin: '0 auto' }}>Loading feed…</p>
+      )}
       {feedQ.isError && <p className="error" style={{ maxWidth: 720, margin: '0 auto' }}>Could not load feed.</p>}
 
       <div className="feed-list">
@@ -192,7 +219,11 @@ export function FeedView({
         )}
       </div>
 
-      {!feedQ.isLoading && rows.length > 0 && (
+      {feedQ.hasNextPage ? <div ref={loadMoreRef} className="feed-sentinel" aria-hidden /> : null}
+      {feedQ.isFetchingNextPage && (
+        <p className="muted feed-loading-more">Loading more…</p>
+      )}
+      {!feedQ.hasNextPage && !feedQ.isFetchingNextPage && rows.length > 0 && (
         <div className="feed-end">
           That&apos;s everything. <a href="/app/crags">Find new climbers →</a>
         </div>

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { migrationInvoke } from '../lib/peen-api/migration'
 import {
   fetchMyProfile,
@@ -27,92 +27,114 @@ export function useMyProfile() {
   })
 }
 
-export function usePublicFeed(limit = 30) {
+export const FEED_PAGE_SIZE = 20
+
+export type FeedPageCursor = { created_at: string; id: string }
+
+async function hydrateFeedPage(
+  rows: FeedClimbRow[],
+  accessToken: string,
+  userId?: string,
+): Promise<PublicFeedPayload> {
+  const userIds = [...new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id))]
+  const climbIds = rows.map((r) => r.id).filter(Boolean)
+
+  const [identities, avatarRows, reactionRows, myLikes, mySendIts] = await Promise.all([
+    userIds.length > 0 ? fetchProfileIdentities(accessToken, userIds) : Promise.resolve([]),
+    userIds.length > 0
+      ? migrationInvoke<{ user_id: string; avatar_url?: string | null }[]>(
+          'community',
+          'fetchAvatarUrls',
+          { user_ids: userIds },
+          accessToken,
+        )
+      : Promise.resolve([]),
+    climbIds.length > 0
+      ? migrationInvoke<FeedReactionCountRow[]>(
+          'social',
+          'loadReactionCounts',
+          { climb_ids: climbIds },
+          accessToken,
+        )
+      : Promise.resolve([]),
+    climbIds.length > 0 && userId
+      ? migrationInvoke<{ climb_id: string }[]>(
+          'social',
+          'loadMyLikes',
+          { user_id: userId, climb_ids: climbIds },
+          accessToken,
+        )
+      : Promise.resolve([]),
+    climbIds.length > 0 && userId
+      ? migrationInvoke<{ climb_id: string }[]>(
+          'social',
+          'loadMySendIts',
+          { user_id: userId, climb_ids: climbIds },
+          accessToken,
+        )
+      : Promise.resolve([]),
+  ])
+
+  const byUserId = new Map(identities.map((i) => [i.user_id, i]))
+  const avatarByUserId = new Map(
+    avatarRows
+      .map((r) => [r.user_id, r.avatar_url?.trim() ?? ''] as const)
+      .filter(([, url]) => url.startsWith('http')),
+  )
+  const reactionsByClimb = new Map(reactionRows.map((r) => [r.climb_id, r]))
+
+  const posts = rows.map((row) => {
+    const uid = row.user_id
+    const identity = uid ? byUserId.get(uid) : undefined
+    const avatarUrl = uid ? avatarByUserId.get(uid) ?? row.profile?.avatar_url : row.profile?.avatar_url
+    const reaction = reactionsByClimb.get(row.id)
+    return {
+      ...row,
+      like_count: reaction?.likes_count ?? row.like_count ?? 0,
+      comment_count: reaction?.comments_count ?? row.comment_count ?? 0,
+      profile:
+        uid || identity || avatarUrl
+          ? {
+              id: uid,
+              nickname: identity?.nickname ?? row.profile?.nickname,
+              username: identity?.username ?? row.profile?.username,
+              avatar_url: avatarUrl,
+            }
+          : row.profile,
+    }
+  })
+
+  return {
+    posts,
+    likedClimbIds: myLikes.map((r) => r.climb_id),
+    sendItClimbIds: mySendIts.map((r) => r.climb_id),
+  }
+}
+
+export function useInfinitePublicFeed() {
   const { accessToken, user } = useAuth()
-  return useQuery({
-    queryKey: ['feed', 'public', limit, user?.id],
-    queryFn: async (): Promise<PublicFeedPayload> => {
+  return useInfiniteQuery({
+    queryKey: ['feed', 'public', 'infinite', user?.id],
+    queryFn: async ({ pageParam }): Promise<PublicFeedPayload> => {
+      const params: Record<string, unknown> = { limit: FEED_PAGE_SIZE }
+      if (pageParam) {
+        params.cursor_created_at = pageParam.created_at
+        params.cursor_id = pageParam.id
+      }
       const rows = await migrationInvoke<FeedClimbRow[]>(
         'social',
         'loadPublicFeed',
-        { limit },
+        params,
         accessToken!,
       )
-      const userIds = [...new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id))]
-      const climbIds = rows.map((r) => r.id).filter(Boolean)
-
-      const [identities, avatarRows, reactionRows, myLikes, mySendIts] = await Promise.all([
-        userIds.length > 0
-          ? fetchProfileIdentities(accessToken!, userIds)
-          : Promise.resolve([]),
-        userIds.length > 0
-          ? migrationInvoke<{ user_id: string; avatar_url?: string | null }[]>(
-              'community',
-              'fetchAvatarUrls',
-              { user_ids: userIds },
-              accessToken!,
-            )
-          : Promise.resolve([]),
-        climbIds.length > 0
-          ? migrationInvoke<FeedReactionCountRow[]>(
-              'social',
-              'loadReactionCounts',
-              { climb_ids: climbIds },
-              accessToken!,
-            )
-          : Promise.resolve([]),
-        climbIds.length > 0 && user?.id
-          ? migrationInvoke<{ climb_id: string }[]>(
-              'social',
-              'loadMyLikes',
-              { user_id: user.id, climb_ids: climbIds },
-              accessToken!,
-            )
-          : Promise.resolve([]),
-        climbIds.length > 0 && user?.id
-          ? migrationInvoke<{ climb_id: string }[]>(
-              'social',
-              'loadMySendIts',
-              { user_id: user.id, climb_ids: climbIds },
-              accessToken!,
-            )
-          : Promise.resolve([]),
-      ])
-
-      const byUserId = new Map(identities.map((i) => [i.user_id, i]))
-      const avatarByUserId = new Map(
-        avatarRows
-          .map((r) => [r.user_id, r.avatar_url?.trim() ?? ''] as const)
-          .filter(([, url]) => url.startsWith('http')),
-      )
-      const reactionsByClimb = new Map(reactionRows.map((r) => [r.climb_id, r]))
-
-      const posts = rows.map((row) => {
-        const uid = row.user_id
-        const identity = uid ? byUserId.get(uid) : undefined
-        const avatarUrl = uid ? avatarByUserId.get(uid) ?? row.profile?.avatar_url : row.profile?.avatar_url
-        const reaction = reactionsByClimb.get(row.id)
-        return {
-          ...row,
-          like_count: reaction?.likes_count ?? row.like_count ?? 0,
-          comment_count: reaction?.comments_count ?? row.comment_count ?? 0,
-          profile:
-            uid || identity || avatarUrl
-              ? {
-                  id: uid,
-                  nickname: identity?.nickname ?? row.profile?.nickname,
-                  username: identity?.username ?? row.profile?.username,
-                  avatar_url: avatarUrl,
-                }
-              : row.profile,
-        }
-      })
-
-      return {
-        posts,
-        likedClimbIds: myLikes.map((r) => r.climb_id),
-        sendItClimbIds: mySendIts.map((r) => r.climb_id),
-      }
+      return hydrateFeedPage(rows, accessToken!, user?.id)
+    },
+    initialPageParam: undefined as FeedPageCursor | undefined,
+    getNextPageParam: (lastPage) => {
+      if (lastPage.posts.length < FEED_PAGE_SIZE) return undefined
+      const last = lastPage.posts[lastPage.posts.length - 1]
+      if (!last?.created_at) return undefined
+      return { created_at: last.created_at, id: last.id }
     },
     enabled: !!accessToken,
   })
