@@ -1,8 +1,5 @@
 import { Icon } from '../../components/Icon'
-import {
-  useInbox,
-  useMarkNotificationRead,
-} from '../../hooks/useMigration'
+import { useInbox, useMarkNotificationRead } from '../../hooks/useMigration'
 import { migrationInvoke } from '../../lib/peen-api/migration'
 import { useAuth } from '../auth/AuthProvider'
 import { useQueryClient } from '@tanstack/react-query'
@@ -154,12 +151,7 @@ export function NotificationsDrawer({
   }
 
   const markAllRead = async () => {
-    const unread = items.filter((n) => !n.read && n.read_at == null)
-    await Promise.allSettled(
-      unread.map((n) =>
-        migrationInvoke('notifications', 'markRead', { notification_id: n.id }, accessToken!),
-      ),
-    )
+    await migrationInvoke('notifications', 'markAllRead', {}, accessToken!)
     qc.invalidateQueries({ queryKey: ['notifications'] })
   }
 
