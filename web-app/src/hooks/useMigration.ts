@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { migrationInvoke } from '../lib/peen-api/migration'
-import { fetchMyProfile } from '../lib/peen-api/profiles'
-import { patchProfile } from '../lib/peen-api/profiles'
+import {
+  fetchMyProfile,
+  fetchProfileIdentities,
+  patchProfile,
+} from '../lib/peen-api/profiles'
 import type {
   AngleConsensus,
   ClimbComment,
@@ -26,8 +29,49 @@ export function usePublicFeed(limit = 30) {
   const { accessToken } = useAuth()
   return useQuery({
     queryKey: ['feed', 'public', limit],
-    queryFn: () =>
-      migrationInvoke<FeedClimbRow[]>('social', 'loadPublicFeed', { limit }, accessToken!),
+    queryFn: async () => {
+      const rows = await migrationInvoke<FeedClimbRow[]>(
+        'social',
+        'loadPublicFeed',
+        { limit },
+        accessToken!,
+      )
+      const userIds = [...new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id))]
+      if (userIds.length === 0) return rows
+
+      const [identities, avatarRows] = await Promise.all([
+        fetchProfileIdentities(accessToken!, userIds),
+        migrationInvoke<{ user_id: string; avatar_url?: string | null }[]>(
+          'community',
+          'fetchAvatarUrls',
+          { user_ids: userIds },
+          accessToken!,
+        ),
+      ])
+      const byUserId = new Map(identities.map((i) => [i.user_id, i]))
+      const avatarByUserId = new Map(
+        avatarRows
+          .map((r) => [r.user_id, r.avatar_url?.trim() ?? ''] as const)
+          .filter(([, url]) => url.startsWith('http')),
+      )
+
+      return rows.map((row) => {
+        const uid = row.user_id
+        if (!uid) return row
+        const identity = byUserId.get(uid)
+        const avatarUrl = avatarByUserId.get(uid) ?? row.profile?.avatar_url
+        if (!identity && !avatarUrl) return row
+        return {
+          ...row,
+          profile: {
+            id: uid,
+            nickname: identity?.nickname,
+            username: identity?.username,
+            avatar_url: avatarUrl,
+          },
+        }
+      })
+    },
     enabled: !!accessToken,
   })
 }

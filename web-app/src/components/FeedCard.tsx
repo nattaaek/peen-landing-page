@@ -1,3 +1,4 @@
+import { profileDisplayName, profileHandle } from '../lib/peen-api/profiles'
 import { Icon, SendBadge } from './Icon'
 import { SEND_COLORS } from '../types/api'
 import type { FeedClimbRow } from '../types/api'
@@ -44,6 +45,37 @@ function RouteMedia({ urls, routeId }: { urls: string[]; routeId?: string }) {
   )
 }
 
+function FeedUserAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string | null }) {
+  const initial = (name.trim().charAt(0) || '?').toUpperCase()
+  const photo = avatarUrl?.trim()
+  if (photo?.startsWith('http')) {
+    return (
+      <span
+        className="av"
+        style={{ backgroundImage: `url(${photo})` }}
+        role="img"
+        aria-label={name}
+      />
+    )
+  }
+  return (
+    <span
+      className="av"
+      style={{
+        background: 'var(--tint)',
+        color: '#fff',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontWeight: 700,
+        fontSize: 16,
+      }}
+    >
+      {initial}
+    </span>
+  )
+}
+
 function FeedPhoto({ url, routeId }: { url: string; routeId?: string }) {
   const seeds = [
     ['#D89971', '#7A4426'],
@@ -83,8 +115,8 @@ export function FeedCard({
   onSendIt: () => void
   onComment: () => void
 }) {
-  const name = post.profile?.nickname ?? post.profile?.username ?? 'Climber'
-  const handle = post.profile?.username ? `@${post.profile.username}` : ''
+  const name = profileDisplayName(post.profile ?? {})
+  const handle = profileHandle(post.profile ?? {})
   const sendType = (post.send_type ?? 'attempt').toLowerCase()
   const stripeColor = SEND_COLORS[sendType] ?? 'var(--tint)'
   const photos = post.photo_urls ?? []
@@ -92,24 +124,13 @@ export function FeedCard({
   return (
     <article className="feed-card">
       <header className="feed-head">
-        <span
-          className="av"
-          style={{
-            background: 'var(--tint)',
-            color: '#fff',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
-            fontSize: 16,
-          }}
-        >
-          {name.charAt(0).toUpperCase()}
-        </span>
+        <FeedUserAvatar name={name} avatarUrl={post.profile?.avatar_url} />
         <div>
           <div className="who">
-            {name}{' '}
-            {handle && <span style={{ color: 'var(--fg-2)', fontWeight: 400 }}>{handle}</span>}
+            {name}
+            {handle ? (
+              <span style={{ color: 'var(--fg-2)', fontWeight: 400 }}> {handle}</span>
+            ) : null}
           </div>
           <div className="when">
             {formatWhen(post.created_at)} ago · <SendBadge type={post.send_type} />
