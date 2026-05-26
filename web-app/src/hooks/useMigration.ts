@@ -181,8 +181,42 @@ export function useInbox() {
   const { accessToken } = useAuth()
   return useQuery({
     queryKey: ['notifications', 'inbox'],
-    queryFn: () =>
-      migrationInvoke<InboxNotification[]>('notifications', 'loadInbox', { limit: 40 }, accessToken!),
+    queryFn: async () => {
+      const rows = await migrationInvoke<InboxNotification[]>(
+        'notifications',
+        'loadInbox',
+        { limit: 40 },
+        accessToken!,
+      )
+      const actorIds = [...new Set(rows.map((r) => r.actor_id).filter((id): id is string => !!id))]
+      if (actorIds.length === 0) return rows
+      const [identities, avatarRows] = await Promise.all([
+        fetchProfileIdentities(accessToken!, actorIds),
+        migrationInvoke<{ user_id: string; avatar_url?: string | null }[]>(
+          'community',
+          'fetchAvatarUrls',
+          { user_ids: actorIds },
+          accessToken!,
+        ),
+      ])
+      const byId = new Map(identities.map((i) => [i.user_id, i]))
+      const avatarById = new Map(
+        avatarRows
+          .map((r) => [r.user_id, r.avatar_url?.trim() ?? ''] as const)
+          .filter(([, url]) => url.startsWith('http')),
+      )
+      return rows.map((n) => {
+        const id = n.actor_id
+        if (!id) return n
+        const ident = byId.get(id)
+        return {
+          ...n,
+          sender_name: ident?.nickname ?? ident?.username ?? undefined,
+          sender_username: ident?.username ?? undefined,
+          sender_avatar: avatarById.get(id) ?? undefined,
+        }
+      })
+    },
     enabled: !!accessToken,
   })
 }

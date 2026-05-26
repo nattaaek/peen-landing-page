@@ -111,6 +111,11 @@ export interface InboxNotification {
   entity_type?: string
   entity_id?: string
   created_at?: string
+  actor_id?: string
+  // hydrated client-side
+  sender_name?: string
+  sender_username?: string
+  sender_avatar?: string
 }
 
 export interface PartnerPost {
