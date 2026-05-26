@@ -7,6 +7,11 @@ import { CragsMap } from './CragsMap'
 export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => void }) {
   const [filter, setFilter] = useState<'all' | 'crag' | 'gym'>('all')
   const [query, setQuery] = useState('')
+  const [selectedPlace, setSelectedPlace] = useState<{
+    id: string
+    kind: 'area' | 'gym'
+    name: string
+  } | null>(null)
   const areasQ = useCatalogAreas()
   const gymsQ = useCatalogGyms()
   const routesQ = useCatalogRoutes(0)
@@ -17,18 +22,31 @@ export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => v
     return routes.filter((r) => {
       if (filter === 'gym' && !r.gym_id) return false
       if (filter === 'crag' && !r.area_id) return false
+      if (selectedPlace) {
+        if (selectedPlace.kind === 'area' && r.area_id !== selectedPlace.id) return false
+        if (selectedPlace.kind === 'gym' && r.gym_id !== selectedPlace.id) return false
+      }
       if (!q) return true
       const hay = `${r.name} ${r.grade} ${r.area?.name ?? ''} ${r.gym?.name ?? ''}`.toLowerCase()
       return hay.includes(q)
     })
-  }, [routes, filter, query])
+  }, [routes, filter, query, selectedPlace])
+
+  const onMapSelect = (id: string, kind: 'area' | 'gym') => {
+    const name =
+      kind === 'area'
+        ? (areasQ.data ?? []).find((a) => a.id === id)?.name
+        : (gymsQ.data ?? []).find((g) => g.id === id)?.name
+    setSelectedPlace({ id, kind, name: name ?? 'Selected' })
+    setFilter(kind === 'gym' ? 'gym' : 'crag')
+  }
 
   return (
     <div className="view-crags">
       <div className="page-head">
         <div>
           <h1 className="page-title">Crags & gyms</h1>
-          <p className="page-sub">Browse outdoor areas and gyms — same catalog as the app.</p>
+          <p className="page-sub">Browse outdoor areas and gyms — tap a map pin to filter routes.</p>
         </div>
         <div className="chip-row">
           {(['all', 'crag', 'gym'] as const).map((f) => (
@@ -36,13 +54,26 @@ export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => v
               key={f}
               type="button"
               className={`chip ${filter === f ? 'active' : ''}`}
-              onClick={() => setFilter(f)}
+              onClick={() => {
+                setFilter(f)
+                if (f === 'all') setSelectedPlace(null)
+              }}
             >
               {f === 'all' ? 'All' : f === 'crag' ? 'Outdoor' : 'Gyms'}
             </button>
           ))}
         </div>
       </div>
+      {selectedPlace && (
+        <div className="crag-filter-banner">
+          <span>
+            Showing routes at <strong>{selectedPlace.name}</strong>
+          </span>
+          <button type="button" className="link-btn" onClick={() => setSelectedPlace(null)}>
+            Clear
+          </button>
+        </div>
+      )}
       <div className="crags-split">
         <div className="crags-list">
           <div className="search" style={{ marginBottom: 12 }}>
@@ -73,9 +104,17 @@ export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => v
               </span>
             </button>
           ))}
+          {!routesQ.isLoading && filtered.length === 0 && (
+            <p className="muted">No routes match this filter.</p>
+          )}
         </div>
         <div className="crags-map-wrap">
-          <CragsMap areas={areasQ.data ?? []} gyms={gymsQ.data ?? []} />
+          <CragsMap
+            areas={areasQ.data ?? []}
+            gyms={gymsQ.data ?? []}
+            selectedId={selectedPlace?.id ?? null}
+            onSelect={onMapSelect}
+          />
         </div>
       </div>
     </div>

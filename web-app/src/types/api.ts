@@ -58,17 +58,45 @@ export interface ClimbLogRow {
   route_id?: string
   send_type?: string
   grade?: string
+  climbed_date?: string
+  notes?: string
+  personal_rating?: number
+  attempts?: number
+  is_public?: boolean
   created_at?: string
   route?: ApiRoute
-  is_public?: boolean
+  profile?: { nickname?: string; username?: string }
+}
+
+export interface ClimbComment {
+  id: string
+  climb_id?: string
+  user_id?: string
+  body?: string
+  created_at?: string
+}
+
+export interface RouteRatingSummary {
+  avg_rating?: number
+  rating_count?: number
+}
+
+export interface AngleConsensus {
+  route_id?: string
+  votes?: number
+  top_angle?: string
 }
 
 export interface InboxNotification {
   id: string
   kind?: string
+  type?: string
   title?: string
   body?: string
   read?: boolean
+  read_at?: string | null
+  entity_type?: string
+  entity_id?: string
   created_at?: string
 }
 

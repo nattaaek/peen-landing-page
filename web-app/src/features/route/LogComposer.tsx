@@ -23,9 +23,11 @@ export function LogComposer({
   if (!open || !route) return null
 
   const submit = async () => {
+    const climbed_date = new Date().toISOString().slice(0, 10)
     await log.mutateAsync({
       route_id: route.id,
       send_type: sendType,
+      climbed_date,
       notes,
       personal_rating: stars,
       is_public: true,

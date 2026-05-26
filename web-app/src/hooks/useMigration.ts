@@ -1,7 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { migrationInvoke } from '../lib/peen-api/migration'
 import { fetchMyProfile } from '../lib/peen-api/profiles'
-import type { ClimbLogRow, FeedClimbRow, InboxNotification, PartnerPost } from '../types/api'
+import { patchProfile } from '../lib/peen-api/profiles'
+import type {
+  AngleConsensus,
+  ClimbComment,
+  ClimbLogRow,
+  FeedClimbRow,
+  InboxNotification,
+  PartnerPost,
+  RouteRatingSummary,
+} from '../types/api'
 import { useAuth } from '../features/auth/AuthProvider'
 
 export function useMyProfile() {
@@ -113,11 +122,188 @@ export function useLogClimb() {
 }
 
 export function useLikeClimb() {
-  const { accessToken } = useAuth()
+  const { accessToken, user } = useAuth()
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (climbId: string) =>
-      migrationInvoke('social', 'likeClimb', { climb_id: climbId }, accessToken!),
+      migrationInvoke('social', 'likeClimb', {
+        climb_id: climbId,
+        user_id: user!.id,
+      }, accessToken!),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['feed'] }),
+  })
+}
+
+export function useUnlikeClimb() {
+  const { accessToken, user } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (climbId: string) =>
+      migrationInvoke('social', 'unlikeClimb', {
+        climb_id: climbId,
+        user_id: user!.id,
+      }, accessToken!),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['feed'] }),
+  })
+}
+
+export function useSendItClimb() {
+  const { accessToken, user } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (climbId: string) =>
+      migrationInvoke('social', 'sendItClimb', {
+        climb_id: climbId,
+        user_id: user!.id,
+      }, accessToken!),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['feed'] }),
+  })
+}
+
+export function useUnsendItClimb() {
+  const { accessToken, user } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (climbId: string) =>
+      migrationInvoke('social', 'unsendItClimb', {
+        climb_id: climbId,
+        user_id: user!.id,
+      }, accessToken!),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['feed'] }),
+  })
+}
+
+export function useComments(climbId: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['social', 'comments', climbId],
+    queryFn: () =>
+      migrationInvoke<ClimbComment[]>('social', 'fetchComments', { climb_id: climbId! }, accessToken!),
+    enabled: !!accessToken && !!climbId,
+  })
+}
+
+export function useAddComment() {
+  const { accessToken, user } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { climb_id: string; body: string }) =>
+      migrationInvoke('social', 'addComment', {
+        ...params,
+        user_id: user!.id,
+      }, accessToken!),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['social', 'comments', vars.climb_id] })
+      qc.invalidateQueries({ queryKey: ['feed'] })
+    },
+  })
+}
+
+export function usePublicRouteLogs(routeId: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['climbs', 'public', routeId],
+    queryFn: () =>
+      migrationInvoke<ClimbLogRow[]>(
+        'climbs',
+        'fetchPublicLogsForRoute',
+        { route_id: routeId!, limit: 20 },
+        accessToken!,
+      ),
+    enabled: !!accessToken && !!routeId,
+  })
+}
+
+export function useRouteRating(routeId: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['routes', 'rating', routeId],
+    queryFn: async () => {
+      const rows = await migrationInvoke<RouteRatingSummary[]>(
+        'routes',
+        'route_rating_summary',
+        { route_id: routeId! },
+        accessToken!,
+      )
+      return rows[0] ?? null
+    },
+    enabled: !!accessToken && !!routeId,
+  })
+}
+
+export function useRouteConsensus(routeId: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['routes', 'consensus', routeId],
+    queryFn: async () => {
+      const rows = await migrationInvoke<AngleConsensus[]>(
+        'routes',
+        'fetchConsensus',
+        { route_id: routeId! },
+        accessToken!,
+      )
+      return rows[0] ?? null
+    },
+    enabled: !!accessToken && !!routeId,
+  })
+}
+
+const STEEPNESS_ANGLES = ['slab', 'vertical', 'overhung', 'roof', 'tufa', 'mixed'] as const
+export type SteepnessAngle = (typeof STEEPNESS_ANGLES)[number]
+export { STEEPNESS_ANGLES }
+
+export function useUpsertSteepnessVote() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { route_id: string; angle: string }) =>
+      migrationInvoke('routes', 'upsertVote', params, accessToken!),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['routes', 'consensus', vars.route_id] })
+    },
+  })
+}
+
+export function useMarkNotificationRead() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (notificationId: string) =>
+      migrationInvoke('notifications', 'markRead', { notification_id: notificationId }, accessToken!),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
+export function useUpdateProfile() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Record<string, unknown>) => patchProfile(accessToken!, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['profile'] }),
+  })
+}
+
+export function useUpdateLog() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: Record<string, unknown>) =>
+      migrationInvoke<ClimbLogRow>('climbs', 'updateLog', params, accessToken!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['climbs'] })
+      qc.invalidateQueries({ queryKey: ['feed'] })
+    },
+  })
+}
+
+export function useDeleteLog() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => migrationInvoke('climbs', 'deleteLog', { id }, accessToken!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['climbs'] })
+      qc.invalidateQueries({ queryKey: ['feed'] })
+    },
   })
 }

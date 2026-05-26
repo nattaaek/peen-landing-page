@@ -1,20 +1,35 @@
 import { Icon } from '../../components/Icon'
-import { useInbox } from '../../hooks/useMigration'
+import { useInbox, useMarkNotificationRead } from '../../hooks/useMigration'
+import type { InboxNotification } from '../../types/api'
 
 export function NotificationsDrawer({
   open,
   onClose,
   onSignIn,
   isGuest,
+  onNavigate,
 }: {
   open: boolean
   onClose: () => void
   onSignIn: () => void
   isGuest: boolean
+  onNavigate?: (entityType?: string, entityId?: string) => void
 }) {
   const inboxQ = useInbox()
+  const markRead = useMarkNotificationRead()
 
   if (!open) return null
+
+  const openItem = async (n: InboxNotification) => {
+    if (!n.read && n.read_at == null) {
+      try {
+        await markRead.mutateAsync(n.id)
+      } catch {
+        /* ignore */
+      }
+    }
+    onNavigate?.(n.entity_type, n.entity_id)
+  }
 
   return (
     <>
@@ -38,13 +53,25 @@ export function NotificationsDrawer({
             <>
               {inboxQ.isLoading && <p className="muted">Loading…</p>}
               <ul className="notif-list">
-                {(inboxQ.data ?? []).map((n) => (
-                  <li key={n.id} className={n.read ? '' : 'unread'}>
-                    <strong>{n.title ?? n.kind}</strong>
-                    <p className="muted">{n.body}</p>
-                  </li>
-                ))}
+                {(inboxQ.data ?? []).map((n) => {
+                  const unread = !n.read && n.read_at == null
+                  return (
+                    <li key={n.id} className={unread ? 'unread' : ''}>
+                      <button
+                        type="button"
+                        className="notif-row-btn"
+                        onClick={() => openItem(n)}
+                      >
+                        <strong>{n.title ?? n.type ?? n.kind ?? 'Notification'}</strong>
+                        <p className="muted">{n.body}</p>
+                      </button>
+                    </li>
+                  )
+                })}
               </ul>
+              {!inboxQ.isLoading && (inboxQ.data ?? []).length === 0 && (
+                <p className="muted">All caught up.</p>
+              )}
             </>
           )}
         </div>

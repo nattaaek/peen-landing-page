@@ -10,6 +10,7 @@ import { NotificationsDrawer } from './features/notifications/NotificationsDrawe
 import { ProfileView } from './features/profile/ProfileView'
 import { LogComposer } from './features/route/LogComposer'
 import { RouteDetailOverlay } from './features/route/RouteDetail'
+import { RoutePicker } from './features/route/RoutePicker'
 import type { ApiRoute } from './types/api'
 
 function AppLayout() {
@@ -22,6 +23,7 @@ function AppLayout() {
   const [routeId, setRouteId] = useState<string | null>(null)
   const [composerRoute, setComposerRoute] = useState<ApiRoute | null>(null)
   const [composerOpen, setComposerOpen] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
 
   const openLogin = useCallback((msg?: string) => {
@@ -43,10 +45,30 @@ function AppLayout() {
         openLogin('Sign in to log a climb.')
         return
       }
-      if (route) setComposerRoute(route)
-      setComposerOpen(true)
+      if (route) {
+        setComposerRoute(route)
+        setComposerOpen(true)
+      } else {
+        setPickerOpen(true)
+      }
     },
     [isGuest, openLogin],
+  )
+
+  const onPickRoute = useCallback((route: ApiRoute) => {
+    setComposerRoute(route)
+    setComposerOpen(true)
+  }, [])
+
+  const onNotificationNavigate = useCallback(
+    (entityType?: string, entityId?: string) => {
+      setNotifsOpen(false)
+      if (!entityId) return
+      if (entityType === 'route' || entityType === 'routes') {
+        setRouteId(entityId)
+      }
+    },
+    [],
   )
 
   return (
@@ -85,6 +107,7 @@ function AppLayout() {
           onSignIn={() => openLogin('Sign in to log a send.')}
         />
       )}
+      <RoutePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={onPickRoute} />
       <LogComposer
         route={composerRoute}
         open={composerOpen}
@@ -100,6 +123,7 @@ function AppLayout() {
         onClose={() => setNotifsOpen(false)}
         isGuest={isGuest}
         onSignIn={() => openLogin()}
+        onNavigate={onNotificationNavigate}
       />
       {toast && (
         <div className="toast" role="status">

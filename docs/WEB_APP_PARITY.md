@@ -21,21 +21,21 @@ Mobile reference: `peen-ios/peen/`.
 ### Phase A — Design system fidelity (prototype → React)
 
 - [x] Tokens + `app.css` from `colors_and_type.css` / `styles.css`
-- [ ] Sidebar: `nav-item`, pinned crags, challenge shortcuts, `crag-snapshot` + topo
-- [ ] Right rail: weather, partners preview, seasonal progress, notifications preview
-- [ ] `page-head` / `page-title` / `segmented` on all main views
-- [ ] Guest states: `LoginRequired` topo card + blurred feed teaser + crew challenge hero
+- [x] Sidebar: `nav-item`, pinned crags, challenge shortcuts, `crag-snapshot` + topo
+- [x] Right rail: weather, partners preview, seasonal progress, notifications preview
+- [x] `page-head` / `page-title` / `segmented` on all main views
+- [x] Guest states: `LoginRequired` topo card + blurred feed teaser + crew challenge hero
 - [ ] Profile: activity heatmap, richer pyramid layout
 
 ### Phase B — Core loop (match iOS P1)
 
-- [ ] Feed: Following tab (filter via `loadFollowing` + public feed)
-- [ ] Feed: comments sheet, send-it
-- [ ] Global log: route picker then composer
-- [ ] Route detail: public sends, rating, steepness (API exists)
-- [ ] Crags: map pin ↔ list selection; area/gym filters
-- [ ] Profile: edit profile, settings, log edit/delete
-- [ ] Notifications: mark read + deep links
+- [x] Feed: Following tab (filter via `loadFollowing` + public feed)
+- [x] Feed: comments sheet, send-it
+- [x] Global log: route picker then composer
+- [x] Route detail: public sends, rating, steepness (API exists)
+- [x] Crags: map pin ↔ list selection; area/gym filters
+- [x] Profile: edit profile, log edit/delete (settings prefs → Phase C)
+- [x] Notifications: mark read + deep links (route entity)
 
 ### Phase C — Crew & community (iOS P2)
 

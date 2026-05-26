@@ -2,7 +2,15 @@ import { useMemo, useState } from 'react'
 import { Avatar, Icon, SendBadge, Stars } from '../../components/Icon'
 import { BrowseCragsLink, LoginRequired } from '../auth/LoginGate'
 import { useAuth } from '../auth/AuthProvider'
-import { useFollowingIds, useLikeClimb, usePublicFeed } from '../../hooks/useMigration'
+import { CommentsSheet } from './CommentsSheet'
+import {
+  useFollowingIds,
+  useLikeClimb,
+  usePublicFeed,
+  useSendItClimb,
+  useUnlikeClimb,
+  useUnsendItClimb,
+} from '../../hooks/useMigration'
 import type { FeedClimbRow } from '../../types/api'
 
 export function FeedView({
@@ -14,9 +22,15 @@ export function FeedView({
 }) {
   const { accessToken } = useAuth()
   const [tab, setTab] = useState<'Following' | 'Everyone'>('Everyone')
+  const [commentPost, setCommentPost] = useState<FeedClimbRow | null>(null)
+  const [liked, setLiked] = useState<Set<string>>(new Set())
+  const [sendIt, setSendIt] = useState<Set<string>>(new Set())
   const feedQ = usePublicFeed()
   const followingQ = useFollowingIds()
   const like = useLikeClimb()
+  const unlike = useUnlikeClimb()
+  const sendItMut = useSendItClimb()
+  const unsendIt = useUnsendItClimb()
 
   const allRows = feedQ.data ?? []
   const followingIds = followingQ.data ?? new Set<string>()
@@ -27,6 +41,48 @@ export function FeedView({
       return authorId != null && followingIds.has(authorId)
     })
   }, [allRows, tab, followingIds])
+
+  const toggleLike = async (postId: string) => {
+    const was = liked.has(postId)
+    setLiked((prev) => {
+      const next = new Set(prev)
+      if (was) next.delete(postId)
+      else next.add(postId)
+      return next
+    })
+    try {
+      if (was) await unlike.mutateAsync(postId)
+      else await like.mutateAsync(postId)
+    } catch {
+      setLiked((prev) => {
+        const next = new Set(prev)
+        if (was) next.add(postId)
+        else next.delete(postId)
+        return next
+      })
+    }
+  }
+
+  const toggleSendIt = async (postId: string) => {
+    const was = sendIt.has(postId)
+    setSendIt((prev) => {
+      const next = new Set(prev)
+      if (was) next.delete(postId)
+      else next.add(postId)
+      return next
+    })
+    try {
+      if (was) await unsendIt.mutateAsync(postId)
+      else await sendItMut.mutateAsync(postId)
+    } catch {
+      setSendIt((prev) => {
+        const next = new Set(prev)
+        if (was) next.add(postId)
+        else next.delete(postId)
+        return next
+      })
+    }
+  }
 
   if (!accessToken) {
     return (
@@ -48,7 +104,16 @@ export function FeedView({
           <div className="feed-guest-teaser-fade" />
           <div className="feed-list feed-guest-teaser-blur">
             {MOCK_TEASER.map((post) => (
-              <FeedCard key={post.id} post={post} onOpenRoute={() => {}} onLike={() => {}} />
+              <FeedCard
+                key={post.id}
+                post={post}
+                liked={false}
+                sendItOn={false}
+                onOpenRoute={() => {}}
+                onLike={() => {}}
+                onSendIt={() => {}}
+                onComment={() => {}}
+              />
             ))}
           </div>
         </div>
@@ -86,26 +151,39 @@ export function FeedView({
           <FeedCard
             key={post.id}
             post={post}
+            liked={liked.has(post.id)}
+            sendItOn={sendIt.has(post.id)}
             onOpenRoute={() => post.route_id && onOpenRoute(post.route_id)}
-            onLike={() => like.mutate(post.id)}
+            onLike={() => toggleLike(post.id)}
+            onSendIt={() => toggleSendIt(post.id)}
+            onComment={() => setCommentPost(post)}
           />
         ))}
         {!feedQ.isLoading && rows.length === 0 && tab === 'Everyone' && (
           <p className="muted">No public sends yet. Log a climb to show up here.</p>
         )}
       </div>
+      <CommentsSheet post={commentPost} open={!!commentPost} onClose={() => setCommentPost(null)} />
     </div>
   )
 }
 
 function FeedCard({
   post,
+  liked,
+  sendItOn,
   onOpenRoute,
   onLike,
+  onSendIt,
+  onComment,
 }: {
   post: FeedClimbRow
+  liked: boolean
+  sendItOn: boolean
   onOpenRoute: () => void
   onLike: () => void
+  onSendIt: () => void
+  onComment: () => void
 }) {
   const name = post.profile?.nickname ?? post.profile?.username ?? 'Climber'
   return (
@@ -125,14 +203,28 @@ function FeedCard({
         <span>{post.route?.name}</span>
       </button>
       <div className="feed-actions">
-        <button type="button" className="icon-btn" onClick={onLike} aria-label="Like">
+        <button
+          type="button"
+          className={`icon-btn ${liked ? 'active' : ''}`}
+          onClick={onLike}
+          aria-label="Like"
+        >
           <Icon name="heart" size={18} />
           {post.like_count ?? 0}
         </button>
-        <span className="icon-btn">
+        <button type="button" className="icon-btn" onClick={onComment} aria-label="Comments">
           <Icon name="comment" size={18} />
           {post.comment_count ?? 0}
-        </span>
+        </button>
+        <button
+          type="button"
+          className={`icon-btn ${sendItOn ? 'active' : ''}`}
+          onClick={onSendIt}
+          aria-label="Send it"
+        >
+          <Icon name="share" size={18} />
+          Send it
+        </button>
         {post.personal_rating != null && <Stars value={Math.round(post.personal_rating)} />}
       </div>
     </article>
