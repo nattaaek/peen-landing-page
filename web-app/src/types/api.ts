@@ -2,6 +2,8 @@ export interface ApiArea {
   id: string
   name: string
   region?: string
+  approach_minutes_from_carpark?: number | null
+  walk_in_angle?: string | null
   latitude?: number
   longitude?: number
 }
@@ -25,8 +27,53 @@ export interface ApiRoute {
   description?: string
   length_meters?: number
   style_tags?: string[]
+  images?: string[]
+  gallery_images?: string[]
   area?: ApiArea | null
   gym?: ApiGym | null
+}
+
+export interface HazardReportRow {
+  id: string
+  route_id: string
+  area_id: string | null
+  reported_by: string
+  hazard_type: string
+  severity: 'low' | 'medium' | 'high' | string
+  title: string
+  description: string | null
+  is_resolved: boolean
+  expires_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface RouteTopoPoint {
+  x: number
+  y: number
+}
+
+export interface RouteTopoLine {
+  id: string
+  route_id: string
+  image_url: string
+  path_points: RouteTopoPoint[]
+  color: string
+  label: string | null
+  created_by: string | null
+  created_at: string
+  last_edited_by: string | null
+  last_edited_at: string | null
+}
+
+export interface ApproachGPXVersionRow {
+  id: string
+  area_id: string
+  uploader_id: string
+  uploaded_at: string
+  storage_path: string
+  supersedes_id: string | null
+  notes: string | null
 }
 
 export interface UserProfile {

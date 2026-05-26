@@ -35,6 +35,7 @@ export function CragsMap({
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
+    const activeId = selectedId ?? '__none__'
 
     const features: GeoJSON.Feature[] = [
       ...areas
@@ -65,6 +66,20 @@ export function CragsMap({
         type: 'FeatureCollection',
         features,
       })
+      if (map.getLayer('crags-dots')) {
+        map.setPaintProperty('crags-dots', 'circle-radius', [
+          'case',
+          ['==', ['get', 'id'], activeId],
+          12,
+          8,
+        ])
+        map.setPaintProperty('crags-dots', 'circle-stroke-width', [
+          'case',
+          ['==', ['get', 'id'], activeId],
+          3,
+          2,
+        ])
+      }
     } else {
       map.on('load', () => {
         map.addSource(sourceId, {
@@ -76,7 +91,12 @@ export function CragsMap({
           type: 'circle',
           source: sourceId,
           paint: {
-            'circle-radius': 8,
+            'circle-radius': [
+              'case',
+              ['==', ['get', 'id'], activeId],
+              12,
+              8,
+            ],
             'circle-color': [
               'match',
               ['get', 'kind'],
@@ -84,7 +104,12 @@ export function CragsMap({
               '#2860A3',
               '#D55A1F',
             ],
-            'circle-stroke-width': 2,
+            'circle-stroke-width': [
+              'case',
+              ['==', ['get', 'id'], activeId],
+              3,
+              2,
+            ],
             'circle-stroke-color': '#fff',
           },
         })

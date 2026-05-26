@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { migrationInvoke } from '../lib/peen-api/migration'
 import {
@@ -7,11 +8,16 @@ import {
 } from '../lib/peen-api/profiles'
 import type {
   AngleConsensus,
+  ApiRoute,
   ClimbComment,
   ClimbLogRow,
   FeedClimbRow,
   FeedReactionCountRow,
   InboxNotification,
+  HazardReportRow,
+  RouteTopoPoint,
+  RouteTopoLine,
+  ApproachGPXVersionRow,
   PartnerPost,
   PublicFeedPayload,
   RouteRatingSummary,
@@ -392,6 +398,241 @@ export function useRouteConsensus(routeId: string | undefined) {
       return rows[0] ?? null
     },
     enabled: !!accessToken && !!routeId,
+  })
+}
+
+export function useRouteTopoLinesForImages({
+  routeId,
+  imageUrls,
+}: {
+  routeId: string | undefined
+  imageUrls: string[] | undefined
+}) {
+  const { accessToken } = useAuth()
+  const normalized = useMemo(
+    () => (imageUrls && imageUrls.length > 0 ? [...imageUrls].filter(Boolean) : []),
+    [imageUrls],
+  )
+
+  return useQuery({
+    queryKey: ['routes', 'topo', 'for_images', routeId, normalized.join(',')],
+    queryFn: () =>
+      migrationInvoke<RouteTopoLine[]>(
+        'routes',
+        'fetchTopoLinesForImages',
+        { image_urls: normalized },
+        accessToken!,
+      ),
+    enabled: !!accessToken && !!routeId && normalized.length > 0,
+  })
+}
+
+export function useActiveHazardsForRoute(routeId: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['routes', 'hazards', routeId],
+    queryFn: () =>
+      migrationInvoke<HazardReportRow[]>(
+        'routes',
+        'fetchActiveHazardsForRoute',
+        { route_id: routeId! },
+        accessToken!,
+      ),
+    enabled: !!accessToken && !!routeId,
+  })
+}
+
+export function useResolveHazardReport() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { reportId: string }) =>
+      migrationInvoke('routes', 'resolveHazardReport', { report_id: params.reportId }, accessToken!),
+    onSuccess: (_d) => {
+      // Invalidate hazards for any routes the app is currently viewing.
+      qc.invalidateQueries({ queryKey: ['routes', 'hazards'] })
+      // Keep other route detail sections consistent.
+      qc.invalidateQueries({ queryKey: ['routes'] })
+    },
+  })
+}
+
+export function useSubmitHazardReport() {
+  const { accessToken, user } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: {
+      routeId: string
+      hazardType: string
+      severity: 'low' | 'medium' | 'high'
+      title: string
+      description?: string
+      expiresAtIso: string
+    }) =>
+      migrationInvoke<HazardReportRow>(
+        'routes',
+        'submitHazardReport',
+        {
+          reported_by: user!.id,
+          hazard_type: params.hazardType,
+          severity: params.severity,
+          title: params.title,
+          description: params.description ?? null,
+          expires_at: params.expiresAtIso,
+          route_id: params.routeId,
+        },
+        accessToken!,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['routes', 'hazards'] })
+      qc.invalidateQueries({ queryKey: ['routes'] })
+    },
+  })
+}
+
+export function useLatestApproachVersion(areaId: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['routes', 'approach', 'latest', areaId],
+    queryFn: async () =>
+      migrationInvoke<ApproachGPXVersionRow[]>(
+        'routes',
+        'fetchLatestApproachVersion',
+        { area_id: areaId! },
+        accessToken!,
+      ),
+    enabled: !!accessToken && !!areaId,
+  })
+}
+
+export function useSaveTopoLine() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: {
+      routeId: string
+      imageUrl: string
+      pathPoints: RouteTopoPoint[]
+      color?: string
+      label?: string | null
+    }) =>
+      migrationInvoke<RouteTopoLine>(
+        'routes',
+        'saveTopo',
+        {
+          route_id: params.routeId,
+          image_url: params.imageUrl,
+          path_points: params.pathPoints,
+          color: params.color,
+          label: params.label ?? null,
+        },
+        accessToken!,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['routes', 'topo'] })
+    },
+  })
+}
+
+export function useUpdateTopoLine() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: {
+      lineId: string
+      imageUrl: string
+      pathPoints: RouteTopoPoint[]
+      color?: string
+      label?: string | null
+      routeIdToInvalidate?: string
+    }) =>
+      migrationInvoke<RouteTopoLine>(
+        'routes',
+        'updateTopoLine',
+        {
+          line_id: params.lineId,
+          image_url: params.imageUrl,
+          path_points: params.pathPoints,
+          color: params.color,
+          label: params.label ?? null,
+        },
+        accessToken!,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['routes', 'topo'] })
+    },
+  })
+}
+
+export function useDeleteTopoLine() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: { lineId: string }) =>
+      migrationInvoke('routes', 'deleteTopoLine', { line_id: params.lineId }, accessToken!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['routes', 'topo'] })
+    },
+  })
+}
+
+export function useRecordApproachGPXVersion() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: {
+      id: string
+      areaId: string
+      storagePath: string
+      supersedesId?: string | null
+      notes?: string | null
+    }) =>
+      migrationInvoke<ApproachGPXVersionRow>(
+        'routes',
+        'recordApproachGPXVersion',
+        {
+          id: params.id,
+          area_id: params.areaId,
+          storage_path: params.storagePath,
+          supersedes_id: params.supersedesId ?? null,
+          notes: params.notes ?? null,
+        },
+        accessToken!,
+      ),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['routes', 'approach'] })
+    },
+  })
+}
+
+export function useUpdateRoute() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: {
+      id: string
+      name?: string
+      grade?: string
+      description?: string
+      lengthMeters?: number
+      styleTags?: string[]
+    }) =>
+      migrationInvoke<ApiRoute>(
+        'routes',
+        'updateRoute',
+        {
+          id: params.id,
+          name: params.name,
+          grade: params.grade,
+          description: params.description,
+          length_meters: params.lengthMeters,
+          style_tags: params.styleTags,
+        },
+        accessToken!,
+      ),
+    onSuccess: (_route, vars) => {
+      qc.invalidateQueries({ queryKey: ['catalog', 'route', vars.id] })
+    },
   })
 }
 
