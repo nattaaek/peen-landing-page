@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FeedCard } from '../../components/FeedCard'
 import { Icon } from '../../components/Icon'
 import { BrowseCragsLink, LoginRequired } from '../auth/LoginGate'
@@ -33,8 +33,14 @@ export function FeedView({
   const sendItMut = useSendItClimb()
   const unsendIt = useUnsendItClimb()
 
-  const allRows = feedQ.data ?? []
+  const allRows = feedQ.data?.posts ?? []
   const followingIds = followingQ.data ?? new Set<string>()
+
+  useEffect(() => {
+    if (!feedQ.data) return
+    setLiked(new Set(feedQ.data.likedClimbIds))
+    setSendIt(new Set(feedQ.data.sendItClimbIds))
+  }, [feedQ.data])
   const rows = useMemo(() => {
     if (tab !== 'Following') return allRows
     return allRows.filter((post) => {
@@ -207,7 +213,6 @@ const MOCK_TEASER: FeedClimbRow[] = [
     created_at: new Date(Date.now() - 2 * 3_600_000).toISOString(),
     route: { id: 'mock-1', name: 'The Coffin', grade: '7a', area: { id: 'a1', name: 'Tonsai' }, length_meters: 18 },
     profile: { nickname: 'Maya', username: 'maya' },
-    photo_urls: [''],
   },
   {
     id: 't2',

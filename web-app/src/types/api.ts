@@ -37,6 +37,19 @@ export interface UserProfile {
   bio?: string | null
 }
 
+export interface FeedReactionCountRow {
+  climb_id: string
+  likes_count?: number
+  sendits_count?: number
+  comments_count?: number
+}
+
+export interface PublicFeedPayload {
+  posts: FeedClimbRow[]
+  likedClimbIds: string[]
+  sendItClimbIds: string[]
+}
+
 export interface FeedClimbRow {
   id: string
   user_id?: string

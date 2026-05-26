@@ -289,6 +289,11 @@ button.feed-route {
   padding: 6px 10px; border-radius: 10px;
   transition: background .12s, color .12s;
 }
+.feed-actions .act-count {
+  font-variant-numeric: tabular-nums;
+  min-width: 0.75em;
+  color: inherit;
+}
 .feed-actions .act-btn:hover { background: var(--surface); color: var(--fg-1); }
 .feed-actions .act-btn.liked { color: var(--tint); }
 .feed-actions .send-it { margin-left: auto; }

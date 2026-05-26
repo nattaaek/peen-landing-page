@@ -10,8 +10,10 @@ import type {
   ClimbComment,
   ClimbLogRow,
   FeedClimbRow,
+  FeedReactionCountRow,
   InboxNotification,
   PartnerPost,
+  PublicFeedPayload,
   RouteRatingSummary,
 } from '../types/api'
 import { useAuth } from '../features/auth/AuthProvider'
@@ -26,10 +28,10 @@ export function useMyProfile() {
 }
 
 export function usePublicFeed(limit = 30) {
-  const { accessToken } = useAuth()
+  const { accessToken, user } = useAuth()
   return useQuery({
-    queryKey: ['feed', 'public', limit],
-    queryFn: async () => {
+    queryKey: ['feed', 'public', limit, user?.id],
+    queryFn: async (): Promise<PublicFeedPayload> => {
       const rows = await migrationInvoke<FeedClimbRow[]>(
         'social',
         'loadPublicFeed',
@@ -37,40 +39,80 @@ export function usePublicFeed(limit = 30) {
         accessToken!,
       )
       const userIds = [...new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id))]
-      if (userIds.length === 0) return rows
+      const climbIds = rows.map((r) => r.id).filter(Boolean)
 
-      const [identities, avatarRows] = await Promise.all([
-        fetchProfileIdentities(accessToken!, userIds),
-        migrationInvoke<{ user_id: string; avatar_url?: string | null }[]>(
-          'community',
-          'fetchAvatarUrls',
-          { user_ids: userIds },
-          accessToken!,
-        ),
+      const [identities, avatarRows, reactionRows, myLikes, mySendIts] = await Promise.all([
+        userIds.length > 0
+          ? fetchProfileIdentities(accessToken!, userIds)
+          : Promise.resolve([]),
+        userIds.length > 0
+          ? migrationInvoke<{ user_id: string; avatar_url?: string | null }[]>(
+              'community',
+              'fetchAvatarUrls',
+              { user_ids: userIds },
+              accessToken!,
+            )
+          : Promise.resolve([]),
+        climbIds.length > 0
+          ? migrationInvoke<FeedReactionCountRow[]>(
+              'social',
+              'loadReactionCounts',
+              { climb_ids: climbIds },
+              accessToken!,
+            )
+          : Promise.resolve([]),
+        climbIds.length > 0 && user?.id
+          ? migrationInvoke<{ climb_id: string }[]>(
+              'social',
+              'loadMyLikes',
+              { user_id: user.id, climb_ids: climbIds },
+              accessToken!,
+            )
+          : Promise.resolve([]),
+        climbIds.length > 0 && user?.id
+          ? migrationInvoke<{ climb_id: string }[]>(
+              'social',
+              'loadMySendIts',
+              { user_id: user.id, climb_ids: climbIds },
+              accessToken!,
+            )
+          : Promise.resolve([]),
       ])
+
       const byUserId = new Map(identities.map((i) => [i.user_id, i]))
       const avatarByUserId = new Map(
         avatarRows
           .map((r) => [r.user_id, r.avatar_url?.trim() ?? ''] as const)
           .filter(([, url]) => url.startsWith('http')),
       )
+      const reactionsByClimb = new Map(reactionRows.map((r) => [r.climb_id, r]))
 
-      return rows.map((row) => {
+      const posts = rows.map((row) => {
         const uid = row.user_id
-        if (!uid) return row
-        const identity = byUserId.get(uid)
-        const avatarUrl = avatarByUserId.get(uid) ?? row.profile?.avatar_url
-        if (!identity && !avatarUrl) return row
+        const identity = uid ? byUserId.get(uid) : undefined
+        const avatarUrl = uid ? avatarByUserId.get(uid) ?? row.profile?.avatar_url : row.profile?.avatar_url
+        const reaction = reactionsByClimb.get(row.id)
         return {
           ...row,
-          profile: {
-            id: uid,
-            nickname: identity?.nickname,
-            username: identity?.username,
-            avatar_url: avatarUrl,
-          },
+          like_count: reaction?.likes_count ?? row.like_count ?? 0,
+          comment_count: reaction?.comments_count ?? row.comment_count ?? 0,
+          profile:
+            uid || identity || avatarUrl
+              ? {
+                  id: uid,
+                  nickname: identity?.nickname ?? row.profile?.nickname,
+                  username: identity?.username ?? row.profile?.username,
+                  avatar_url: avatarUrl,
+                }
+              : row.profile,
         }
       })
+
+      return {
+        posts,
+        likedClimbIds: myLikes.map((r) => r.climb_id),
+        sendItClimbIds: mySendIts.map((r) => r.climb_id),
+      }
     },
     enabled: !!accessToken,
   })
