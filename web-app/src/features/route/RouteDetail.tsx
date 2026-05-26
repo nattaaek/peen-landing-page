@@ -6,7 +6,9 @@ import {
   usePublicRouteLogs,
   useRouteConsensus,
   useRouteRating,
+  useToggleWishlist,
   useUpsertSteepnessVote,
+  useWishlistRouteIds,
 } from '../../hooks/useMigration'
 import type { ApiRoute } from '../../types/api'
 
@@ -32,6 +34,9 @@ export function RouteDetailOverlay({
   const ratingQ = useRouteRating(isGuest ? undefined : routeId)
   const consensusQ = useRouteConsensus(isGuest ? undefined : routeId)
   const vote = useUpsertSteepnessVote()
+  const wishlistQ = useWishlistRouteIds()
+  const toggleWishlist = useToggleWishlist()
+  const isInWishlist = routeId ? (wishlistQ.data?.has(routeId) ?? false) : false
 
   return (
     <>
@@ -44,6 +49,21 @@ export function RouteDetailOverlay({
           <div style={{ flex: 1, fontWeight: 700, fontSize: 14, color: 'var(--fg-2)' }}>
             {route?.area?.name ?? route?.gym?.name ?? 'Route'}
           </div>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+            disabled={toggleWishlist.isPending}
+            onClick={() => {
+              if (isGuest) {
+                onSignIn()
+                return
+              }
+              toggleWishlist.mutate({ routeId, save: !isInWishlist })
+            }}
+          >
+            <Icon name={isInWishlist ? 'bookmarkFilled' : 'bookmark'} size={20} />
+          </button>
         </div>
         <div className="slideover-body">
           {routeQ.isLoading && <p className="muted">Loading route…</p>}

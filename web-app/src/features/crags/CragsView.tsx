@@ -1,11 +1,24 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../../components/Icon'
+import { useAuth } from '../auth/AuthProvider'
 import { useCatalogAreas, useCatalogGyms, useCatalogRoutes } from '../../hooks/useCatalog'
+import { useWishlistRouteIds } from '../../hooks/useMigration'
 import type { ApiRoute } from '../../types/api'
 import { CragsMap } from './CragsMap'
 
-export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => void }) {
+type ListStatusChip = 'all' | 'wishlist'
+
+export function CragsView({
+  onOpenRoute,
+  onSignIn,
+}: {
+  onOpenRoute: (route: ApiRoute) => void
+  onSignIn?: () => void
+}) {
+  const { accessToken } = useAuth()
+  const isGuest = !accessToken
   const [filter, setFilter] = useState<'all' | 'crag' | 'gym'>('all')
+  const [listStatusChip, setListStatusChip] = useState<ListStatusChip>('all')
   const [query, setQuery] = useState('')
   const [selectedPlace, setSelectedPlace] = useState<{
     id: string
@@ -15,11 +28,14 @@ export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => v
   const areasQ = useCatalogAreas()
   const gymsQ = useCatalogGyms()
   const routesQ = useCatalogRoutes(0)
+  const wishlistQ = useWishlistRouteIds()
+  const wishlistIds = wishlistQ.data ?? new Set<string>()
 
   const routes = routesQ.data ?? []
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return routes.filter((r) => {
+      if (listStatusChip === 'wishlist' && !wishlistIds.has(r.id)) return false
       if (filter === 'gym' && !r.gym_id) return false
       if (filter === 'crag' && !r.area_id) return false
       if (selectedPlace) {
@@ -30,7 +46,12 @@ export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => v
       const hay = `${r.name} ${r.grade} ${r.area?.name ?? ''} ${r.gym?.name ?? ''}`.toLowerCase()
       return hay.includes(q)
     })
-  }, [routes, filter, query, selectedPlace])
+  }, [routes, filter, query, selectedPlace, listStatusChip, wishlistIds])
+
+  const wishlistCount = useMemo(
+    () => routes.filter((r) => wishlistIds.has(r.id)).length,
+    [routes, wishlistIds],
+  )
 
   const onMapSelect = (id: string, kind: 'area' | 'gym') => {
     const name =
@@ -64,6 +85,29 @@ export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => v
           ))}
         </div>
       </div>
+      <div className="chip-row" style={{ marginBottom: 12 }}>
+        {(
+          [
+            ['all', 'All routes', routes.length],
+            ['wishlist', 'Wishlist', wishlistCount],
+          ] as const
+        ).map(([chip, label, count]) => (
+          <button
+            key={chip}
+            type="button"
+            className={`chip ${listStatusChip === chip ? 'active' : ''}`}
+            onClick={() => {
+              if (chip === 'wishlist' && isGuest) {
+                onSignIn?.()
+                return
+              }
+              setListStatusChip(chip)
+            }}
+          >
+            {label} ({count})
+          </button>
+        ))}
+      </div>
       {selectedPlace && (
         <div className="crag-filter-banner">
           <span>
@@ -86,6 +130,14 @@ export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => v
           </div>
           {routesQ.isLoading && <p className="muted">Loading routes…</p>}
           {routesQ.isError && <p className="error">Could not load routes.</p>}
+          {listStatusChip === 'wishlist' && isGuest && (
+            <p className="muted">
+              <button type="button" className="link-btn" onClick={onSignIn}>
+                Sign in
+              </button>{' '}
+              to see your saved routes.
+            </p>
+          )}
           {filtered.map((r) => (
             <button
               key={r.id}
@@ -98,6 +150,9 @@ export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => v
                 <span className="chip" style={{ marginLeft: 8 }}>
                   {r.grade}
                 </span>
+                {wishlistIds.has(r.id) && (
+                  <Icon name="bookmarkFilled" size={14} className="wishlist-inline-icon" />
+                )}
               </div>
               <span className="muted" style={{ fontSize: 13 }}>
                 {r.area?.name ?? r.gym?.name ?? '—'}
@@ -105,7 +160,11 @@ export function CragsView({ onOpenRoute }: { onOpenRoute: (route: ApiRoute) => v
             </button>
           ))}
           {!routesQ.isLoading && filtered.length === 0 && (
-            <p className="muted">No routes match this filter.</p>
+            <p className="muted">
+              {listStatusChip === 'wishlist'
+                ? 'No routes in your wishlist yet. Open a route and tap the bookmark to save it.'
+                : 'No routes match this filter.'}
+            </p>
           )}
         </div>
         <div className="crags-map-wrap">

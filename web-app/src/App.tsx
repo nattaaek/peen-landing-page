@@ -92,7 +92,15 @@ function AppLayout() {
               <FeedView onSignIn={() => openLogin()} onOpenRoute={openRouteById} />
             }
           />
-          <Route path="crags" element={<CragsView onOpenRoute={openRoute} />} />
+          <Route
+            path="crags"
+            element={
+              <CragsView
+                onOpenRoute={openRoute}
+                onSignIn={() => openLogin('Sign in to use your wishlist.')}
+              />
+            }
+          />
           <Route path="crew" element={<CrewView onSignIn={() => openLogin()} />} />
           <Route path="profile" element={<ProfileView onSignIn={() => openLogin()} />} />
         </Route>

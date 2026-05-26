@@ -31,6 +31,8 @@ export type IconName =
   | 'heartFilled'
   | 'grade'
   | 'calendar'
+  | 'bookmark'
+  | 'bookmarkFilled'
 
 const strokeProps = (size: number, stroke: number): SVGProps<SVGSVGElement> => ({
   width: size,
@@ -196,6 +198,18 @@ export function Icon({
         <svg {...p}>
           <rect x="3" y="5" width="18" height="16" rx="2" />
           <path d="M3 9h18M8 3v4M16 3v4" />
+        </svg>,
+      )
+    case 'bookmark':
+      return wrap(
+        <svg {...p}>
+          <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-3-6 3V5a1 1 0 0 1 1-1z" />
+        </svg>,
+      )
+    case 'bookmarkFilled':
+      return wrap(
+        <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="none">
+          <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-3-6 3V5a1 1 0 0 1 1-1z" />
         </svg>,
       )
     case 'google':

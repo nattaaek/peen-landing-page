@@ -14,7 +14,7 @@ Mobile reference: `peen-ios/peen/`.
 |------|--------------|----------------|
 | Shell (sidebar, topbar, rail, mobile tabs) | Partial — CSS ported; structure simplified | Nav OK |
 | Feed | Guest gate only; no blur teaser | Public feed + like; no Following filter, comments, profiles |
-| Crags | Split layout | Catalog + map; map not linked to list; thin route detail |
+| Crags | Split layout | Catalog + map; wishlist filter + save on route detail (signed-in) |
 | Crew | Single scroll page | Leaderboard + partners; no Crew/Partners/Challenges tabs |
 | Profile | Basic pyramid | Own profile only; no edit, heatmap, settings |
 | Log | Route-only composer | Header “Log climb” broken without route |
@@ -38,6 +38,7 @@ Mobile reference: `peen-ios/peen/`.
 - [x] Global log: route picker then composer
 - [x] Route detail: public sends, rating, steepness (API exists)
 - [x] Crags: map pin ↔ list selection; area/gym filters
+- [x] Crags: route wishlist (save, filter chip; auth required)
 - [x] Profile: edit profile, log edit/delete (settings prefs → Phase C)
 - [x] Notifications: mark read + deep links (route entity)
 

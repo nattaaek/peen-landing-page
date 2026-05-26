@@ -399,6 +399,67 @@ const STEEPNESS_ANGLES = ['slab', 'vertical', 'overhung', 'roof', 'tufa', 'mixed
 export type SteepnessAngle = (typeof STEEPNESS_ANGLES)[number]
 export { STEEPNESS_ANGLES }
 
+type WishlistRouteIdsPayload = { route_ids: string[] }
+
+export function useWishlistRouteIds() {
+  const { accessToken, user } = useAuth()
+  return useQuery({
+    queryKey: ['routes', 'wishlist', user?.id],
+    queryFn: async () => {
+      const payload = await migrationInvoke<WishlistRouteIdsPayload>(
+        'routes',
+        'fetchMyWishlistRouteIds',
+        { user_id: user!.id },
+        accessToken!,
+      )
+      return new Set(payload.route_ids ?? [])
+    },
+    enabled: !!accessToken && !!user?.id,
+  })
+}
+
+export function useToggleWishlist() {
+  const { accessToken, user } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      routeId,
+      save,
+    }: {
+      routeId: string
+      save: boolean
+    }) => {
+      const op = save ? 'saveRouteToWishlist' : 'unsaveRouteFromWishlist'
+      await migrationInvoke(
+        'routes',
+        op,
+        { user_id: user!.id, route_id: routeId },
+        accessToken!,
+      )
+    },
+    onMutate: async ({ routeId, save }) => {
+      const key = ['routes', 'wishlist', user?.id]
+      await qc.cancelQueries({ queryKey: key })
+      const prev = qc.getQueryData<Set<string>>(key)
+      qc.setQueryData<Set<string>>(key, (old) => {
+        const next = new Set(old ?? [])
+        if (save) next.add(routeId)
+        else next.delete(routeId)
+        return next
+      })
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev !== undefined) {
+        qc.setQueryData(['routes', 'wishlist', user?.id], ctx.prev)
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['routes', 'wishlist', user?.id] })
+    },
+  })
+}
+
 export function useUpsertSteepnessVote() {
   const { accessToken } = useAuth()
   const qc = useQueryClient()
