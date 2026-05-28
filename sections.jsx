@@ -573,7 +573,7 @@ function Footer() {
           {[
             { h: 'product', items: [['Features','#features'],['Send types','#sends'],['Stats','#community'],['Maps','#community']] },
             { h: 'community', items: [['Crew','#community'],['Partners','#community'],['Challenges','#community']] },
-            { h: 'company', items: [['About','#top'],['Use on web','/app/'],['Privacy','privacy.html'],['Terms','terms.html'],['Press kit','mailto:hello@peen.app?subject=Press%20kit']] },
+            { h: 'company', items: [['About','#top'],['Use on web','/app/'],['Privacy','privacy.html'],['Delete account','delete-account.html'],['Terms','terms.html'],['Press kit','mailto:hello@peen.app?subject=Press%20kit']] },
           ].map(col => (
             <div key={col.h}>
               <div style={{ fontFamily: PFONT, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: PEEN.tint, marginBottom: 12 }}>{col.h}</div>
