@@ -23,16 +23,12 @@ const NAV = [
 const PINNED_CRAGS = ['Crazy Horse', 'Tonsai', 'Stone Locker']
 
 export function AppShell({
-  railOn,
-  onToggleRail,
   onLog,
   onNotifs,
   onSignIn,
   onOpenRoute,
   onOpenProfile,
 }: {
-  railOn: boolean
-  onToggleRail: () => void
   onLog: () => void
   onNotifs: () => void
   onSignIn: () => void
@@ -68,9 +64,7 @@ export function AppShell({
   }, [searchOpen])
 
   const unread = (inboxQ.data ?? []).filter((n) => n.read !== true).length
-  const appClass = ['app', !railOn ? 'rail-off' : '', sidebarCompact ? 'sidebar-rail' : '']
-    .filter(Boolean)
-    .join(' ')
+  const appClass = ['app', sidebarCompact ? 'sidebar-rail' : ''].filter(Boolean).join(' ')
 
   return (
     <div className={appClass}>
@@ -290,17 +284,14 @@ export function AppShell({
         <Outlet />
       </main>
 
-      {railOn && (
-        <aside className="rail">
-          <RightRail
-            onToggleRail={onToggleRail}
-            isGuest={isGuest}
-            onSignIn={onSignIn}
-            onNotifs={onNotifs}
-            onOpenCrew={() => navigate('/crew')}
-          />
-        </aside>
-      )}
+      <aside className="rail">
+        <RightRail
+          isGuest={isGuest}
+          onSignIn={onSignIn}
+          onNotifs={onNotifs}
+          onOpenCrew={() => navigate('/crew')}
+        />
+      </aside>
 
       <GlobalSearch
         open={searchOpen}
@@ -334,13 +325,11 @@ export function AppShell({
 }
 
 function RightRail({
-  onToggleRail,
   isGuest,
   onSignIn,
   onNotifs,
   onOpenCrew,
 }: {
-  onToggleRail: () => void
   isGuest: boolean
   onSignIn: () => void
   onNotifs: () => void
@@ -363,15 +352,6 @@ function RightRail({
 
   return (
     <>
-      <button
-        type="button"
-        className="icon-btn rail-close"
-        onClick={onToggleRail}
-        aria-label="Hide panel"
-      >
-        <Icon name="close" size={16} />
-      </button>
-
       <div className="rail-card">
         <h4>Conditions · Crazy Horse</h4>
         <div className="rail-weather">

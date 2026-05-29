@@ -18,7 +18,6 @@ function AppLayout() {
   const navigate = useNavigate()
   const { accessToken, user } = useAuth()
   const isGuest = !accessToken
-  const [railOn, setRailOn] = useState(true)
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginMsg, setLoginMsg] = useState<string | null>(null)
   const [notifsOpen, setNotifsOpen] = useState(false)
@@ -89,8 +88,6 @@ function AppLayout() {
         <Route
           element={
             <AppShell
-              railOn={railOn}
-              onToggleRail={() => setRailOn((v) => !v)}
               onLog={() => openLog()}
               onNotifs={() => (isGuest ? openLogin() : setNotifsOpen(true))}
               onSignIn={() => openLogin()}

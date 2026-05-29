@@ -524,7 +524,6 @@
   text-transform: none;
   letter-spacing: 0;
 }
-.rail-close { align-self: flex-end; margin-bottom: -8px; }
 .rail-foot { font-size: 12px; margin-top: auto; }
 .challenge-row {
   display: flex;
@@ -699,13 +698,6 @@
     color: #fff;
     margin-top: -20px;
     box-shadow: 0 8px 20px rgba(213, 90, 31, 0.35);
-  }
-}
-
-@media (max-width: 1100px) {
-  .app.rail-off .rail,
-  .rail {
-    display: none;
   }
 }
 
