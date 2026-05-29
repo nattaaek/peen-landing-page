@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useAddComment, useComments, useMyProfile } from '../../hooks/useMigration'
 import { FeedUserAvatar } from '../../components/FeedUserAvatar'
 import { useAuth } from '../auth/AuthProvider'
 import { formatWhen } from '../../lib/formatWhen'
 import { profileDisplayName } from '../../lib/peen-api/profiles'
+import { isCommentLiked, toggleCommentLike } from '../../lib/commentLikes'
 
 export function FeedInlineComments({
   climbId,
@@ -17,7 +18,11 @@ export function FeedInlineComments({
   const commentsQ = useComments(climbId)
   const addComment = useAddComment()
   const [draft, setDraft] = useState('')
+  const [replyTo, setReplyTo] = useState<{ id: string; handle: string } | null>(null)
   const [postError, setPostError] = useState<string | null>(null)
+  const [, bumpLikes] = useState(0)
+
+  const refreshLikes = useCallback(() => bumpLikes((n) => n + 1), [])
 
   const submit = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -31,12 +36,32 @@ export function FeedInlineComments({
     try {
       await addComment.mutateAsync({ climb_id: climbId, body })
       setDraft('')
+      setReplyTo(null)
     } catch {
       setPostError('Could not post comment. Try again.')
     }
   }
 
   const meName = profileDisplayName(profileQ.data ?? {})
+
+  const startReply = (commentId: string, authorName: string, username?: string | null) => {
+    if (!accessToken) {
+      onSignIn('Sign in to reply.')
+      return
+    }
+    const handle = username?.trim() ? `@${username.trim()}` : `@${authorName.replace(/\s+/g, '').toLowerCase()}`
+    setReplyTo({ id: commentId, handle })
+    setDraft(`${handle} `)
+  }
+
+  const toggleLike = (commentId: string) => {
+    if (!accessToken) {
+      onSignIn('Sign in to like comments.')
+      return
+    }
+    toggleCommentLike(commentId)
+    refreshLikes()
+  }
 
   return (
     <div className="feed-comments">
@@ -49,6 +74,7 @@ export function FeedInlineComments({
         ) : null}
         {(commentsQ.data ?? []).map((c) => {
           const authorName = profileDisplayName(c.profile ?? {})
+          const liked = isCommentLiked(c.id)
           return (
             <div key={c.id} className="feed-comment-row">
               <FeedUserAvatar
@@ -64,6 +90,22 @@ export function FeedInlineComments({
                 </div>
                 <div className="feed-comment-meta">
                   <span>{formatWhen(c.created_at)}</span>
+                  <button
+                    type="button"
+                    className="feed-comment-action"
+                    onClick={() =>
+                      startReply(c.id, authorName, c.profile?.username)
+                    }
+                  >
+                    Reply
+                  </button>
+                  <button
+                    type="button"
+                    className={`feed-comment-action ${liked ? 'active' : ''}`}
+                    onClick={() => toggleLike(c.id)}
+                  >
+                    {liked ? 'Liked' : 'Like'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -75,6 +117,21 @@ export function FeedInlineComments({
           </p>
         ) : null}
       </div>
+      {replyTo && (
+        <div className="feed-comment-replying">
+          <span className="muted">Replying</span>
+          <button
+            type="button"
+            className="feed-comment-action"
+            onClick={() => {
+              setReplyTo(null)
+              setDraft('')
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
       <form className="feed-comment-form" onSubmit={submit}>
         <FeedUserAvatar
           name={meName}
@@ -84,7 +141,13 @@ export function FeedInlineComments({
         />
         <label className="search feed-comment-input">
           <input
-            placeholder={accessToken ? 'Add a comment…' : 'Sign in to add a comment…'}
+            placeholder={
+              accessToken
+                ? replyTo
+                  ? `Reply to ${replyTo.handle}…`
+                  : 'Add a comment…'
+                : 'Sign in to add a comment…'
+            }
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onFocus={(e) => {

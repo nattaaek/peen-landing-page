@@ -8,6 +8,7 @@ import { CrewView } from './features/crew/CrewView'
 import { FeedView } from './features/feed/FeedView'
 import { NotificationsDrawer } from './features/notifications/NotificationsDrawer'
 import { ProfileView } from './features/profile/ProfileView'
+import { PublicProfilePeek } from './features/profile/PublicProfilePeek'
 import { LogComposer } from './features/route/LogComposer'
 import { RouteDetailOverlay } from './features/route/RouteDetail'
 import { RoutePicker } from './features/route/RoutePicker'
@@ -26,6 +27,10 @@ function AppLayout() {
   const [composerOpen, setComposerOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+  const [publicProfile, setPublicProfile] = useState<{
+    userId: string
+    fallbackName?: string
+  } | null>(null)
 
   useEffect(() => {
     if (!toast) return
@@ -89,6 +94,10 @@ function AppLayout() {
               onLog={() => openLog()}
               onNotifs={() => (isGuest ? openLogin() : setNotifsOpen(true))}
               onSignIn={() => openLogin()}
+              onOpenRoute={openRouteById}
+              onOpenProfile={(userId, fallbackName) =>
+                setPublicProfile({ userId, fallbackName })
+              }
             />
           }
         >
@@ -100,9 +109,9 @@ function AppLayout() {
                 onSignIn={openLogin}
                 onOpenRoute={openRouteById}
                 onToast={setToast}
-                onOpenProfile={(userId) => {
+                onOpenProfile={(userId, fallbackName) => {
                   if (user?.id === userId) navigate('/profile')
-                  else setToast('Public profiles coming soon')
+                  else setPublicProfile({ userId, fallbackName })
                 }}
               />
             }
@@ -116,7 +125,10 @@ function AppLayout() {
               />
             }
           />
-          <Route path="crew" element={<CrewView onSignIn={() => openLogin()} />} />
+          <Route
+            path="crew"
+            element={<CrewView onSignIn={() => openLogin()} onOpenRoute={openRouteById} />}
+          />
           <Route path="profile" element={<ProfileView onSignIn={() => openLogin()} />} />
         </Route>
       </Routes>
@@ -148,6 +160,18 @@ function AppLayout() {
         onSignIn={() => openLogin()}
         onNavigate={onNotificationNavigate}
       />
+      {publicProfile && (
+        <PublicProfilePeek
+          userId={publicProfile.userId}
+          fallbackName={publicProfile.fallbackName}
+          onClose={() => setPublicProfile(null)}
+          onOpenRoute={(id) => {
+            setPublicProfile(null)
+            setRouteId(id)
+          }}
+          onSignIn={() => openLogin('Sign in to follow climbers.')}
+        />
+      )}
       {toast && (
         <div className="toast" role="status">
           {toast}

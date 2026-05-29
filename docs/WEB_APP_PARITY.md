@@ -1,58 +1,42 @@
 # Web app — design & iOS parity
 
-Reference design: `Peen Design System-10/peen-web/` (designer prototype).  
+Reference design: `Peen Design System-11/peen-web/` (designer prototype).  
 Production app: `peen-landing-page/web-app/` at [peen.app/app/](https://peen.app/app/).  
 Mobile reference: `peen-ios/peen/`.
 
-## Honest status (May 2026)
+## Status (May 2026)
 
-**Shell + layout** are close to the designer `peen-web` prototype. **Feed content** depends on real API data (photos, handles, route metadata); empty or sparse fields will still look simpler than mock data. **Filter chips** on Feed are visual-only until wired. **Partner names** in the right rail need richer `community.fetchPartners` payloads (today often shows crag only).
+The web app is **largely aligned** with the designer prototype for shell, feed, crags, profile, and crew. Remaining gaps are mostly **partner messaging/requests** (no web compose yet), **server-synced comment likes**, and **challenge route checklists** (detail lives on iOS).
 
-## Current state (~45–50% of iOS)
+## Coverage (~80% of design + core iOS community)
 
-| Area | Design match | Feature parity |
-|------|--------------|----------------|
-| Shell (sidebar, topbar, rail, mobile tabs) | Partial — CSS ported; structure simplified | Nav OK |
-| Feed | Guest gate only; no blur teaser | Public feed + like; no Following filter, comments, profiles |
-| Crags | Split layout | Catalog + map; wishlist filter + save on route detail (signed-in) |
-| Crew | Single scroll page | Leaderboard + partners; no Crew/Partners/Challenges tabs |
-| Profile | Basic pyramid | Own profile only; no edit, heatmap, settings |
-| Log | Route-only composer | Header “Log climb” broken without route |
-| Notifications | Drawer list | No actions / mark-read |
+| Area | Status |
+|------|--------|
+| Shell | Wishlist sidebar, ⌘K search (full catalog scan), challenge shortcuts, pinned crags → map |
+| Feed | Filters, inline comments with reply (@mention) + local likes, follow, wishlist, deep links |
+| Crags | Map overlay, zoom, preview card, wishlist filter |
+| Profile | 4-stat grid, heatmap, crew rank, privacy toggle, public peek |
+| Crew | Tabs; weekly + year leaderboard, shared projects, beta spray, partners filters, challenge list |
+| Notifications | Drawer, mark read, route links |
 
-## Phased plan
+## Implemented in web
 
-### Phase A — Design system fidelity (prototype → React)
+- Sidebar wishlist (`fetchRoutesByIds`)
+- Global search: climbers API + paginated catalog route search
+- Public profile slide-over (`/v1/profiles/{id}`, public sends, follow)
+- Activity heatmap (12-week grid, streak)
+- Crew rank from `community_fetch_weekly_leaderboard`
+- Crew tab: `community_fetch_shared_projects`, `community_fetch_beta_spray`, invites count
+- Challenges: `fetchChallenges` in sidebar + Challenges tab
+- Comment reply (prefill @handle) and like (browser-local until API exists)
 
-- [x] Tokens + `app.css` from `colors_and_type.css` / `styles.css`
-- [x] Sidebar: `nav-item`, pinned crags, challenge shortcuts, `crag-snapshot` + topo
-- [x] Right rail: weather, partners preview, seasonal progress, notifications preview
-- [x] `page-head` / `page-title` / `segmented` on all main views
-- [x] Guest states: `LoginRequired` topo card + blurred feed teaser + crew challenge hero
-- [ ] Profile: activity heatmap, richer pyramid layout
+## Still open / intentional limits
 
-### Phase B — Core loop (match iOS P1)
-
-- [x] Feed: Following tab (filter via `loadFollowing` + public feed)
-- [x] Feed: comments sheet, send-it
-- [x] Global log: route picker then composer
-- [x] Route detail: public sends, rating, steepness (API exists)
-- [x] Crags: map pin ↔ list selection; area/gym filters
-- [x] Crags: route wishlist (save, filter chip; auth required)
-- [x] Profile: edit profile, log edit/delete (settings prefs → Phase C)
-- [x] Notifications: mark read + deep links (route entity)
-
-### Phase C — Crew & community (iOS P2)
-
-- [ ] Crew / Partners / Challenges tabs with full sections
-- [ ] Crew invites, shared projects, beta spray
-- [ ] Partner post + climb requests + chat
-- [ ] Seasonal challenge detail + leaderboard + join
-
-### Phase D — Power features (iOS P3)
-
-- [ ] Topo viewer, hazards, approach, route create/edit
-- [ ] Public climber profiles + follow graph
-- [ ] Onboarding, search, Instagram reels strip
+- **Comment likes** — UI + `localStorage`; no `peen-api` table yet (design was mock; iOS has no likes either)
+- **Comment threading** — replies are flat comments with @mentions, not `parent_id`
+- **Partner Message / Request** — buttons present; full flow is iOS-first
+- **Crew invite / manage** — view invites count; send/manage on iOS
+- **Challenge route checklist** — seasonal hero only on web
+- **Post partner availability** — web links to profile / iOS
 
 Track progress in PRs labeled `web-parity`.

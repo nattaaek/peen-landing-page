@@ -1,21 +1,29 @@
-import { useEffect, useRef } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import type { ApiArea, ApiGym } from '../../types/api'
 
-export function CragsMap({
-  areas,
-  gyms,
-  selectedId,
-  onSelect,
-}: {
-  areas: ApiArea[]
-  gyms: ApiGym[]
-  selectedId?: string | null
-  onSelect?: (id: string, kind: 'area' | 'gym') => void
-}) {
+export type CragsMapHandle = {
+  zoomIn: () => void
+  zoomOut: () => void
+}
+
+export const CragsMap = forwardRef<
+  CragsMapHandle,
+  {
+    areas: ApiArea[]
+    gyms: ApiGym[]
+    selectedId?: string | null
+    onSelect?: (id: string, kind: 'area' | 'gym') => void
+  }
+>(function CragsMap({ areas, gyms, selectedId, onSelect }, ref) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<maplibregl.Map | null>(null)
+
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => mapRef.current?.zoomTo((mapRef.current.getZoom() ?? 6) + 1, { duration: 200 }),
+    zoomOut: () => mapRef.current?.zoomTo((mapRef.current.getZoom() ?? 6) - 1, { duration: 200 }),
+  }))
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -125,8 +133,8 @@ export function CragsMap({
   return (
     <div
       ref={containerRef}
-      className="crags-map"
-      style={{ height: '100%', minHeight: 320, borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}
+      className="crags-map-canvas"
+      style={{ position: 'absolute', inset: 0, borderRadius: 'var(--radius-lg)' }}
     />
   )
-}
+})

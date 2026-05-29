@@ -1,8 +1,29 @@
-import { apiJson } from './client'
+import { apiJson, PeenAPIError } from './client'
 import type { UserProfile } from '../../types/api'
+
+export type UserProfileFetchResult =
+  | { kind: 'ok'; profile: UserProfile }
+  | { kind: 'private' }
+  | { kind: 'error'; message: string }
 
 export async function fetchMyProfile(accessToken: string): Promise<UserProfile> {
   return apiJson<UserProfile>('/v1/profiles/me', { accessToken })
+}
+
+export async function fetchUserProfile(
+  accessToken: string,
+  userId: string,
+): Promise<UserProfileFetchResult> {
+  try {
+    const profile = await apiJson<UserProfile>(`/v1/profiles/${userId}`, { accessToken })
+    return { kind: 'ok', profile }
+  } catch (e) {
+    if (e instanceof PeenAPIError && e.status === 404) {
+      return { kind: 'private' }
+    }
+    const message = e instanceof Error ? e.message : 'Could not load profile'
+    return { kind: 'error', message }
+  }
 }
 
 export async function patchProfile(

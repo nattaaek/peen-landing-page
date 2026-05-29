@@ -15,6 +15,7 @@ import {
   useUnsendItClimb,
   useWishlistRouteIds,
 } from '../../hooks/useMigration'
+import { normalizeRouteId, wishlistIdsToSet } from '../../lib/routeIds'
 import type { FeedClimbRow } from '../../types/api'
 import { DEFAULT_GRADE_RANGE } from './feedConstants'
 import { FeedFilterBar } from './FeedFilterBar'
@@ -35,7 +36,7 @@ export function FeedView({
   onSignIn: (msg?: string) => void
   onOpenRoute: (routeId: string) => void
   onToast?: (msg: string) => void
-  onOpenProfile: (userId: string) => void
+  onOpenProfile: (userId: string, fallbackName?: string) => void
 }) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -74,7 +75,7 @@ export function FeedView({
     [feedQ.data],
   )
   const followingIds = followingQ.data ?? new Set<string>()
-  const wishlistIds = wishlistQ.data ?? new Set<string>()
+  const wishlistIds = useMemo(() => wishlistIdsToSet(wishlistQ.data), [wishlistQ.data])
 
   useEffect(() => {
     if (!feedQ.data) return
@@ -86,6 +87,7 @@ export function FeedView({
     }
     setLiked(likedIds)
     setSendIt(sendItIds)
+    setLikeDeltas(new Map())
   }, [feedQ.data])
 
   const tabRows = useMemo(() => {
@@ -279,10 +281,16 @@ export function FeedView({
         cardRef={(el) => registerCardRef(post.id, el)}
         isFollowing={isFollowing}
         isSelf={isSelf}
-        isSaved={routeId ? wishlistIds.has(routeId) : false}
+        isSaved={routeId ? wishlistIds.has(normalizeRouteId(routeId)) : false}
         isGuest={guest || !accessToken}
         onOpenRoute={() => routeId && onOpenRoute(routeId)}
-        onOpenProfile={() => authorId && onOpenProfile(authorId)}
+        onOpenProfile={() =>
+          authorId &&
+          onOpenProfile(
+            authorId,
+            post.profile?.nickname ?? post.profile?.username ?? undefined,
+          )
+        }
         onLike={() => toggleLike(post.id)}
         onSendIt={() => toggleSendItPost(post.id)}
         onToggleFollow={() => {
@@ -291,12 +299,19 @@ export function FeedView({
         }}
         onToggleWishlist={() => {
           if (!routeId) return
-          const save = !wishlistIds.has(routeId)
-          toggleWishlist.mutate({ routeId, save })
-          onToast?.(
-            save
-              ? `Added ${post.route?.name ?? 'route'} to wishlist`
-              : `Removed ${post.route?.name ?? 'route'} from wishlist`,
+          const normalized = normalizeRouteId(routeId)
+          const save = !wishlistIds.has(normalized)
+          toggleWishlist.mutate(
+            { routeId: normalized, save },
+            {
+              onSuccess: () =>
+                onToast?.(
+                  save
+                    ? `Added ${post.route?.name ?? 'route'} to wishlist`
+                    : `Removed ${post.route?.name ?? 'route'} from wishlist`,
+                ),
+              onError: () => onToast?.('Could not update wishlist. Try again.'),
+            },
           )
         }}
         onToast={onToast}

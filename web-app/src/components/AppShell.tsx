@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { Avatar, Icon } from './Icon'
+import { GlobalSearch } from './GlobalSearch'
 import { TopoLines } from './TopoLines'
 import { useAuth } from '../features/auth/AuthProvider'
 import {
   useInbox,
   useMyProfile,
   usePartners,
+  useCommunityChallenges,
   useSeasonalSpotlight,
+  useWishlistRoutes,
 } from '../hooks/useMigration'
 
 const NAV = [
@@ -25,19 +28,44 @@ export function AppShell({
   onLog,
   onNotifs,
   onSignIn,
+  onOpenRoute,
+  onOpenProfile,
 }: {
   railOn: boolean
   onToggleRail: () => void
   onLog: () => void
   onNotifs: () => void
   onSignIn: () => void
+  onOpenRoute: (routeId: string) => void
+  onOpenProfile: (userId: string, fallbackName?: string) => void
 }) {
-  const { accessToken, signOut } = useAuth()
+  const { accessToken } = useAuth()
   const profileQ = useMyProfile()
+  const wishlistQ = useWishlistRoutes()
+  const challengesQ = useCommunityChallenges()
   const inboxQ = useInbox()
   const isGuest = !accessToken
   const [sidebarCompact, setSidebarCompact] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const navigate = useNavigate()
+  const wishlist = wishlistQ.data ?? []
+  const challenges = challengesQ.data ?? []
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+        return
+      }
+      if (searchOpen && e.key === 'Escape') {
+        e.preventDefault()
+        setSearchOpen(false)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [searchOpen])
 
   const unread = (inboxQ.data ?? []).filter((n) => n.read !== true).length
   const appClass = ['app', !railOn ? 'rail-off' : '', sidebarCompact ? 'sidebar-rail' : '']
@@ -75,29 +103,106 @@ export function AppShell({
 
         {!isGuest && (
           <>
+            <div className="nav-label">
+              Wishlist
+              {wishlist.length > 0 && (
+                <span style={{ marginLeft: 6, opacity: 0.6, fontSize: 10 }}>{wishlist.length}</span>
+              )}
+            </div>
+            <div className="nav-group">
+              {wishlist.length === 0 ? (
+                <div style={{ padding: '6px 12px', fontSize: 12, color: 'var(--fg-3)', lineHeight: 1.5 }}>
+                  Bookmark routes from the feed or crag pages to build your wishlist.
+                </div>
+              ) : (
+                wishlist.slice(0, 5).map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className="nav-item"
+                    onClick={() => onOpenRoute(r.id)}
+                  >
+                    <span className="nav-icon">
+                      <Icon name="bookmarkFilled" size={16} style={{ color: 'var(--tint)' }} />
+                    </span>
+                    <span
+                      className="label"
+                      style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
+                      {r.name}
+                    </span>
+                    {r.grade && (
+                      <span style={{ fontSize: 11, color: 'var(--fg-2)', fontWeight: 700 }}>{r.grade}</span>
+                    )}
+                  </button>
+                ))
+              )}
+              {wishlist.length > 5 && (
+                <NavLink to="/crags" className="nav-item" style={{ color: 'var(--fg-2)', fontSize: 13 }}>
+                  <span className="nav-icon">
+                    <Icon name="more" size={14} />
+                  </span>
+                  <span className="label">+{wishlist.length - 5} more</span>
+                </NavLink>
+              )}
+            </div>
+
             <div className="nav-label">Pinned</div>
             <div className="nav-group">
               {PINNED_CRAGS.map((name) => (
-                <NavLink key={name} to="/crags" className="nav-item">
+                <button
+                  key={name}
+                  type="button"
+                  className="nav-item"
+                  onClick={() => navigate('/crags', { state: { pinName: name } })}
+                >
                   <span className="nav-icon">
                     <Icon name="pin" size={18} />
                   </span>
                   <span className="label">{name}</span>
-                </NavLink>
+                </button>
               ))}
             </div>
             <div className="nav-label">Challenges</div>
             <div className="nav-group">
-              <button
-                type="button"
-                className="nav-item"
-                onClick={() => navigate('/crew', { state: { tab: 'Challenges' } })}
-              >
-                <span className="nav-icon" style={{ color: 'var(--peen-orange)' }}>
-                  <Icon name="trophy" size={18} />
-                </span>
-                <span className="label">Seasonal</span>
-              </button>
+              {challenges.length === 0 ? (
+                <button
+                  type="button"
+                  className="nav-item"
+                  onClick={() => navigate('/crew', { state: { tab: 'Challenges' } })}
+                >
+                  <span className="nav-icon" style={{ color: 'var(--peen-orange)' }}>
+                    <Icon name="trophy" size={18} />
+                  </span>
+                  <span className="label">Seasonal</span>
+                </button>
+              ) : (
+                challenges.slice(0, 4).map((ch) => (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    className="nav-item"
+                    onClick={() => navigate('/crew', { state: { tab: 'Challenges' } })}
+                  >
+                    <span
+                      className="nav-icon"
+                      style={{ color: ch.color_hex ?? 'var(--peen-orange)' }}
+                    >
+                      <Icon name="trophy" size={18} />
+                    </span>
+                    <span className="label" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {(ch.title ?? 'Challenge').split(' ').slice(0, 2).join(' ')}
+                      {(ch.title ?? '').split(' ').length > 2 ? '…' : ''}
+                    </span>
+                  </button>
+                ))
+              )}
             </div>
           </>
         )}
@@ -130,9 +235,25 @@ export function AppShell({
         >
           <Icon name="more" size={20} />
         </button>
-        <label className="search">
+        <label
+          className="search"
+          role="button"
+          tabIndex={0}
+          onClick={() => setSearchOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setSearchOpen(true)
+            }
+          }}
+        >
           <Icon name="search" size={16} />
-          <input placeholder="Search routes, climbers, crags…" aria-label="Search" />
+          <input
+            placeholder="Search routes, climbers, crags…"
+            aria-label="Search"
+            readOnly
+            onFocus={() => setSearchOpen(true)}
+          />
           <span className="kbd">⌘K</span>
         </label>
         <div className="spacer" />
@@ -150,7 +271,12 @@ export function AppShell({
           {!isGuest && unread > 0 && <span className="dot" />}
         </button>
         {accessToken ? (
-          <button type="button" className="avatar-btn" onClick={() => signOut()} title="Sign out">
+          <button
+            type="button"
+            className="avatar-btn"
+            onClick={() => navigate('/profile')}
+            title="Your profile"
+          >
             <Avatar name={profileQ.data?.nickname ?? 'You'} size={38} />
           </button>
         ) : (
@@ -175,6 +301,14 @@ export function AppShell({
           />
         </aside>
       )}
+
+      <GlobalSearch
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onOpenRoute={onOpenRoute}
+        onOpenProfile={onOpenProfile}
+        onSignIn={onSignIn}
+      />
 
       <nav className="mobile-tabs" aria-label="Main">
         {NAV.map((item) => (

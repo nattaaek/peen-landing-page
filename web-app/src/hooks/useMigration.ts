@@ -11,6 +11,7 @@ import { migrationInvoke } from '../lib/peen-api/migration'
 import {
   fetchMyProfile,
   fetchProfileIdentities,
+  fetchUserProfile,
   patchProfile,
 } from '../lib/peen-api/profiles'
 import type { UserProfileIdentity } from '../lib/peen-api/profiles'
@@ -29,8 +30,14 @@ import type {
   PartnerPost,
   PublicFeedPayload,
   RouteRatingSummary,
+  WeeklyLeaderboardRow,
+  SharedProjectRow,
+  BetaSprayRow,
+  CommunityChallengeRow,
+  CrewInviteRow,
 } from '../types/api'
 import { useAuth } from '../features/auth/AuthProvider'
+import { normalizeRouteId } from '../lib/routeIds'
 
 export function useMyProfile() {
   const { accessToken } = useAuth()
@@ -38,6 +45,40 @@ export function useMyProfile() {
     queryKey: ['profile', 'me'],
     queryFn: () => fetchMyProfile(accessToken!),
     enabled: !!accessToken,
+  })
+}
+
+export function useUserProfile(userId: string | null) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['profile', userId],
+    queryFn: () => fetchUserProfile(accessToken!, userId!),
+    enabled: !!accessToken && !!userId,
+  })
+}
+
+export function useUserPublicSends(userId: string | null, limit = 20) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['climbs', 'public', userId, limit],
+    queryFn: () =>
+      migrationInvoke<ClimbLogRow[]>(
+        'climbs',
+        'fetchRecentPublicSends',
+        { user_id: userId, limit },
+        accessToken!,
+      ),
+    enabled: !!accessToken && !!userId,
+  })
+}
+
+export function useProfileIdentities(userIds: string[]) {
+  const { accessToken } = useAuth()
+  const key = [...new Set(userIds.filter(Boolean))].sort().join(',')
+  return useQuery({
+    queryKey: ['profile', 'identities', key],
+    queryFn: () => fetchProfileIdentities(accessToken!, userIds),
+    enabled: !!accessToken && userIds.length > 0,
   })
 }
 
@@ -313,9 +354,90 @@ export function useCrewLeaderboard() {
   return useQuery({
     queryKey: ['community', 'leaderboard'],
     queryFn: () =>
-      migrationInvoke<unknown[]>('community', 'community_fetch_sends_leaderboard', {}, accessToken!),
+      migrationInvoke<WeeklyLeaderboardRow[]>(
+        'community',
+        'community_fetch_sends_leaderboard',
+        { _range: 'year', _limit: 20 },
+        accessToken!,
+      ),
     enabled: !!accessToken,
   })
+}
+
+export function useWeeklyLeaderboard() {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['community', 'weekly-leaderboard'],
+    queryFn: () =>
+      migrationInvoke<WeeklyLeaderboardRow[]>(
+        'community',
+        'community_fetch_weekly_leaderboard',
+        { _limit: 20 },
+        accessToken!,
+      ),
+    enabled: !!accessToken,
+  })
+}
+
+export function useSharedProjects() {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['community', 'shared-projects'],
+    queryFn: () =>
+      migrationInvoke<SharedProjectRow[]>(
+        'community',
+        'community_fetch_shared_projects',
+        { _limit: 12 },
+        accessToken!,
+      ),
+    enabled: !!accessToken,
+  })
+}
+
+export function useBetaSpray() {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['community', 'beta-spray'],
+    queryFn: () =>
+      migrationInvoke<BetaSprayRow[]>(
+        'community',
+        'community_fetch_beta_spray',
+        { _limit: 12 },
+        accessToken!,
+      ),
+    enabled: !!accessToken,
+  })
+}
+
+export function useCommunityChallenges() {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['community', 'challenges'],
+    queryFn: () =>
+      migrationInvoke<CommunityChallengeRow[]>('community', 'fetchChallenges', { limit: 12 }, accessToken!),
+    enabled: !!accessToken,
+  })
+}
+
+export function usePendingCrewInvites() {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['community', 'crew-invites'],
+    queryFn: () =>
+      migrationInvoke<CrewInviteRow[]>('community', 'fetchPendingCrewInvites', { limit: 10 }, accessToken!),
+    enabled: !!accessToken,
+  })
+}
+
+/** Current user's rank on the weekly crew leaderboard (1-based), or null. */
+export function useMyCrewRank(userId: string | undefined) {
+  const boardQ = useWeeklyLeaderboard()
+  const rank = useMemo(() => {
+    if (!userId || !boardQ.data) return null
+    const idx = boardQ.data.findIndex((r) => r.user_id === userId)
+    return idx >= 0 ? idx + 1 : null
+  }, [boardQ.data, userId])
+  return { ...boardQ, rank }
 }
 
 export function useSeasonalSpotlight() {
@@ -757,15 +879,41 @@ export function useWishlistRouteIds() {
         { user_id: user!.id },
         accessToken!,
       )
-      return new Set(payload.route_ids ?? [])
+      const raw = payload.route_ids ?? (payload as { routeIds?: string[] }).routeIds ?? []
+      return raw.map(normalizeRouteId)
     },
     enabled: !!accessToken && !!user?.id,
+    staleTime: 0,
+  })
+}
+
+/** Wishlist route rows for sidebar (name + grade), preserving save order. */
+export function useWishlistRoutes() {
+  const { accessToken, user } = useAuth()
+  const idsQ = useWishlistRouteIds()
+  const ids = idsQ.data ?? []
+  return useQuery({
+    queryKey: ['routes', 'wishlist', 'routes', user?.id, ids.join(',')],
+    queryFn: async () => {
+      if (ids.length === 0) return [] as ApiRoute[]
+      const rows = await migrationInvoke<ApiRoute[]>(
+        'routes',
+        'fetchRoutesByIds',
+        { ids },
+        accessToken!,
+      )
+      const byId = new Map(rows.map((r) => [normalizeRouteId(r.id), r]))
+      return ids.map((id) => byId.get(id)).filter((r): r is ApiRoute => !!r)
+    },
+    enabled: !!accessToken && !!user?.id && idsQ.isFetched,
+    staleTime: 30_000,
   })
 }
 
 export function useToggleWishlist() {
   const { accessToken, user } = useAuth()
   const qc = useQueryClient()
+  const wishlistKey = ['routes', 'wishlist', user?.id] as const
   return useMutation({
     mutationFn: async ({
       routeId,
@@ -774,33 +922,36 @@ export function useToggleWishlist() {
       routeId: string
       save: boolean
     }) => {
+      const id = normalizeRouteId(routeId)
       const op = save ? 'saveRouteToWishlist' : 'unsaveRouteFromWishlist'
       await migrationInvoke(
         'routes',
         op,
-        { user_id: user!.id, route_id: routeId },
+        { user_id: user!.id, route_id: id },
         accessToken!,
       )
+      return { routeId: id, save }
     },
     onMutate: async ({ routeId, save }) => {
-      const key = ['routes', 'wishlist', user?.id]
-      await qc.cancelQueries({ queryKey: key })
-      const prev = qc.getQueryData<Set<string>>(key)
-      qc.setQueryData<Set<string>>(key, (old) => {
+      await qc.cancelQueries({ queryKey: [...wishlistKey] })
+      const prev = qc.getQueryData<string[]>([...wishlistKey])
+      const id = normalizeRouteId(routeId)
+      qc.setQueryData<string[]>([...wishlistKey], (old) => {
         const next = new Set(old ?? [])
-        if (save) next.add(routeId)
-        else next.delete(routeId)
-        return next
+        if (save) next.add(id)
+        else next.delete(id)
+        return [...next]
       })
       return { prev }
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev !== undefined) {
-        qc.setQueryData(['routes', 'wishlist', user?.id], ctx.prev)
+        qc.setQueryData([...wishlistKey], ctx.prev)
       }
     },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ['routes', 'wishlist', user?.id] })
+    onSuccess: async () => {
+      await qc.refetchQueries({ queryKey: [...wishlistKey] })
+      await qc.invalidateQueries({ queryKey: ['routes', 'wishlist', 'routes'] })
     },
   })
 }

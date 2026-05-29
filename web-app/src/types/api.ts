@@ -82,6 +82,7 @@ export interface UserProfile {
   username?: string | null
   avatar_url?: string | null
   bio?: string | null
+  is_profile_public?: boolean
 }
 
 export interface FeedReactionCountRow {
@@ -175,6 +176,58 @@ export interface PartnerPost {
   grade_band?: string
   seats?: number
   transport?: string
+}
+
+export interface WeeklyLeaderboardRow {
+  user_id: string
+  sends?: number
+  send_count?: number
+  hardest?: string
+  delta?: string
+  display_name?: string
+  nickname?: string
+  username?: string
+}
+
+export interface SharedProjectRow {
+  id: string
+  route?: string
+  route_id?: string
+  crag?: string
+  grade?: string
+  who_user_ids?: string[]
+  count?: number
+  your_attempts?: number
+}
+
+export interface BetaSprayRow {
+  id: string
+  user_id?: string
+  display_name?: string
+  username?: string
+  route?: string
+  route_id?: string
+  grade?: string
+  body?: string
+  created_at?: string
+}
+
+export interface CommunityChallengeRow {
+  id: string
+  title?: string
+  subtitle?: string
+  reward?: string
+  done?: number
+  total?: number
+  joined?: number
+  days_left?: number
+  color_hex?: string
+}
+
+export interface CrewInviteRow {
+  id: string
+  inviter_id?: string
+  created_at?: string
 }
 
 export type SendType = 'flash' | 'onsight' | 'redpoint' | 'repeat' | 'attempt' | 'dog'

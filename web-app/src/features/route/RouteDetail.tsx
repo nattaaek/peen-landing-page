@@ -16,6 +16,7 @@ import {
   useWishlistRouteIds,
   useUpdateRoute,
 } from '../../hooks/useMigration'
+import { normalizeRouteId, wishlistIdsToSet } from '../../lib/routeIds'
 import type { ApiRoute, RouteTopoLine } from '../../types/api'
 
 function TopoImageWithLines({
@@ -181,7 +182,8 @@ export function RouteDetailOverlay({
 
   const wishlistQ = useWishlistRouteIds()
   const toggleWishlist = useToggleWishlist()
-  const isInWishlist = routeId ? (wishlistQ.data?.has(routeId) ?? false) : false
+  const wishlistIds = useMemo(() => wishlistIdsToSet(wishlistQ.data), [wishlistQ.data])
+  const isInWishlist = routeId ? wishlistIds.has(normalizeRouteId(routeId)) : false
 
   const recentSends = sendsQ.data ?? []
   const recentTop3 = recentSends.slice(0, 3)
@@ -378,7 +380,10 @@ export function RouteDetailOverlay({
                         onSignIn()
                         return
                       }
-                      toggleWishlist.mutate({ routeId, save: !isInWishlist })
+                      toggleWishlist.mutate({
+                        routeId: normalizeRouteId(routeId),
+                        save: !isInWishlist,
+                      })
                     }}
                   >
                     <Icon name={isInWishlist ? 'bookmarkFilled' : 'bookmark'} size={16} />
