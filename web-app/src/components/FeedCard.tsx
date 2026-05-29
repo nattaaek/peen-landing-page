@@ -1,30 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { profileDisplayName, profileHandle } from '../lib/peen-api/profiles'
+import { FeedInlineComments } from '../features/feed/FeedInlineComments'
+import { FeedUserAvatar } from './FeedUserAvatar'
+import { HeartBurst } from './HeartBurst'
 import { Icon, SendBadge } from './Icon'
 import { PhotoLightbox } from './PhotoLightbox'
+import { PopItem, Popover } from './Popover'
+import { formatWhen } from '../lib/formatWhen'
 import { SEND_COLORS } from '../types/api'
 import type { FeedClimbRow } from '../types/api'
-
-/** Per-climber avatar colors from peen-web/data.jsx CLIMBERS */
-const CLIMBER_COLORS = ['#D55A1F', '#2860A3', '#459B51', '#9B59B6', '#1F1F20', '#D55A1F', '#2860A3']
-
-function climberColor(seed?: string) {
-  if (!seed) return CLIMBER_COLORS[0]
-  let n = 0
-  for (let i = 0; i < seed.length; i++) n += seed.charCodeAt(i)
-  return CLIMBER_COLORS[n % CLIMBER_COLORS.length]
-}
-
-/** Matches peen-web: "2h ago", "Just now" (no double "ago"). */
-function formatWhen(iso?: string) {
-  if (!iso) return ''
-  const ms = Date.now() - new Date(iso).getTime()
-  const h = Math.floor(ms / 3_600_000)
-  if (h < 1) return 'Just now'
-  if (h < 48) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  return `${d}d ago`
-}
 
 function routeMeta(route: FeedClimbRow['route']) {
   if (!route) return ''
@@ -36,63 +20,29 @@ function routeMeta(route: FeedClimbRow['route']) {
   return parts.join(' · ')
 }
 
-/** Only real uploaded photos — no placeholders. */
 function climbPhotoUrls(post: FeedClimbRow): string[] {
   return (post.photo_urls ?? []).filter((u) => u?.trim().startsWith('http')).slice(0, 3)
 }
 
-function FeedUserAvatar({
-  name,
-  avatarUrl,
-  colorSeed,
-}: {
-  name: string
-  avatarUrl?: string | null
-  colorSeed?: string
-}) {
-  const initial = (name.trim().charAt(0) || '?').toUpperCase()
-  const photo = avatarUrl?.trim()
-  if (photo?.startsWith('http')) {
-    return (
-      <span
-        className="av"
-        style={{ backgroundImage: `url(${photo})` }}
-        role="img"
-        aria-label={name}
-      />
-    )
-  }
-  return (
-    <span
-      className="av"
-      style={{
-        background: climberColor(colorSeed),
-        color: '#fff',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 700,
-        fontSize: 16,
-      }}
-    >
-      {initial}
-    </span>
-  )
+function climbShareUrl(postId: string) {
+  return `${window.location.origin}/app/feed?climb=${postId}`
 }
 
 function FeedPhotoGrid({
   urls,
   onOpen,
+  onDoubleLike,
 }: {
   urls: string[]
   onOpen: (index: number) => void
+  onDoubleLike: () => void
 }) {
   const n = urls.length
   const layout = n === 1 ? 'one' : n === 2 ? 'two' : 'three'
   const show = urls.slice(0, 3)
 
   return (
-    <div className={`feed-media ${layout}`}>
+    <div className={`feed-media ${layout}`} onDoubleClick={onDoubleLike}>
       {layout === 'three' ? (
         <>
           <FeedPhotoButton url={show[0]} index={0} onOpen={onOpen} />
@@ -135,53 +85,181 @@ export function FeedCard({
   post,
   liked,
   sendItOn,
+  isFollowing,
+  isSelf,
+  isSaved,
+  isGuest,
   onOpenRoute,
+  onOpenProfile,
   onLike,
   onSendIt,
-  onComment,
+  onToggleFollow,
+  onToggleWishlist,
+  onToast,
+  onSignIn,
+  likeCount,
+  commentCount,
+  highlighted = false,
+  commentsOpen = false,
+  cardRef,
 }: {
   post: FeedClimbRow
   liked: boolean
   sendItOn: boolean
+  isFollowing: boolean
+  isSelf: boolean
+  isSaved: boolean
+  isGuest: boolean
+  likeCount: number
+  commentCount: number
+  highlighted?: boolean
+  commentsOpen?: boolean
+  cardRef?: (el: HTMLElement | null) => void
   onOpenRoute: () => void
+  onOpenProfile: () => void
   onLike: () => void
   onSendIt: () => void
-  onComment: () => void
+  onToggleFollow: () => void
+  onToggleWishlist: () => void
+  onToast?: (msg: string) => void
+  onSignIn: (msg?: string) => void
 }) {
   const name = profileDisplayName(post.profile ?? {})
   const handle = profileHandle(post.profile ?? {})
   const sendType = (post.send_type ?? 'attempt').toLowerCase()
   const stripeColor = SEND_COLORS[sendType] ?? 'var(--tint)'
   const when = formatWhen(post.created_at)
-  const likes = post.like_count ?? 0
-  const comments = post.comment_count ?? 0
   const photos = climbPhotoUrls(post)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [likePulse, setLikePulse] = useState(0)
+  const [showComments, setShowComments] = useState(commentsOpen)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreRef = useRef<HTMLDivElement>(null)
+  const shareRef = useRef<HTMLDivElement>(null)
+
+  const gate = (msg: string, fn: () => void) => () => {
+    if (isGuest) {
+      onSignIn(msg)
+      return
+    }
+    fn()
+  }
+
+  useEffect(() => {
+    if (commentsOpen) setShowComments(true)
+  }, [commentsOpen])
+
+  useEffect(() => {
+    if (!moreOpen && !shareOpen) return
+    const onDoc = (e: MouseEvent) => {
+      if (moreOpen && moreRef.current && !moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false)
+      }
+      if (shareOpen && shareRef.current && !shareRef.current.contains(e.target as Node)) {
+        setShareOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [moreOpen, shareOpen])
+
+  const handleLike = gate('Sign in to like sends.', () => {
+    if (!liked) setLikePulse((p) => p + 1)
+    onLike()
+  })
+
+  const copyLink = () => {
+    try {
+      void navigator.clipboard?.writeText(climbShareUrl(post.id))
+    } catch {
+      /* ignore */
+    }
+    onToast?.('Link copied')
+    setShareOpen(false)
+    setMoreOpen(false)
+  }
 
   return (
-    <article className="feed-card">
+    <article
+      id={`feed-climb-${post.id}`}
+      ref={cardRef}
+      className={`feed-card${highlighted ? ' feed-card-highlight' : ''}`}
+    >
       <header className="feed-head">
-        <FeedUserAvatar
-          name={name}
-          avatarUrl={post.profile?.avatar_url}
-          colorSeed={post.user_id ?? post.profile?.id}
-        />
-        <div>
+        <button
+          type="button"
+          className="feed-profile-hit"
+          onClick={onOpenProfile}
+          aria-label={`Open ${name}'s profile`}
+        >
+          <FeedUserAvatar
+            name={name}
+            avatarUrl={post.profile?.avatar_url}
+            colorSeed={post.user_id ?? post.profile?.id}
+            following={isFollowing && !isSelf}
+          />
+        </button>
+        <div style={{ minWidth: 0 }}>
           <div className="who">
-            {name}
+            <button type="button" className="feed-name-link" onClick={onOpenProfile}>
+              {name}
+            </button>
             {handle ? (
               <span style={{ color: 'var(--fg-2)', fontWeight: 400 }}> {handle}</span>
             ) : null}
+            {isFollowing && !isSelf ? (
+              <span className="feed-following-label">· Following</span>
+            ) : null}
           </div>
           <div className="when">
-            {when}
-            {when ? ' · ' : null}
+            {when ? `${when} · ` : null}
             <SendBadge type={post.send_type} />
           </div>
         </div>
-        <button type="button" className="act icon-btn" aria-label="More">
-          <Icon name="more" size={18} />
-        </button>
+        <div className="act feed-head-actions" ref={moreRef}>
+          {!isFollowing && !isSelf && !isGuest ? (
+            <button
+              type="button"
+              className="chip outline feed-follow-chip"
+              onClick={gate('Sign in to follow climbers.', onToggleFollow)}
+            >
+              <Icon name="plus" size={12} /> Follow
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="act icon-btn"
+            aria-label="More"
+            onClick={(e) => {
+              e.stopPropagation()
+              setMoreOpen((v) => !v)
+            }}
+          >
+            <Icon name="more" size={18} />
+          </button>
+          {moreOpen ? (
+            <Popover anchor="right" top={42}>
+              <PopItem
+                icon={isSaved ? 'bookmarkFilled' : 'bookmark'}
+                label={isSaved ? 'Remove from wishlist' : 'Add to wishlist'}
+                onClick={gate('Sign in to save routes.', () => {
+                  onToggleWishlist()
+                  setMoreOpen(false)
+                })}
+              />
+              <PopItem icon="share" label="Copy link" onClick={copyLink} />
+              <PopItem
+                icon={isFollowing ? 'check' : 'plus'}
+                label={isFollowing ? `Unfollow ${name}` : `Follow ${name}`}
+                onClick={gate('Sign in to follow climbers.', () => {
+                  onToggleFollow()
+                  setMoreOpen(false)
+                })}
+              />
+            </Popover>
+          ) : null}
+        </div>
       </header>
 
       <div
@@ -205,10 +283,11 @@ export function FeedCard({
           <div className="meta">{routeMeta(post.route)}</div>
         </div>
         <span className="grade">{post.route?.grade ?? '—'}</span>
+        <Icon name="chevR" size={16} style={{ color: 'var(--fg-2)', marginLeft: 4, flexShrink: 0 }} />
       </div>
 
       {photos.length > 0 ? (
-        <FeedPhotoGrid urls={photos} onOpen={(index) => setLightboxIndex(index)} />
+        <FeedPhotoGrid urls={photos} onOpen={(i) => setLightboxIndex(i)} onDoubleLike={handleLike} />
       ) : null}
 
       {post.notes ? <div className="feed-body">{post.notes}</div> : null}
@@ -217,27 +296,80 @@ export function FeedCard({
         <button
           type="button"
           className={`act-btn ${liked ? 'liked' : ''}`}
-          onClick={onLike}
+          onClick={handleLike}
+          aria-pressed={liked}
+          aria-label="Like"
+          title="Like"
         >
-          <Icon name={liked ? 'heartFilled' : 'heart'} size={18} />
-          <span className="act-count">{likes}</span>
+          <span className="act-btn-heart-wrap">
+            <Icon
+              name={liked ? 'heartFilled' : 'heart'}
+              size={18}
+              className={liked ? 'heart-liked' : undefined}
+            />
+            {likePulse > 0 ? <HeartBurst key={likePulse} /> : null}
+          </span>
+          <span className="mono-num">{Math.max(0, likeCount)}</span>
         </button>
-        <button type="button" className="act-btn" onClick={onComment}>
+        <button
+          type="button"
+          className={`act-btn ${showComments ? 'liked' : ''}`}
+          onClick={() => {
+            if (isGuest) {
+              onSignIn('Sign in to comment.')
+              return
+            }
+            setShowComments((v) => !v)
+          }}
+          aria-expanded={showComments}
+          title="Comments"
+        >
           <Icon name="comment" size={18} />
-          <span className="act-count">{comments}</span>
+          <span className="mono-num">{commentCount}</span>
         </button>
-        <button type="button" className="act-btn" aria-label="Share">
-          <Icon name="share" size={16} />
+        <div className="feed-share-wrap" ref={shareRef}>
+          <button
+            type="button"
+            className="act-btn"
+            onClick={(e) => {
+              e.stopPropagation()
+              setShareOpen((v) => !v)
+            }}
+            aria-label="Share"
+            title="Share"
+          >
+            <Icon name="share" size={16} />
+          </button>
+          {shareOpen ? (
+            <Popover anchor="left" top={38}>
+              <PopItem icon="share" label="Copy link" onClick={copyLink} />
+              <PopItem icon="upload" label="Copy link to share" onClick={copyLink} />
+            </Popover>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          className={`act-btn ${isSaved ? 'liked' : ''}`}
+          onClick={gate('Sign in to save routes.', onToggleWishlist)}
+          aria-label="Add to wishlist"
+          aria-pressed={isSaved}
+          title={isSaved ? 'In your wishlist' : 'Add to wishlist'}
+        >
+          <Icon name={isSaved ? 'bookmarkFilled' : 'bookmark'} size={18} />
         </button>
         <button
           type="button"
           className={`act-btn send-it ${sendItOn ? 'liked' : ''}`}
-          onClick={onSendIt}
+          onClick={gate('Sign in to cheer climbers on.', onSendIt)}
+          aria-pressed={sendItOn}
+          title='"Send it!" — a virtual high-five to cheer them on'
         >
           <Icon name="bolt" size={14} />
-          {sendItOn ? 'Sent it' : 'Send it'}
+          {sendItOn ? 'Cheered' : 'Send it!'}
         </button>
       </footer>
+
+      {showComments ? <FeedInlineComments climbId={post.id} onSignIn={onSignIn} /> : null}
 
       {lightboxIndex != null ? (
         <PhotoLightbox

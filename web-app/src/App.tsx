@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { AuthProvider, useAuth } from './features/auth/AuthProvider'
 import { LoginGate } from './features/auth/LoginGate'
@@ -14,7 +14,8 @@ import { RoutePicker } from './features/route/RoutePicker'
 import type { ApiRoute } from './types/api'
 
 function AppLayout() {
-  const { accessToken } = useAuth()
+  const navigate = useNavigate()
+  const { accessToken, user } = useAuth()
   const isGuest = !accessToken
   const [railOn, setRailOn] = useState(true)
   const [loginOpen, setLoginOpen] = useState(false)
@@ -25,6 +26,12 @@ function AppLayout() {
   const [composerOpen, setComposerOpen] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = window.setTimeout(() => setToast(null), 3500)
+    return () => window.clearTimeout(timer)
+  }, [toast])
 
   const openLogin = useCallback((msg?: string) => {
     setLoginMsg(msg ?? null)
@@ -89,7 +96,15 @@ function AppLayout() {
           <Route
             path="feed"
             element={
-              <FeedView onSignIn={() => openLogin()} onOpenRoute={openRouteById} />
+              <FeedView
+                onSignIn={openLogin}
+                onOpenRoute={openRouteById}
+                onToast={setToast}
+                onOpenProfile={(userId) => {
+                  if (user?.id === userId) navigate('/profile')
+                  else setToast('Public profiles coming soon')
+                }}
+              />
             }
           />
           <Route

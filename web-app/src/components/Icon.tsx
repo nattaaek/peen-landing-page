@@ -1,4 +1,4 @@
-import type { SVGProps } from 'react'
+import type { CSSProperties, SVGProps } from 'react'
 
 export type IconName =
   | 'home'
@@ -33,6 +33,11 @@ export type IconName =
   | 'calendar'
   | 'bookmark'
   | 'bookmarkFilled'
+  | 'check'
+  | 'chevD'
+  | 'flag'
+  | 'sort'
+  | 'refresh'
 
 const strokeProps = (size: number, stroke: number): SVGProps<SVGSVGElement> => ({
   width: size,
@@ -50,15 +55,17 @@ export function Icon({
   size = 20,
   stroke = 2,
   className,
+  style,
 }: {
   name: IconName
   size?: number
   stroke?: number
   className?: string
+  style?: CSSProperties
 }) {
-  const p = strokeProps(size, stroke)
+  const p = { ...strokeProps(size, stroke), style }
   const wrap = (node: React.ReactNode) => (
-    <span className={className} style={{ display: 'inline-flex', lineHeight: 0 }}>
+    <span className={className} style={{ display: 'inline-flex', lineHeight: 0, ...style }}>
       {node}
     </span>
   )
@@ -150,6 +157,12 @@ export function Icon({
           <path d="M6 6l12 12M18 6 6 18" />
         </svg>,
       )
+    case 'chevR':
+      return wrap(
+        <svg {...p}>
+          <path d="m9 6 6 6-6 6" />
+        </svg>,
+      )
     case 'heart':
       return wrap(
         <svg {...p}>
@@ -212,6 +225,50 @@ export function Icon({
           <path d="M7 4h10a1 1 0 0 1 1 1v15l-6-3-6 3V5a1 1 0 0 1 1-1z" />
         </svg>,
       )
+    case 'check':
+      return wrap(
+        <svg {...p}>
+          <path d="m5 12 4 4 10-10" />
+        </svg>,
+      )
+    case 'chevD':
+      return wrap(
+        <svg {...p}>
+          <path d="m6 9 6 6 6-6" />
+        </svg>,
+      )
+    case 'flag':
+      return wrap(
+        <svg {...p}>
+          <path d="M4 22V4M4 4h13l-2 4 2 4H4" />
+        </svg>,
+      )
+    case 'sort':
+      return wrap(
+        <svg {...p}>
+          <path d="M3 6h13M3 12h9M3 18h5" />
+          <path d="m17 14 3 3 3-3M20 8v9" />
+        </svg>,
+      )
+    case 'refresh':
+      return wrap(
+        <svg {...p}>
+          <path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5" />
+        </svg>,
+      )
+    case 'filter':
+      return wrap(
+        <svg {...p}>
+          <path d="M3 5h18l-7 9v6l-4-2v-4z" />
+        </svg>,
+      )
+    case 'home':
+      return wrap(
+        <svg {...p}>
+          <path d="M3 9.5 12 3l9 6.5V21H3z" />
+          <path d="M9 21v-6h6v6" />
+        </svg>,
+      )
     case 'google':
       return wrap(
         <svg width={size} height={size} viewBox="0 0 24 24">
@@ -268,10 +325,20 @@ export function Avatar({
   )
 }
 
+const SEND_LABELS: Record<string, string> = {
+  flash: 'Flash',
+  onsight: 'Onsight',
+  redpoint: 'Redpoint',
+  repeat: 'Repeat',
+  dog: 'Dog',
+  attempt: 'Project',
+  send: 'Send',
+}
+
 export function SendBadge({ type }: { type?: string }) {
   const key = (type ?? 'attempt').toLowerCase()
-  const label = key === 'send' ? 'send' : key
-  return <span className={`send-badge ${label}`}>{type ?? 'send'}</span>
+  const label = SEND_LABELS[key] ?? type ?? 'Send'
+  return <span className={`send-badge ${key}`}>{label}</span>
 }
 
 export function Stars({ value, max = 5 }: { value: number; max?: number }) {

@@ -134,6 +134,7 @@ export interface ClimbComment {
   user_id?: string
   body?: string
   created_at?: string
+  profile?: { nickname?: string; username?: string; avatar_url?: string }
 }
 
 export interface RouteRatingSummary {

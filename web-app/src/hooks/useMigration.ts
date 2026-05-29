@@ -1,11 +1,19 @@
 import { useMemo } from 'react'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type InfiniteData,
+  type QueryClient,
+} from '@tanstack/react-query'
 import { migrationInvoke } from '../lib/peen-api/migration'
 import {
   fetchMyProfile,
   fetchProfileIdentities,
   patchProfile,
 } from '../lib/peen-api/profiles'
+import type { UserProfileIdentity } from '../lib/peen-api/profiles'
 import type {
   AngleConsensus,
   ApiRoute,
@@ -36,6 +44,29 @@ export function useMyProfile() {
 export const FEED_PAGE_SIZE = 20
 
 export type FeedPageCursor = { created_at: string; id: string }
+
+function feedInfiniteQueryKey(userId?: string) {
+  return ['feed', 'public', 'infinite', userId] as const
+}
+
+export function bumpFeedCommentCount(
+  qc: QueryClient,
+  userId: string | undefined,
+  climbId: string,
+) {
+  qc.setQueryData<InfiniteData<PublicFeedPayload>>(feedInfiniteQueryKey(userId), (old) => {
+    if (!old) return old
+    return {
+      ...old,
+      pages: old.pages.map((page) => ({
+        ...page,
+        posts: page.posts.map((p) =>
+          p.id === climbId ? { ...p, comment_count: (p.comment_count ?? 0) + 1 } : p,
+        ),
+      })),
+    }
+  })
+}
 
 async function hydrateFeedPage(
   rows: FeedClimbRow[],
@@ -120,7 +151,7 @@ async function hydrateFeedPage(
 export function useInfinitePublicFeed() {
   const { accessToken, user } = useAuth()
   return useInfiniteQuery({
-    queryKey: ['feed', 'public', 'infinite', user?.id],
+    queryKey: feedInfiniteQueryKey(user?.id),
     queryFn: async ({ pageParam }): Promise<PublicFeedPayload> => {
       const params: Record<string, unknown> = { limit: FEED_PAGE_SIZE }
       if (pageParam) {
@@ -163,6 +194,41 @@ export function useFollowingIds() {
       )
     },
     enabled: !!accessToken && !!user?.id,
+  })
+}
+
+/** Follow / unfollow (same ops as iOS SocialFeedManager). */
+export function useToggleFollow() {
+  const { accessToken, user } = useAuth()
+  const qc = useQueryClient()
+  const followingKey = ['social', 'following', user?.id] as const
+  return useMutation({
+    mutationFn: async ({ targetId, follow }: { targetId: string; follow: boolean }) => {
+      const op = follow ? 'followUser' : 'unfollowUser'
+      await migrationInvoke(
+        'social',
+        op,
+        { follower_id: user!.id, followed_id: targetId },
+        accessToken!,
+      )
+    },
+    onMutate: async ({ targetId, follow }) => {
+      await qc.cancelQueries({ queryKey: followingKey })
+      const prev = qc.getQueryData<Set<string>>(followingKey)
+      qc.setQueryData<Set<string>>(followingKey, (old) => {
+        const next = new Set(old ?? [])
+        if (follow) next.add(targetId)
+        else next.delete(targetId)
+        return next
+      })
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev !== undefined) qc.setQueryData(followingKey, ctx.prev)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: followingKey })
+    },
   })
 }
 
@@ -276,53 +342,84 @@ export function useLogClimb() {
 
 export function useLikeClimb() {
   const { accessToken, user } = useAuth()
-  const qc = useQueryClient()
   return useMutation({
     mutationFn: (climbId: string) =>
       migrationInvoke('social', 'likeClimb', {
         climb_id: climbId,
         user_id: user!.id,
       }, accessToken!),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['feed'] }),
   })
 }
 
 export function useUnlikeClimb() {
   const { accessToken, user } = useAuth()
-  const qc = useQueryClient()
   return useMutation({
     mutationFn: (climbId: string) =>
       migrationInvoke('social', 'unlikeClimb', {
         climb_id: climbId,
         user_id: user!.id,
       }, accessToken!),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['feed'] }),
   })
 }
 
 export function useSendItClimb() {
   const { accessToken, user } = useAuth()
-  const qc = useQueryClient()
   return useMutation({
     mutationFn: (climbId: string) =>
       migrationInvoke('social', 'sendItClimb', {
         climb_id: climbId,
         user_id: user!.id,
       }, accessToken!),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['feed'] }),
   })
 }
 
 export function useUnsendItClimb() {
   const { accessToken, user } = useAuth()
-  const qc = useQueryClient()
   return useMutation({
     mutationFn: (climbId: string) =>
       migrationInvoke('social', 'unsendItClimb', {
         climb_id: climbId,
         user_id: user!.id,
       }, accessToken!),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['feed'] }),
+  })
+}
+
+async function hydrateComments(
+  rows: ClimbComment[],
+  accessToken: string,
+): Promise<ClimbComment[]> {
+  const userIds = [...new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id))]
+  if (userIds.length === 0) return rows
+
+  const [identities, avatarRows] = await Promise.all([
+    fetchProfileIdentities(accessToken, userIds),
+    migrationInvoke<{ user_id: string; avatar_url?: string | null }[]>(
+      'community',
+      'fetchAvatarUrls',
+      { user_ids: userIds },
+      accessToken,
+    ),
+  ])
+  const byUserId = new Map<string, UserProfileIdentity>(identities.map((i) => [i.user_id, i]))
+  const avatarByUserId = new Map(
+    avatarRows
+      .map((r) => [r.user_id, r.avatar_url?.trim() ?? ''] as const)
+      .filter(([, url]) => url.startsWith('http')),
+  )
+
+  return rows.map((row) => {
+    const uid = row.user_id
+    if (!uid) return row
+    const identity = byUserId.get(uid)
+    const avatarUrl = avatarByUserId.get(uid)
+    return {
+      ...row,
+      profile: {
+        nickname: identity?.nickname,
+        username: identity?.username,
+        avatar_url: avatarUrl,
+      },
+    }
   })
 }
 
@@ -330,8 +427,15 @@ export function useComments(climbId: string | undefined) {
   const { accessToken } = useAuth()
   return useQuery({
     queryKey: ['social', 'comments', climbId],
-    queryFn: () =>
-      migrationInvoke<ClimbComment[]>('social', 'fetchComments', { climb_id: climbId! }, accessToken!),
+    queryFn: async () => {
+      const rows = await migrationInvoke<ClimbComment[]>(
+        'social',
+        'fetchComments',
+        { climb_id: climbId! },
+        accessToken!,
+      )
+      return hydrateComments(rows, accessToken!)
+    },
     enabled: !!accessToken && !!climbId,
   })
 }
@@ -347,7 +451,7 @@ export function useAddComment() {
       }, accessToken!),
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['social', 'comments', vars.climb_id] })
-      qc.invalidateQueries({ queryKey: ['feed'] })
+      bumpFeedCommentCount(qc, user?.id, vars.climb_id)
     },
   })
 }
