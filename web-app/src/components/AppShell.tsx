@@ -41,7 +41,6 @@ export function AppShell({
   const challengesQ = useCommunityChallenges()
   const inboxQ = useInbox()
   const isGuest = !accessToken
-  const [sidebarCompact, setSidebarCompact] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const navigate = useNavigate()
   const wishlist = wishlistQ.data ?? []
@@ -64,10 +63,8 @@ export function AppShell({
   }, [searchOpen])
 
   const unread = (inboxQ.data ?? []).filter((n) => n.read !== true).length
-  const appClass = ['app', sidebarCompact ? 'sidebar-rail' : ''].filter(Boolean).join(' ')
-
   return (
-    <div className={appClass}>
+    <div className="app">
       <aside className="sidebar">
         <a href="/" className="brand">
           <span className="mark">
@@ -220,17 +217,9 @@ export function AppShell({
       </aside>
 
       <header className="topbar">
-        <button
-          type="button"
-          className="icon-btn sidebar-toggle"
-          onClick={() => setSidebarCompact((v) => !v)}
-          aria-label="Toggle sidebar"
-          title="Toggle sidebar"
-        >
-          <Icon name="more" size={20} />
-        </button>
+        <div className="spacer" />
         <label
-          className="search"
+          className="search topbar-search"
           role="button"
           tabIndex={0}
           onClick={() => setSearchOpen(true)}
@@ -250,7 +239,6 @@ export function AppShell({
           />
           <span className="kbd">⌘K</span>
         </label>
-        <div className="spacer" />
         {isGuest ? (
           <button type="button" className="btn-log" onClick={onSignIn}>
             <Icon name="google" size={16} /> Sign in

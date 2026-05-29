@@ -11,7 +11,6 @@ import { ProfileView } from './features/profile/ProfileView'
 import { PublicProfilePeek } from './features/profile/PublicProfilePeek'
 import { LogComposer } from './features/route/LogComposer'
 import { RouteDetailOverlay } from './features/route/RouteDetail'
-import { RoutePicker } from './features/route/RoutePicker'
 import type { ApiRoute } from './types/api'
 
 function AppLayout() {
@@ -24,7 +23,6 @@ function AppLayout() {
   const [routeId, setRouteId] = useState<string | null>(null)
   const [composerRoute, setComposerRoute] = useState<ApiRoute | null>(null)
   const [composerOpen, setComposerOpen] = useState(false)
-  const [pickerOpen, setPickerOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   const [publicProfile, setPublicProfile] = useState<{
     userId: string
@@ -56,20 +54,11 @@ function AppLayout() {
         openLogin('Sign in to log a climb.')
         return
       }
-      if (route) {
-        setComposerRoute(route)
-        setComposerOpen(true)
-      } else {
-        setPickerOpen(true)
-      }
+      setComposerRoute(route ?? null)
+      setComposerOpen(true)
     },
     [isGuest, openLogin],
   )
-
-  const onPickRoute = useCallback((route: ApiRoute) => {
-    setComposerRoute(route)
-    setComposerOpen(true)
-  }, [])
 
   const onNotificationNavigate = useCallback(
     (entityType?: string, entityId?: string) => {
@@ -140,7 +129,6 @@ function AppLayout() {
           onToast={setToast}
         />
       )}
-      <RoutePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={onPickRoute} />
       <LogComposer
         route={composerRoute}
         open={composerOpen}
