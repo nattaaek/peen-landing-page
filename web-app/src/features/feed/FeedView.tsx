@@ -43,7 +43,7 @@ export function FeedView({
   const [searchParams, setSearchParams] = useSearchParams()
   const deepLinkClimbId = searchParams.get('climb')
   const { accessToken, user } = useAuth()
-  const [tab, setTab] = useState<'Following' | 'Everyone'>('Everyone')
+  const [tab, setTab] = useState<'Following' | 'Everyone'>('Following')
   const [liked, setLiked] = useState<Set<string>>(new Set())
   const [sendIt, setSendIt] = useState<Set<string>>(new Set())
   const [likeDeltas, setLikeDeltas] = useState<Map<string, number>>(new Map())

@@ -13,7 +13,7 @@ export const SEND_STYLES = [
 
 export const WHEN_OPTS = [
   { id: 'any', label: 'Anytime' },
-  { id: '24h', label: 'Last 24 hours' },
+  { id: '24h', label: 'Today' },
   { id: '7d', label: 'Last 7 days' },
   { id: '30d', label: 'Last 30 days' },
 ] as const

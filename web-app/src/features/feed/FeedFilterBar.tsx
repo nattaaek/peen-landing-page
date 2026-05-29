@@ -200,9 +200,6 @@ export function FeedFilterBar({
 
   return (
     <>
-      <p className="feed-filter-scope muted">
-        Filters and sort apply to sends already loaded — scroll down to load more.
-      </p>
       <div className="feed-filter-bar">
         <FilterControl
           id="style"

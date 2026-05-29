@@ -84,6 +84,7 @@ function AppLayout() {
               onOpenProfile={(userId, fallbackName) =>
                 setPublicProfile({ userId, fallbackName })
               }
+              onToast={setToast}
             />
           }
         >

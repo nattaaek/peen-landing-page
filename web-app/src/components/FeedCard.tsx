@@ -5,7 +5,7 @@ import { FeedUserAvatar } from './FeedUserAvatar'
 import { HeartBurst } from './HeartBurst'
 import { Icon, SendBadge } from './Icon'
 import { PhotoLightbox } from './PhotoLightbox'
-import { PopItem, Popover } from './Popover'
+import { PopDivider, PopItem, Popover } from './Popover'
 import { formatWhen } from '../lib/formatWhen'
 import { SEND_COLORS } from '../types/api'
 import type { FeedClimbRow } from '../types/api'
@@ -257,6 +257,24 @@ export function FeedCard({
                   setMoreOpen(false)
                 })}
               />
+              <PopDivider />
+              <PopItem
+                icon="bell"
+                label="Mute for 24h"
+                onClick={gate('Sign in to mute posts.', () => {
+                  onToast?.(`Muted ${name} for 24h`)
+                  setMoreOpen(false)
+                })}
+              />
+              <PopItem
+                icon="flag"
+                label="Report"
+                danger
+                onClick={gate('Sign in to report.', () => {
+                  onToast?.("Reported — thanks. We'll take a look.")
+                  setMoreOpen(false)
+                })}
+              />
             </Popover>
           ) : null}
         </div>
@@ -343,7 +361,23 @@ export function FeedCard({
           {shareOpen ? (
             <Popover anchor="left" top={38}>
               <PopItem icon="share" label="Copy link" onClick={copyLink} />
-              <PopItem icon="upload" label="Copy link to share" onClick={copyLink} />
+              <PopItem
+                icon="crew"
+                label="Send to crew"
+                onClick={gate('Sign in to share with your crew.', () => {
+                  onToast?.('Shared with your crew')
+                  setShareOpen(false)
+                })}
+              />
+              <PopItem
+                icon="comment"
+                label="Send in message"
+                onClick={gate('Sign in to send a message.', () => {
+                  onToast?.('Opened in messages')
+                  setShareOpen(false)
+                })}
+              />
+              <PopItem icon="upload" label="Share externally" onClick={copyLink} />
             </Popover>
           ) : null}
         </div>

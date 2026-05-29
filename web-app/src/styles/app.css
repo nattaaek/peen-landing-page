@@ -61,9 +61,14 @@ input, textarea { font-family: inherit; color: inherit; }
 .search .kbd {
   font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #fff; border: 1px solid var(--separator); color: var(--fg-2); font-weight: 600; letter-spacing: .5px;
 }
-.topbar-search {
-  flex: 0 1 320px;
-  min-width: 180px;
+.search-wrap {
+  position: relative;
+  flex: 0 1 460px;
+  display: flex;
+  min-width: 200px;
+}
+.search-wrap .search {
+  flex: 1;
 }
 
 .btn-log {

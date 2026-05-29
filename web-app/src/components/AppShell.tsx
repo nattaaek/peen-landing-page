@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Avatar, Icon } from './Icon'
-import { GlobalSearch } from './GlobalSearch'
+import { Icon } from './Icon'
+import { ProfileMenu } from './ProfileMenu'
+import { RailWeather } from './RailWeather'
+import { TopbarSearch } from './TopbarSearch'
 import { TopoLines } from './TopoLines'
 import { useAuth } from '../features/auth/AuthProvider'
 import {
   useInbox,
+  useMarkAllNotificationsRead,
   useMyProfile,
   usePartners,
-  useCommunityChallenges,
   useSeasonalSpotlight,
   useWishlistRoutes,
 } from '../hooks/useMigration'
@@ -20,49 +21,33 @@ const NAV = [
   { to: '/profile', label: 'Profile', icon: 'profile' as const },
 ]
 
-const PINNED_CRAGS = ['Crazy Horse', 'Tonsai', 'Stone Locker']
-
 export function AppShell({
   onLog,
   onNotifs,
   onSignIn,
   onOpenRoute,
   onOpenProfile,
+  onToast,
 }: {
   onLog: () => void
   onNotifs: () => void
   onSignIn: () => void
   onOpenRoute: (routeId: string) => void
   onOpenProfile: (userId: string, fallbackName?: string) => void
+  onToast?: (msg: string) => void
 }) {
   const { accessToken } = useAuth()
   const profileQ = useMyProfile()
   const wishlistQ = useWishlistRoutes()
-  const challengesQ = useCommunityChallenges()
-  const inboxQ = useInbox()
-  const isGuest = !accessToken
-  const [searchOpen, setSearchOpen] = useState(false)
   const navigate = useNavigate()
   const wishlist = wishlistQ.data ?? []
-  const challenges = challengesQ.data ?? []
+  const isGuest = !accessToken
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        setSearchOpen(true)
-        return
-      }
-      if (searchOpen && e.key === 'Escape') {
-        e.preventDefault()
-        setSearchOpen(false)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [searchOpen])
+  const unread = useInbox().data?.filter((n) => n.read !== true).length ?? 0
+  const wishlistNames = wishlist.map((r) => r.name).filter(Boolean)
+  const homeAreaName =
+    wishlist[0]?.area?.name ?? wishlist[0]?.gym?.name ?? 'Crazy Horse'
 
-  const unread = (inboxQ.data ?? []).filter((n) => n.read !== true).length
   return (
     <div className="app">
       <aside className="sidebar">
@@ -143,58 +128,6 @@ export function AppShell({
                 </NavLink>
               )}
             </div>
-
-            <div className="nav-label">Pinned</div>
-            <div className="nav-group">
-              {PINNED_CRAGS.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  className="nav-item"
-                  onClick={() => navigate('/crags', { state: { pinName: name } })}
-                >
-                  <span className="nav-icon">
-                    <Icon name="pin" size={18} />
-                  </span>
-                  <span className="label">{name}</span>
-                </button>
-              ))}
-            </div>
-            <div className="nav-label">Challenges</div>
-            <div className="nav-group">
-              {challenges.length === 0 ? (
-                <button
-                  type="button"
-                  className="nav-item"
-                  onClick={() => navigate('/crew', { state: { tab: 'Challenges' } })}
-                >
-                  <span className="nav-icon" style={{ color: 'var(--peen-orange)' }}>
-                    <Icon name="trophy" size={18} />
-                  </span>
-                  <span className="label">Seasonal</span>
-                </button>
-              ) : (
-                challenges.slice(0, 4).map((ch) => (
-                  <button
-                    key={ch.id}
-                    type="button"
-                    className="nav-item"
-                    onClick={() => navigate('/crew', { state: { tab: 'Challenges' } })}
-                  >
-                    <span
-                      className="nav-icon"
-                      style={{ color: ch.color_hex ?? 'var(--peen-orange)' }}
-                    >
-                      <Icon name="trophy" size={18} />
-                    </span>
-                    <span className="label" style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {(ch.title ?? 'Challenge').split(' ').slice(0, 2).join(' ')}
-                      {(ch.title ?? '').split(' ').length > 2 ? '…' : ''}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
           </>
         )}
 
@@ -218,27 +151,14 @@ export function AppShell({
 
       <header className="topbar">
         <div className="spacer" />
-        <label
-          className="search topbar-search"
-          role="button"
-          tabIndex={0}
-          onClick={() => setSearchOpen(true)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              setSearchOpen(true)
-            }
-          }}
-        >
-          <Icon name="search" size={16} />
-          <input
-            placeholder="Search routes, climbers, crags…"
-            aria-label="Search"
-            readOnly
-            onFocus={() => setSearchOpen(true)}
-          />
-          <span className="kbd">⌘K</span>
-        </label>
+        <TopbarSearch
+          onOpenRoute={onOpenRoute}
+          onOpenProfile={onOpenProfile}
+          onGoToCrags={(pin) => navigate('/crags', { state: pin ? { pinName: pin } : undefined })}
+          onSignIn={onSignIn}
+          wishlistRouteNames={wishlistNames}
+          homeAreaName={homeAreaName}
+        />
         {isGuest ? (
           <button type="button" className="btn-log" onClick={onSignIn}>
             <Icon name="google" size={16} /> Sign in
@@ -253,14 +173,7 @@ export function AppShell({
           {!isGuest && unread > 0 && <span className="dot" />}
         </button>
         {accessToken ? (
-          <button
-            type="button"
-            className="avatar-btn"
-            onClick={() => navigate('/profile')}
-            title="Your profile"
-          >
-            <Avatar name={profileQ.data?.nickname ?? 'You'} size={38} />
-          </button>
+          <ProfileMenu profile={profileQ.data} onLog={onLog} onToast={onToast} />
         ) : (
           <button type="button" className="avatar-btn" onClick={onSignIn} title="Guest">
             ?
@@ -278,16 +191,9 @@ export function AppShell({
           onSignIn={onSignIn}
           onNotifs={onNotifs}
           onOpenCrew={() => navigate('/crew')}
+          homeAreaId={wishlist[0]?.area_id ?? undefined}
         />
       </aside>
-
-      <GlobalSearch
-        open={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        onOpenRoute={onOpenRoute}
-        onOpenProfile={onOpenProfile}
-        onSignIn={onSignIn}
-      />
 
       <nav className="mobile-tabs" aria-label="Main">
         {NAV.map((item) => (
@@ -317,15 +223,18 @@ function RightRail({
   onSignIn,
   onNotifs,
   onOpenCrew,
+  homeAreaId,
 }: {
   isGuest: boolean
   onSignIn: () => void
   onNotifs: () => void
   onOpenCrew: () => void
+  homeAreaId?: string
 }) {
   const partnersQ = usePartners()
   const seasonalQ = useSeasonalSpotlight()
   const inboxQ = useInbox()
+  const markAllRead = useMarkAllNotificationsRead()
   const partners = partnersQ.data ?? []
   const seasonal = seasonalQ.data as
     | { name?: string; progress?: number; total?: number; days_left?: number }
@@ -340,31 +249,7 @@ function RightRail({
 
   return (
     <>
-      <div className="rail-card">
-        <h4>Conditions · Crazy Horse</h4>
-        <div className="rail-weather">
-          <div className="rail-weather-icon">
-            <Icon name="sun" size={28} />
-          </div>
-          <div>
-            <div className="rail-weather-temp">
-              28°<span> / 22°</span>
-            </div>
-            <div className="muted" style={{ fontSize: 12 }}>
-              Clear · NE 6 km/h · feels dry
-            </div>
-          </div>
-        </div>
-        <div className="rail-weather-forecast">
-          {['Fri', 'Sat', 'Sun', 'Mon', 'Tue'].map((d, i) => (
-            <div key={d} className={`rail-weather-day ${i === 0 ? 'active' : ''}`}>
-              <div className="day-label">{d}</div>
-              <Icon name={i === 3 ? 'cloud' : 'sun'} size={16} />
-              <div className="day-temp">{[29, 30, 28, 25, 29][i]}°</div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <RailWeather homeAreaId={homeAreaId} />
 
       <div className="rail-card">
         <h4 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -390,7 +275,7 @@ function RightRail({
         ) : (
           partners.slice(0, 3).map((p) => (
             <div key={p.id} className="row" style={{ gap: 12, alignItems: 'flex-start' }}>
-              <Avatar name={p.crag_name ?? 'P'} size={36} />
+              <span className="rail-partner-av">{p.crag_name?.charAt(0) ?? 'P'}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 14 }}>Partner · {p.crag_name ?? 'Crag TBD'}</div>
                 <div className="muted" style={{ fontSize: 12 }}>
@@ -409,7 +294,9 @@ function RightRail({
                   )}
                 </div>
               </div>
-              <Icon name="chevR" size={16} />
+              <button type="button" className="btn btn-secondary rail-join-btn">
+                Join
+              </button>
             </div>
           ))
         )}
@@ -459,10 +346,15 @@ function RightRail({
 
       {!isGuest && (
         <div className="rail-card">
-          <h4 style={{ display: 'flex' }}>
+          <h4 className="rail-inbox-head">
             <span>Inbox</span>
-            <button type="button" className="rail-link" onClick={onNotifs}>
-              Open
+            <button
+              type="button"
+              className="rail-mark-read"
+              disabled={markAllRead.isPending || inbox.every((n) => n.read === true)}
+              onClick={() => markAllRead.mutate()}
+            >
+              Mark all read
             </button>
           </h4>
           {inbox.length === 0 ? (
@@ -479,20 +371,14 @@ function RightRail({
                   </div>
                 </div>
                 {n.read !== true && (
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      background: 'var(--tint)',
-                      marginTop: 8,
-                      flexShrink: 0,
-                    }}
-                  />
+                  <span className="rail-inbox-unread" />
                 )}
               </div>
             ))
           )}
+          <button type="button" className="rail-link rail-inbox-open" onClick={onNotifs}>
+            Open inbox
+          </button>
         </div>
       )}
 
@@ -502,8 +388,10 @@ function RightRail({
         </button>
       )}
 
-      <footer className="rail-foot muted">
-        <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a>
+      <footer className="rail-foot rail-foot-links muted">
+        <a href="/terms.html">Terms</a>
+        <a href="/privacy.html">Privacy</a>
+        <a href="mailto:support@peen.app">Support</a>
       </footer>
     </>
   )
