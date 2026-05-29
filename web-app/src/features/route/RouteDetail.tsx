@@ -18,7 +18,18 @@ import {
 } from '../../hooks/useMigration'
 import { normalizeRouteId, parseRouteId, wishlistIdsToSet } from '../../lib/routeIds'
 import { wishlistErrorMessage } from '../../lib/wishlistErrors'
+import { useRouteWeather } from '../../hooks/useRouteWeather'
 import type { ApiRoute, RouteTopoLine } from '../../types/api'
+
+function RouteWeatherChip({ route }: { route: ApiRoute }) {
+  const { label, subtitle, loading } = useRouteWeather(route)
+  return (
+    <span className="chip outline route-weather-chip" title={subtitle}>
+      <Icon name="cloud" size={12} style={{ marginRight: 4, verticalAlign: -2 }} />
+      {loading && label === '—' ? '…' : label}
+    </span>
+  )
+}
 
 function TopoImageWithLines({
   imageUrl,
@@ -354,6 +365,7 @@ export function RouteDetailOverlay({
                   {route.length_meters != null && (
                     <span className="chip outline">{route.length_meters}m</span>
                   )}
+                  <RouteWeatherChip route={route} />
                   {consensusQ.data?.top_angle && (
                     <span className="chip" style={{ background: 'var(--tint)', color: '#fff' }}>
                       {consensusQ.data.top_angle}

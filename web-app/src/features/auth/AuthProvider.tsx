@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
+import { createDevAuthSession, isDevAuthBypassEnabled } from '../../lib/devAuth'
 import { env } from '../../lib/env'
 import { getSupabase } from '../../lib/supabase'
 
@@ -16,6 +17,8 @@ interface AuthContextValue {
   user: User | null
   accessToken: string | null
   loading: boolean
+  /** Local dev bypass active (never true in production). */
+  devAuthBypass: boolean
   signInWithGoogle: () => Promise<void>
   signInWithApple: () => Promise<void>
   signOut: () => Promise<void>
@@ -26,24 +29,31 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 const redirectTo = () => `${window.location.origin}/auth/callback`
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  const devBypass = isDevAuthBypassEnabled()
+  const [session, setSession] = useState<Session | null>(() =>
+    devBypass ? createDevAuthSession() : null,
+  )
+  const [loading, setLoading] = useState(!devBypass)
 
   useEffect(() => {
+    if (devBypass && !env.isConfigured()) {
+      setLoading(false)
+      return
+    }
     if (!env.isConfigured()) {
       setLoading(false)
       return
     }
     const sb = getSupabase()
     sb.auth.getSession().then(({ data }) => {
-      setSession(data.session)
+      setSession(data.session ?? (devBypass ? createDevAuthSession() : null))
       setLoading(false)
     })
     const { data: sub } = sb.auth.onAuthStateChange((_event, next) => {
-      setSession(next)
+      setSession(next ?? (devBypass ? createDevAuthSession() : null))
     })
     return () => sub.subscription.unsubscribe()
-  }, [])
+  }, [devBypass])
 
   const signInWithGoogle = useCallback(async () => {
     const { error } = await getSupabase().auth.signInWithOAuth({
@@ -62,8 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
-    await getSupabase().auth.signOut()
-  }, [])
+    if (env.isConfigured()) {
+      await getSupabase().auth.signOut()
+    }
+    setSession(devBypass ? createDevAuthSession() : null)
+  }, [devBypass])
 
   const value = useMemo(
     () => ({
@@ -71,11 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: session?.user ?? null,
       accessToken: session?.access_token ?? null,
       loading,
+      devAuthBypass: devBypass,
       signInWithGoogle,
       signInWithApple,
       signOut,
     }),
-    [session, loading, signInWithGoogle, signInWithApple, signOut],
+    [session, loading, devBypass, signInWithGoogle, signInWithApple, signOut],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -356,7 +356,7 @@ export function LogComposer({
               </div>
             ) : (
               <>
-                <label className="search log-route-search">
+                <div className="search log-route-search">
                   <Icon name="search" size={16} />
                   <input
                     placeholder="Find route by name or area…"
@@ -364,7 +364,7 @@ export function LogComposer({
                     onChange={(e) => setRouteQuery(e.target.value)}
                     autoFocus
                   />
-                </label>
+                </div>
                 {routeSearchBusy && routeQuery.trim() && (
                   <p className="muted log-route-hint">Searching…</p>
                 )}
@@ -496,14 +496,14 @@ export function LogComposer({
               </>
             ) : (
               <>
-                <label className="search log-route-search log-belayer-search">
+                <div className="search log-route-search log-belayer-search">
                   <Icon name="search" size={16} />
                   <input
                     placeholder="Search your crew by name…"
                     value={belayerQuery}
                     onChange={(e) => setBelayerQuery(e.target.value)}
                   />
-                </label>
+                </div>
                 {belayerSearchLoading && belayerQuery.trim().length >= 2 && (
                   <p className="muted log-route-hint">Searching…</p>
                 )}

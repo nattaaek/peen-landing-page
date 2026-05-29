@@ -1,49 +1,37 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from './Icon'
 import { TopoLines } from './TopoLines'
+import { useAreaWeatherTemp, useCragWeather } from '../hooks/useCragWeather'
 import { useCatalogAreas } from '../hooks/useCatalog'
+import { peekCachedCragWeather } from '../lib/openMeteoWeather'
+import { conditionsForArea, weatherProfileSortScore } from '../lib/weatherConditions'
+import { resolveAreaWeatherCoordinate } from '../lib/weatherCoordinates'
 import type { ApiArea } from '../types/api'
-
-type CondTone = 'good' | 'fair' | 'poor' | 'none'
-
-type CragConditions = {
-  temp: number
-  low: number
-  summary: string
-  icon: 'sun' | 'cloud'
-  friction: { v: string; tone: CondTone }
-  humidity: string
-  rock: { v: string; tone: CondTone }
-  forecast: [string, number, 'sun' | 'cloud'][]
-}
-
-const MOCK_BY_AREA: Record<string, CragConditions> = {
-  default: {
-    temp: 28,
-    low: 22,
-    summary: 'Clear · NE 6 km/h · feels dry',
-    icon: 'sun',
-    friction: { v: 'Good', tone: 'good' },
-    humidity: '34%',
-    rock: { v: 'Dry', tone: 'good' },
-    forecast: [
-      ['Fri', 29, 'sun'],
-      ['Sat', 30, 'sun'],
-      ['Sun', 28, 'sun'],
-      ['Mon', 25, 'cloud'],
-      ['Tue', 29, 'sun'],
-    ],
-  },
-}
 
 function shortCragName(name: string): string {
   return name.replace(/ Buttress$/, '').replace(/ Limestone$/, '').replace(/ & Phra Nang$/, '')
 }
 
-function conditionsFor(area: ApiArea | undefined): CragConditions {
-  if (!area?.name) return MOCK_BY_AREA.default
-  const key = Object.keys(MOCK_BY_AREA).find((k) => area.name.toLowerCase().includes(k))
-  return MOCK_BY_AREA[key ?? 'default'] ?? MOCK_BY_AREA.default
+function AreaDropTemp({ area, fallback }: { area: ApiArea; fallback: number }) {
+  const live = useAreaWeatherTemp(area)
+  return <>{live ?? fallback}°</>
+}
+
+function frictionTone(area: ApiArea): 'good' | 'fair' | 'poor' {
+  const t = conditionsForArea(area).friction.tone
+  return t === 'none' ? 'fair' : t
+}
+
+function frictionToneForDropdown(area: ApiArea): 'good' | 'fair' | 'poor' {
+  const coord = resolveAreaWeatherCoordinate(area)
+  if (!coord) return frictionTone(area)
+  const cached = peekCachedCragWeather(coord.cacheKey)
+  if (!cached) return frictionTone(area)
+  const h = cached.relativeHumidityPct
+  if (h == null) return 'fair'
+  if (h < 45) return 'good'
+  if (h < 65) return 'fair'
+  return 'poor'
 }
 
 export function RailWeather({ homeAreaId }: { homeAreaId?: string | null }) {
@@ -53,7 +41,10 @@ export function RailWeather({ homeAreaId }: { homeAreaId?: string | null }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  const list = useMemo(() => areas.slice(0, 8), [areas])
+  const list = useMemo(
+    () => [...areas].sort((a, b) => weatherProfileSortScore(a) - weatherProfileSortScore(b)),
+    [areas],
+  )
 
   useEffect(() => {
     if (cragId && list.some((a) => a.id === cragId)) return
@@ -71,10 +62,10 @@ export function RailWeather({ homeAreaId }: { homeAreaId?: string | null }) {
   }, [dropdownOpen])
 
   const crag = list.find((a) => a.id === cragId) ?? list[0]
-  const cond = conditionsFor(crag)
+  const { conditions: cond, loading, live, failed } = useCragWeather(crag)
   const isHome = crag && homeAreaId === crag.id
 
-  if (!crag) {
+  if (!crag || !cond) {
     return (
       <div className="rail-card weather-card">
         <p className="muted" style={{ fontSize: 13, margin: 0 }}>
@@ -84,8 +75,10 @@ export function RailWeather({ homeAreaId }: { homeAreaId?: string | null }) {
     )
   }
 
+  const hasCoords = !!resolveAreaWeatherCoordinate(crag)
+
   return (
-    <div className="rail-card weather-card">
+    <div className={`rail-card weather-card${dropdownOpen ? ' weather-card-open' : ''}`}>
       <div className="weather-topo">
         <TopoLines />
       </div>
@@ -94,7 +87,7 @@ export function RailWeather({ homeAreaId }: { homeAreaId?: string | null }) {
         <span className="weather-eyebrow">Conditions</span>
         <span className="weather-live">
           <span className="weather-live-dot" />
-          Live
+          {loading ? 'Updating…' : live ? 'Live' : hasCoords && failed ? 'Offline' : 'Estimate'}
         </span>
       </div>
 
@@ -119,9 +112,15 @@ export function RailWeather({ homeAreaId }: { homeAreaId?: string | null }) {
           />
         </button>
         {dropdownOpen && list.length > 1 && (
-          <div className="weather-dropdown">
+          <div
+            className="weather-dropdown"
+            role="listbox"
+            aria-label="Select crag"
+            onWheel={(e) => e.stopPropagation()}
+          >
             {list.map((a) => {
-              const k = conditionsFor(a)
+              const mock = conditionsForArea(a)
+              const tone = frictionToneForDropdown(a)
               return (
                 <button
                   key={a.id}
@@ -132,13 +131,15 @@ export function RailWeather({ homeAreaId }: { homeAreaId?: string | null }) {
                     setDropdownOpen(false)
                   }}
                 >
-                  <span className={`weather-dot tone-${k.friction.tone}`} />
+                  <span className={`weather-dot tone-${tone}`} />
                   <span className="weather-dropname">
                     {shortCragName(a.name)}
                     {homeAreaId === a.id ? <span className="weather-home">Home</span> : null}
                     {a.region ? <span className="weather-dropregion">{a.region}</span> : null}
                   </span>
-                  <span className="weather-droptemp">{k.temp}°</span>
+                  <span className="weather-droptemp">
+                    <AreaDropTemp area={a} fallback={mock.temp} />
+                  </span>
                   {a.id === cragId ? (
                     <Icon name="check" size={15} style={{ color: 'var(--tint)' }} />
                   ) : null}
@@ -157,13 +158,15 @@ export function RailWeather({ homeAreaId }: { homeAreaId?: string | null }) {
         </div>
         <div className="weather-hero-text">
           <div className="weather-temp-main">
-            {cond.temp}°
+            {loading && !live ? '…' : `${cond.temp}°`}
             <span>
               {' '}
               / {cond.low}°
             </span>
           </div>
-          <div className="weather-summary">{cond.summary}</div>
+          <div className="weather-summary">
+            {loading && !live ? 'Loading forecast…' : cond.summary}
+          </div>
         </div>
       </div>
 
@@ -191,6 +194,10 @@ export function RailWeather({ homeAreaId }: { homeAreaId?: string | null }) {
           </div>
         ))}
       </div>
+
+      {!hasCoords && (
+        <p className="muted weather-no-coords">Add area coordinates to enable live Open-Meteo forecast.</p>
+      )}
     </div>
   )
 }

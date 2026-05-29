@@ -74,9 +74,11 @@ function CragThumb({ crag, size = 60 }: { crag: ActiveCrag; size?: number }) {
 export function CragsView({
   onOpenRoute,
   onSignIn,
+  onToast,
 }: {
   onOpenRoute: (route: ApiRoute) => void
-  onSignIn?: () => void
+  onSignIn?: (message?: string) => void
+  onToast?: (msg: string) => void
 }) {
   const { accessToken } = useAuth()
   const location = useLocation()
@@ -215,8 +217,8 @@ export function CragsView({
               >
                 <Icon name="filter" size={18} />
               </button>
-              <button className="icon-btn" aria-label="More" type="button" onClick={() => {}}>
-                <Icon name="more" size={18} />
+              <button className="icon-btn" aria-label="Sort" type="button" onClick={() => {}}>
+                <Icon name="sort" size={18} />
               </button>
             </div>
           </div>
@@ -308,7 +310,7 @@ export function CragsView({
         />
 
         <div className="map-overlay">
-          {activeCrag && (
+          {activeCrag?.kind === 'area' && (
             <div
               className="chip solid"
               style={{
@@ -320,7 +322,7 @@ export function CragsView({
                 padding: '0 12px',
               }}
             >
-              <Icon name="pin" size={14} /> {activeCrag.kind === 'gym' ? 'Gym' : 'Outdoor'}
+              <Icon name="layers" size={14} /> Limestone · sport
             </div>
           )}
           {gradeBandLabel && (
@@ -338,6 +340,20 @@ export function CragsView({
               <Icon name="grade" size={14} /> {gradeBandLabel}
             </div>
           )}
+          <button
+            type="button"
+            className="btn-log"
+            style={{ marginLeft: 'auto', height: 32, fontSize: 13 }}
+            onClick={() => {
+              if (isGuest) {
+                onSignIn?.('Sign in to suggest a new route.')
+                return
+              }
+              onToast?.('Route suggestions coming soon.')
+            }}
+          >
+            <Icon name="plus" size={14} /> Add route here
+          </button>
         </div>
 
         <div className="map-zoom">

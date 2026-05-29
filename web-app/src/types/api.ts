@@ -176,6 +176,9 @@ export interface PartnerPost {
   grade_band?: string
   seats?: number
   transport?: string
+  display_name?: string
+  nickname?: string
+  username?: string
 }
 
 export interface WeeklyLeaderboardRow {

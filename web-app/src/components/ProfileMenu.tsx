@@ -106,7 +106,7 @@ export function ProfileMenu({
               void signOut()
             }}
           >
-            <Icon name="signOut" size={18} /> Sign out
+            <Icon name="upload" size={18} style={{ transform: 'rotate(90deg)' }} /> Sign out
           </button>
         </div>
       )}

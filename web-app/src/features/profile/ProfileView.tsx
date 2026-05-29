@@ -17,8 +17,14 @@ import type { ClimbLogRow, SendType } from '../../types/api'
 
 const SEND_TYPES: SendType[] = ['flash', 'onsight', 'redpoint', 'repeat', 'attempt', 'dog']
 
-export function ProfileView({ onSignIn }: { onSignIn: () => void }) {
-  const { accessToken, signOut, user } = useAuth()
+export function ProfileView({
+  onSignIn,
+  onToast,
+}: {
+  onSignIn: () => void
+  onToast?: (msg: string) => void
+}) {
+  const { accessToken, user } = useAuth()
   const profileQ = useMyProfile()
   const logsQ = useMyLogs()
   const crewRankQ = useMyCrewRank(user?.id)
@@ -34,13 +40,13 @@ export function ProfileView({ onSignIn }: { onSignIn: () => void }) {
         <div className="page-head">
           <div>
             <h1 className="page-title">Profile</h1>
-            <p className="page-sub">Sends, grade pyramid, and activity.</p>
+            <p className="page-sub">Your sends, stats, and crag passport — once you&apos;re signed in.</p>
           </div>
         </div>
         <LoginRequired
           icon="profile"
-          title="Your climbing identity"
-          body="Sign in to see sends, grade pyramid, and recent activity — synced with iOS."
+          title="Your climbing, in one place"
+          body="Sign in to log sends, track your grade pyramid, build a climb history, and earn achievements. The web app uses the same data as iOS and Android."
           onSignIn={onSignIn}
         />
         <div className="profile-stat-grid profile-stat-grid--teaser" aria-hidden>
@@ -48,7 +54,7 @@ export function ProfileView({ onSignIn }: { onSignIn: () => void }) {
             { label: 'Sends', value: '—' },
             { label: 'This year', value: '—' },
             { label: 'Hardest sent', value: '—' },
-            { label: 'Public sends', value: '—' },
+            { label: 'Crew rank', value: '—' },
           ].map((s) => (
             <div key={s.label} className="rail-card profile-stat-card">
               <div className="profile-stat-label">{s.label}</div>
@@ -90,8 +96,26 @@ export function ProfileView({ onSignIn }: { onSignIn: () => void }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" className="btn btn-secondary" onClick={() => signOut()}>
-            Sign out
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => onToast?.('Settings coming soon')}
+          >
+            <Icon name="settings" size={16} /> Settings
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              try {
+                void navigator.clipboard?.writeText(window.location.origin + '/app/profile')
+              } catch {
+                /* ignore */
+              }
+              onToast?.('Profile link copied')
+            }}
+          >
+            <Icon name="upload" size={16} /> Share
           </button>
           <button type="button" className="btn btn-primary" onClick={() => setEditOpen(true)}>
             Edit profile

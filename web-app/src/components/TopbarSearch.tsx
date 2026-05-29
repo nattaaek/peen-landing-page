@@ -149,7 +149,6 @@ export function TopbarSearch({
     setQuery(chip)
     setOpen(true)
     inputRef.current?.focus()
-    void runSearch(chip)
   }
 
   const trimmed = query.trim()
@@ -173,7 +172,7 @@ export function TopbarSearch({
           }}
           onFocus={() => setOpen(true)}
         />
-        <span className="kbd">⌘K</span>
+        <span className="kbd">⌘ K</span>
       </label>
 
       {open && (

@@ -343,8 +343,33 @@ export function usePartners() {
   const { accessToken } = useAuth()
   return useQuery({
     queryKey: ['community', 'partners'],
-    queryFn: () =>
-      migrationInvoke<PartnerPost[]>('community', 'fetchPartners', { limit: 20 }, accessToken!),
+    queryFn: async () => {
+      const rows = await migrationInvoke<PartnerPost[]>(
+        'community',
+        'fetchPartners',
+        { limit: 20 },
+        accessToken!,
+      )
+      const userIds = [...new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id))]
+      if (userIds.length === 0) return rows
+      try {
+        const identities = await fetchProfileIdentities(accessToken!, userIds)
+        const byId = new Map(identities.map((i) => [i.user_id, i]))
+        return rows.map((r) => {
+          if (!r.user_id) return r
+          const ident = byId.get(r.user_id)
+          if (!ident) return r
+          return {
+            ...r,
+            nickname: ident.nickname,
+            username: ident.username,
+            display_name: ident.nickname ?? ident.username ?? undefined,
+          }
+        })
+      } catch {
+        return rows
+      }
+    },
     enabled: !!accessToken,
   })
 }

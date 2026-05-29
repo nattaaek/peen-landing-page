@@ -1,18 +1,22 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { Icon } from './Icon'
+import { Avatar, Icon } from './Icon'
 import { ProfileMenu } from './ProfileMenu'
+import { RailInboxRow } from './RailInboxRow'
 import { RailWeather } from './RailWeather'
 import { TopbarSearch } from './TopbarSearch'
 import { TopoLines } from './TopoLines'
 import { useAuth } from '../features/auth/AuthProvider'
 import {
+  useCommunityChallenges,
   useInbox,
   useMarkAllNotificationsRead,
   useMyProfile,
   usePartners,
+  usePendingCrewInvites,
   useSeasonalSpotlight,
   useWishlistRoutes,
 } from '../hooks/useMigration'
+import type { CommunityChallengeRow } from '../types/api'
 
 const NAV = [
   { to: '/feed', label: 'Feed', icon: 'feed' as const },
@@ -43,7 +47,10 @@ export function AppShell({
   const wishlist = wishlistQ.data ?? []
   const isGuest = !accessToken
 
-  const unread = useInbox().data?.filter((n) => n.read !== true).length ?? 0
+  const inboxQ = useInbox()
+  const crewInvitesQ = usePendingCrewInvites()
+  const unread = inboxQ.data?.filter((n) => n.read !== true).length ?? 0
+  const crewInviteCount = crewInvitesQ.data?.length ?? 0
   const wishlistNames = wishlist.map((r) => r.name).filter(Boolean)
   const homeAreaName =
     wishlist[0]?.area?.name ?? wishlist[0]?.gym?.name ?? 'Crazy Horse'
@@ -72,6 +79,9 @@ export function AppShell({
               <span className="label">{item.label}</span>
               {item.to === '/feed' && !isGuest && unread > 0 && (
                 <span className="nav-badge">{unread > 9 ? '9+' : unread}</span>
+              )}
+              {item.to === '/crew' && !isGuest && crewInviteCount > 0 && (
+                <span className="nav-badge">{crewInviteCount > 9 ? '9+' : crewInviteCount}</span>
               )}
             </NavLink>
           ))}
@@ -170,7 +180,7 @@ export function AppShell({
         )}
         <button type="button" className="icon-btn" onClick={onNotifs} aria-label="Notifications">
           <Icon name="bell" size={20} />
-          {!isGuest && unread > 0 && <span className="dot" />}
+          {!isGuest && <span className="dot" />}
         </button>
         {accessToken ? (
           <ProfileMenu profile={profileQ.data} onLog={onLog} onToast={onToast} />
@@ -191,6 +201,7 @@ export function AppShell({
           onSignIn={onSignIn}
           onNotifs={onNotifs}
           onOpenCrew={() => navigate('/crew')}
+          onToast={onToast}
           homeAreaId={wishlist[0]?.area_id ?? undefined}
         />
       </aside>
@@ -218,34 +229,103 @@ export function AppShell({
   )
 }
 
+function challengePct(ch: CommunityChallengeRow): number | null {
+  const done = ch.done ?? 0
+  const total = ch.total ?? 0
+  if (!total) return null
+  return Math.round((done / total) * 100)
+}
+
+function RailChallengeRow({
+  title,
+  subtitle,
+  pct,
+  accent,
+  onClick,
+}: {
+  title: string
+  subtitle: string
+  pct: number | null
+  accent: string
+  onClick: () => void
+}) {
+  return (
+    <button type="button" className="challenge-row" onClick={onClick}>
+      {pct != null && (
+        <div className="challenge-ring" aria-hidden>
+          <svg viewBox="0 0 48 48" width={48} height={48}>
+            <circle cx={24} cy={24} r={20} fill="none" stroke="var(--surface)" strokeWidth={5} />
+            <circle
+              cx={24}
+              cy={24}
+              r={20}
+              fill="none"
+              stroke={accent}
+              strokeWidth={5}
+              strokeLinecap="round"
+              strokeDasharray={`${(pct / 100) * 125.6} 125.6`}
+              transform="rotate(-90 24 24)"
+            />
+          </svg>
+          <span>{pct}%</span>
+        </div>
+      )}
+      <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>{title}</div>
+        <div className="muted" style={{ fontSize: 12 }}>
+          {subtitle}
+        </div>
+      </div>
+    </button>
+  )
+}
+
 function RightRail({
   isGuest,
   onSignIn,
   onNotifs,
   onOpenCrew,
+  onToast,
   homeAreaId,
 }: {
   isGuest: boolean
   onSignIn: () => void
   onNotifs: () => void
   onOpenCrew: () => void
+  onToast?: (msg: string) => void
   homeAreaId?: string
 }) {
   const partnersQ = usePartners()
+  const challengesQ = useCommunityChallenges()
   const seasonalQ = useSeasonalSpotlight()
   const inboxQ = useInbox()
   const markAllRead = useMarkAllNotificationsRead()
   const partners = partnersQ.data ?? []
+  const challenges = challengesQ.data ?? []
   const seasonal = seasonalQ.data as
-    | { name?: string; progress?: number; total?: number; days_left?: number }
+    | { name?: string; title?: string; progress?: number; total?: number; days_left?: number }
     | null
     | undefined
   const inbox = (inboxQ.data ?? []).slice(0, 3)
 
-  const pct =
-    seasonal?.progress != null && seasonal?.total
-      ? Math.round((Number(seasonal.progress) / Number(seasonal.total)) * 100)
-      : null
+  const railChallenges: CommunityChallengeRow[] =
+    challenges.length > 0
+      ? challenges.slice(0, 2)
+      : seasonal?.total
+        ? [
+            {
+              id: 'seasonal-spotlight',
+              title: seasonal.title ?? seasonal.name ?? 'Seasonal challenge',
+              done: Number(seasonal.progress ?? 0),
+              total: Number(seasonal.total ?? 0),
+              days_left: seasonal.days_left,
+              color_hex: '#D55A1F',
+            },
+          ]
+        : []
+
+  const partnerDisplayName = (p: (typeof partners)[0]) =>
+    p.display_name ?? p.nickname ?? p.username ?? 'Climber'
 
   return (
     <>
@@ -257,6 +337,7 @@ function RightRail({
           <button
             type="button"
             className="rail-link"
+            style={{ marginLeft: 'auto' }}
             onClick={isGuest ? onSignIn : onOpenCrew}
           >
             See all
@@ -275,9 +356,9 @@ function RightRail({
         ) : (
           partners.slice(0, 3).map((p) => (
             <div key={p.id} className="row" style={{ gap: 12, alignItems: 'flex-start' }}>
-              <span className="rail-partner-av">{p.crag_name?.charAt(0) ?? 'P'}</span>
+              <Avatar name={partnerDisplayName(p)} size={36} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>Partner · {p.crag_name ?? 'Crag TBD'}</div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{partnerDisplayName(p)}</div>
                 <div className="muted" style={{ fontSize: 12 }}>
                   {p.when_text ?? 'Flexible'} · {p.crag_name ?? 'Crag'}
                 </div>
@@ -294,7 +375,18 @@ function RightRail({
                   )}
                 </div>
               </div>
-              <button type="button" className="btn btn-secondary rail-join-btn">
+              <button
+                type="button"
+                className="btn btn-secondary rail-join-btn"
+                onClick={() => {
+                  if (isGuest) {
+                    onSignIn()
+                    return
+                  }
+                  const first = partnerDisplayName(p).split(' ')[0]
+                  onToast?.(`Request sent to ${first}`)
+                }}
+              >
                 Join
               </button>
             </div>
@@ -302,45 +394,29 @@ function RightRail({
         )}
       </div>
 
-      {seasonal && (
+      {railChallenges.length > 0 && (
         <div className="rail-card">
           <h4>Seasonal challenges</h4>
-          <button
-            type="button"
-            className="challenge-row"
-            onClick={isGuest ? onSignIn : onOpenCrew}
-          >
-            {pct != null && (
-              <div className="challenge-ring" aria-hidden>
-                <svg viewBox="0 0 48 48" width={48} height={48}>
-                  <circle cx={24} cy={24} r={20} fill="none" stroke="var(--surface)" strokeWidth={5} />
-                  <circle
-                    cx={24}
-                    cy={24}
-                    r={20}
-                    fill="none"
-                    stroke="var(--peen-orange)"
-                    strokeWidth={5}
-                    strokeLinecap="round"
-                    strokeDasharray={`${(pct / 100) * 125.6} 125.6`}
-                    transform="rotate(-90 24 24)"
-                  />
-                </svg>
-                <span>{pct}%</span>
-              </div>
-            )}
-            <div style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-              <div style={{ fontWeight: 700, fontSize: 14 }}>
-                {(seasonal as { title?: string }).title ?? seasonal.name ?? 'Challenge'}
-              </div>
-              <div className="muted" style={{ fontSize: 12 }}>
-                {seasonal.progress != null && seasonal.total != null
-                  ? `${seasonal.progress}/${seasonal.total} routes`
-                  : 'In progress'}
-                {seasonal.days_left != null ? ` · ${seasonal.days_left} days left` : ''}
-              </div>
-            </div>
-          </button>
+          {railChallenges.map((ch) => {
+            const pct = challengePct(ch)
+            const accent = ch.color_hex ?? 'var(--peen-orange)'
+            const subtitle = [
+              ch.done != null && ch.total != null ? `${ch.done}/${ch.total} routes` : null,
+              ch.days_left != null ? `${ch.days_left} days left` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')
+            return (
+              <RailChallengeRow
+                key={ch.id}
+                title={ch.title ?? 'Challenge'}
+                subtitle={subtitle || 'In progress'}
+                pct={pct}
+                accent={accent}
+                onClick={isGuest ? onSignIn : onOpenCrew}
+              />
+            )
+          })}
         </div>
       )}
 
@@ -362,19 +438,7 @@ function RightRail({
               All caught up.
             </p>
           ) : (
-            inbox.map((n) => (
-              <div key={n.id} className="row" style={{ alignItems: 'flex-start' }}>
-                <div style={{ flex: 1, fontSize: 13 }}>
-                  <div>{n.title ?? n.body ?? 'Notification'}</div>
-                  <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>
-                    {n.created_at ? new Date(n.created_at).toLocaleDateString() : ''}
-                  </div>
-                </div>
-                {n.read !== true && (
-                  <span className="rail-inbox-unread" />
-                )}
-              </div>
-            ))
+            inbox.map((n) => <RailInboxRow key={n.id} n={n} />)
           )}
           <button type="button" className="rail-link rail-inbox-open" onClick={onNotifs}>
             Open inbox

@@ -37,6 +37,7 @@ export type IconName =
   | 'chevD'
   | 'flag'
   | 'sort'
+  | 'layers'
   | 'refresh'
   | 'settings'
   | 'signOut'
@@ -250,6 +251,13 @@ export function Icon({
         <svg {...p}>
           <path d="M3 6h13M3 12h9M3 18h5" />
           <path d="m17 14 3 3 3-3M20 8v9" />
+        </svg>,
+      )
+    case 'layers':
+      return wrap(
+        <svg {...p}>
+          <path d="M12 2 2 7l10 5 10-5-10-5Z" />
+          <path d="m2 12 10 5 10-5M2 17l10 5 10-5" />
         </svg>,
       )
     case 'refresh':

@@ -108,7 +108,8 @@ function AppLayout() {
             element={
               <CragsView
                 onOpenRoute={openRoute}
-                onSignIn={() => openLogin('Sign in to use your wishlist.')}
+                onSignIn={(msg) => openLogin(msg ?? 'Sign in to use your wishlist.')}
+                onToast={setToast}
               />
             }
           />
@@ -116,7 +117,7 @@ function AppLayout() {
             path="crew"
             element={<CrewView onSignIn={() => openLogin()} onOpenRoute={openRouteById} />}
           />
-          <Route path="profile" element={<ProfileView onSignIn={() => openLogin()} />} />
+          <Route path="profile" element={<ProfileView onSignIn={() => openLogin()} onToast={setToast} />} />
         </Route>
       </Routes>
 
