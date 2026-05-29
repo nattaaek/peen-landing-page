@@ -137,6 +137,7 @@ function AppLayout() {
           onLog={(r) => openLog(r)}
           isGuest={isGuest}
           onSignIn={() => openLogin('Sign in to log a send.')}
+          onToast={setToast}
         />
       )}
       <RoutePicker open={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={onPickRoute} />

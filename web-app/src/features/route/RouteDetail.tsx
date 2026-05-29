@@ -16,7 +16,8 @@ import {
   useWishlistRouteIds,
   useUpdateRoute,
 } from '../../hooks/useMigration'
-import { normalizeRouteId, wishlistIdsToSet } from '../../lib/routeIds'
+import { normalizeRouteId, parseRouteId, wishlistIdsToSet } from '../../lib/routeIds'
+import { wishlistErrorMessage } from '../../lib/wishlistErrors'
 import type { ApiRoute, RouteTopoLine } from '../../types/api'
 
 function TopoImageWithLines({
@@ -151,18 +152,21 @@ function SteepnessConsensusChart({
 }
 
 export function RouteDetailOverlay({
-  routeId,
+  routeId: routeIdProp,
   onClose,
   onLog,
   isGuest,
   onSignIn,
+  onToast,
 }: {
   routeId: string
   onClose: () => void
   onLog: (route: ApiRoute) => void
   isGuest: boolean
   onSignIn: () => void
+  onToast?: (message: string) => void
 }) {
+  const routeId = parseRouteId(routeIdProp) ?? routeIdProp
   const [showTopoPlaceholder, setShowTopoPlaceholder] = useState(false)
   const [showHazardReport, setShowHazardReport] = useState(false)
   const [showEditRoute, setShowEditRoute] = useState(false)
@@ -380,10 +384,21 @@ export function RouteDetailOverlay({
                         onSignIn()
                         return
                       }
-                      toggleWishlist.mutate({
-                        routeId: normalizeRouteId(routeId),
-                        save: !isInWishlist,
-                      })
+                      toggleWishlist.mutate(
+                        {
+                          routeId,
+                          save: !isInWishlist,
+                        },
+                        {
+                          onSuccess: () =>
+                            onToast?.(
+                              !isInWishlist
+                                ? `Added ${route?.name ?? 'route'} to wishlist`
+                                : `Removed ${route?.name ?? 'route'} from wishlist`,
+                            ),
+                          onError: (err) => onToast?.(wishlistErrorMessage(err)),
+                        },
+                      )
                     }}
                   >
                     <Icon name={isInWishlist ? 'bookmarkFilled' : 'bookmark'} size={16} />

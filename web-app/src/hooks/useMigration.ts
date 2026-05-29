@@ -37,7 +37,7 @@ import type {
   CrewInviteRow,
 } from '../types/api'
 import { useAuth } from '../features/auth/AuthProvider'
-import { normalizeRouteId } from '../lib/routeIds'
+import { normalizeRouteId, parseRouteId } from '../lib/routeIds'
 
 export function useMyProfile() {
   const { accessToken } = useAuth()
@@ -157,7 +157,7 @@ async function hydrateFeedPage(
   const avatarByUserId = new Map(
     avatarRows
       .map((r) => [r.user_id, r.avatar_url?.trim() ?? ''] as const)
-      .filter(([, url]) => url.startsWith('http')),
+      .filter(([, url]) => /^https?:\/\//i.test(url) || url.startsWith('//')),
   )
   const reactionsByClimb = new Map(reactionRows.map((r) => [r.climb_id, r]))
 
@@ -318,7 +318,7 @@ export function useInbox() {
         const avatarById = new Map(
           avatarRows
             .map((r) => [r.user_id, r.avatar_url?.trim() ?? ''] as const)
-            .filter(([, url]) => url.startsWith('http')),
+            .filter(([, url]) => /^https?:\/\//i.test(url) || url.startsWith('//')),
         )
         return rows.map((n) => {
           const id = n.actor_id
@@ -526,7 +526,7 @@ async function hydrateComments(
   const avatarByUserId = new Map(
     avatarRows
       .map((r) => [r.user_id, r.avatar_url?.trim() ?? ''] as const)
-      .filter(([, url]) => url.startsWith('http')),
+      .filter(([, url]) => /^https?:\/\//i.test(url) || url.startsWith('//')),
   )
 
   return rows.map((row) => {
@@ -922,13 +922,19 @@ export function useToggleWishlist() {
       routeId: string
       save: boolean
     }) => {
-      const id = normalizeRouteId(routeId)
+      if (!accessToken || !user?.id) {
+        throw new Error('Sign in to update your wishlist.')
+      }
+      const id = parseRouteId(routeId)
+      if (!id) {
+        throw new Error('Invalid route id.')
+      }
       const op = save ? 'saveRouteToWishlist' : 'unsaveRouteFromWishlist'
       await migrationInvoke(
         'routes',
         op,
-        { user_id: user!.id, route_id: id },
-        accessToken!,
+        { user_id: user.id, route_id: id },
+        accessToken,
       )
       return { routeId: id, save }
     },

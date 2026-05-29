@@ -316,6 +316,11 @@
   cursor: pointer;
   text-align: left;
 }
+.feed-profile-hit {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+}
 .feed-name-link { font-weight: 700; }
 .feed-name-link:hover { color: var(--tint); }
 .feed-following-label {

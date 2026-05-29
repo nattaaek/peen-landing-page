@@ -15,7 +15,8 @@ import {
   useUnsendItClimb,
   useWishlistRouteIds,
 } from '../../hooks/useMigration'
-import { normalizeRouteId, wishlistIdsToSet } from '../../lib/routeIds'
+import { normalizeRouteId, parseRouteId, wishlistIdsToSet } from '../../lib/routeIds'
+import { wishlistErrorMessage } from '../../lib/wishlistErrors'
 import type { FeedClimbRow } from '../../types/api'
 import { DEFAULT_GRADE_RANGE } from './feedConstants'
 import { FeedFilterBar } from './FeedFilterBar'
@@ -264,7 +265,7 @@ export function FeedView({
 
   const renderCard = (post: FeedClimbRow, guest = false) => {
     const authorId = post.user_id ?? post.profile?.id
-    const routeId = post.route_id ?? post.route?.id
+    const routeId = parseRouteId(post.route?.id ?? post.route_id)
     const isSelf = !!user?.id && authorId === user.id
     const isFollowing = authorId != null && followingIds.has(authorId)
 
@@ -298,11 +299,13 @@ export function FeedView({
           toggleFollow.mutate({ targetId: authorId, follow: !isFollowing })
         }}
         onToggleWishlist={() => {
-          if (!routeId) return
-          const normalized = normalizeRouteId(routeId)
-          const save = !wishlistIds.has(normalized)
+          if (!routeId) {
+            onToast?.('This send has no route to save.')
+            return
+          }
+          const save = !wishlistIds.has(routeId)
           toggleWishlist.mutate(
-            { routeId: normalized, save },
+            { routeId, save },
             {
               onSuccess: () =>
                 onToast?.(
@@ -310,7 +313,7 @@ export function FeedView({
                     ? `Added ${post.route?.name ?? 'route'} to wishlist`
                     : `Removed ${post.route?.name ?? 'route'} from wishlist`,
                 ),
-              onError: () => onToast?.('Could not update wishlist. Try again.'),
+              onError: (err) => onToast?.(wishlistErrorMessage(err)),
             },
           )
         }}
