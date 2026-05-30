@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { AuthProvider, useAuth } from './features/auth/AuthProvider'
 import { LoginGate } from './features/auth/LoginGate'
@@ -11,16 +11,19 @@ import { ProfileView } from './features/profile/ProfileView'
 import { PublicProfilePeek } from './features/profile/PublicProfilePeek'
 import { LogComposer } from './features/route/LogComposer'
 import { RouteDetailOverlay } from './features/route/RouteDetail'
+import { applyRouteSearchParam, routeIdFromSearchParams } from './lib/routeDeepLink'
+import { parseRouteId } from './lib/routeIds'
 import type { ApiRoute } from './types/api'
 
 function AppLayout() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { accessToken, user } = useAuth()
   const isGuest = !accessToken
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginMsg, setLoginMsg] = useState<string | null>(null)
   const [notifsOpen, setNotifsOpen] = useState(false)
-  const [routeId, setRouteId] = useState<string | null>(null)
+  const [routeId, setRouteId] = useState<string | null>(() => routeIdFromSearchParams(window.location.search))
   const [composerRoute, setComposerRoute] = useState<ApiRoute | null>(null)
   const [composerOpen, setComposerOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -40,13 +43,41 @@ function AppLayout() {
     setLoginOpen(true)
   }, [])
 
-  const openRoute = useCallback((route: ApiRoute) => {
-    setRouteId(route.id)
-  }, [])
+  const syncRouteParam = useCallback(
+    (id: string | null) => {
+      setSearchParams((prev) => applyRouteSearchParam(prev, id), { replace: !id })
+    },
+    [setSearchParams],
+  )
 
-  const openRouteById = useCallback((id: string) => {
-    setRouteId(id)
-  }, [])
+  useEffect(() => {
+    const fromUrl = routeIdFromSearchParams(searchParams.toString())
+    if (fromUrl && fromUrl !== routeId) setRouteId(fromUrl)
+    if (!fromUrl && routeId) setRouteId(null)
+  }, [searchParams])
+
+  const openRoute = useCallback(
+    (route: ApiRoute) => {
+      const id = parseRouteId(route.id) ?? route.id
+      setRouteId(id)
+      syncRouteParam(id)
+    },
+    [syncRouteParam],
+  )
+
+  const openRouteById = useCallback(
+    (id: string) => {
+      const normalized = parseRouteId(id) ?? id
+      setRouteId(normalized)
+      syncRouteParam(normalized)
+    },
+    [syncRouteParam],
+  )
+
+  const closeRoute = useCallback(() => {
+    setRouteId(null)
+    syncRouteParam(null)
+  }, [syncRouteParam])
 
   const openLog = useCallback(
     (route?: ApiRoute) => {
@@ -65,10 +96,10 @@ function AppLayout() {
       setNotifsOpen(false)
       if (!entityId) return
       if (entityType === 'route' || entityType === 'routes') {
-        setRouteId(entityId)
+        openRouteById(entityId)
       }
     },
-    [],
+    [openRouteById],
   )
 
   return (
@@ -124,7 +155,7 @@ function AppLayout() {
       {routeId && (
         <RouteDetailOverlay
           routeId={routeId}
-          onClose={() => setRouteId(null)}
+          onClose={closeRoute}
           onLog={(r) => openLog(r)}
           isGuest={isGuest}
           onSignIn={() => openLogin('Sign in to log a send.')}
@@ -155,7 +186,7 @@ function AppLayout() {
           onClose={() => setPublicProfile(null)}
           onOpenRoute={(id) => {
             setPublicProfile(null)
-            setRouteId(id)
+            openRouteById(id)
           }}
           onSignIn={() => openLogin('Sign in to follow climbers.')}
         />

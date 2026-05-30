@@ -25,6 +25,12 @@ export async function loadCatalogCache(): Promise<ApiRoute[]> {
   return catalogLoadPromise
 }
 
+/** Drop session cache (after catalog writes). */
+export function invalidateCatalogCache(): void {
+  catalogCache = null
+  catalogLoadPromise = null
+}
+
 /** Filter cached catalog (call `loadCatalogCache` once on app/search open). */
 export function filterCatalogRoutes(routes: ApiRoute[], query: string, limit = 24): ApiRoute[] {
   const q = query.trim().toLowerCase()

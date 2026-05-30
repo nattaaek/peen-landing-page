@@ -8,6 +8,7 @@ import {
   type QueryClient,
 } from '@tanstack/react-query'
 import { migrationInvoke } from '../lib/peen-api/migration'
+import { invalidateCatalogCache } from '../lib/catalogSearch'
 import {
   fetchMyProfile,
   fetchProfileIdentities,
@@ -17,6 +18,7 @@ import {
 import type { UserProfileIdentity } from '../lib/peen-api/profiles'
 import type {
   AngleConsensus,
+  AngleVoteCount,
   ApiRoute,
   ClimbComment,
   ClimbLogRow,
@@ -652,6 +654,51 @@ export function useRouteConsensus(routeId: string | undefined) {
   })
 }
 
+export function useAngleVoteCounts(routeId: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['routes', 'angle_counts', routeId],
+    queryFn: () =>
+      migrationInvoke<AngleVoteCount[]>(
+        'routes',
+        'fetchAngleVoteCounts',
+        { route_id: routeId! },
+        accessToken!,
+      ),
+    enabled: !!accessToken && !!routeId,
+  })
+}
+
+export function useMySteepnessVote(routeId: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['routes', 'my_angle_vote', routeId],
+    queryFn: () =>
+      migrationInvoke<{ angle?: string | null }>(
+        'routes',
+        'fetchMyVote',
+        { route_id: routeId! },
+        accessToken!,
+      ),
+    enabled: !!accessToken && !!routeId,
+  })
+}
+
+export function useRouteTopoLines(routeId: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['routes', 'topo', 'by_route', routeId],
+    queryFn: () =>
+      migrationInvoke<RouteTopoLine[]>(
+        'routes',
+        'fetchTopoLines',
+        { route_id: routeId! },
+        accessToken!,
+      ),
+    enabled: !!accessToken && !!routeId,
+  })
+}
+
 export function useRouteTopoLinesForImages({
   routeId,
   imageUrls,
@@ -856,6 +903,46 @@ export function useRecordApproachGPXVersion() {
   })
 }
 
+export function useCreateRoute() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (params: {
+      name: string
+      grade?: string
+      description?: string
+      latitude?: number
+      longitude?: number
+      areaId?: string | null
+      gymId?: string | null
+      boltCount?: number
+      lengthMeters?: number
+      styleTags?: string[]
+    }) =>
+      migrationInvoke<ApiRoute>(
+        'routes',
+        'createRoute',
+        {
+          name: params.name,
+          grade: params.grade ?? '',
+          description: params.description ?? '',
+          latitude: params.latitude ?? 0,
+          longitude: params.longitude ?? 0,
+          area_id: params.areaId ?? null,
+          gym_id: params.gymId ?? null,
+          bolt_count: params.boltCount ?? 0,
+          length_meters: params.lengthMeters ?? 0,
+          style_tags: params.styleTags ?? [],
+        },
+        accessToken!,
+      ),
+    onSuccess: () => {
+      invalidateCatalogCache()
+      qc.invalidateQueries({ queryKey: ['catalog'] })
+    },
+  })
+}
+
 export function useUpdateRoute() {
   const { accessToken } = useAuth()
   const qc = useQueryClient()
@@ -995,6 +1082,8 @@ export function useUpsertSteepnessVote() {
       migrationInvoke('routes', 'upsertVote', params, accessToken!),
     onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ['routes', 'consensus', vars.route_id] })
+      qc.invalidateQueries({ queryKey: ['routes', 'angle_counts', vars.route_id] })
+      qc.invalidateQueries({ queryKey: ['routes', 'my_angle_vote', vars.route_id] })
     },
   })
 }

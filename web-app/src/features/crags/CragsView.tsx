@@ -1,74 +1,68 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { Icon } from '../../components/Icon'
+import { invalidateCatalogCache } from '../../lib/catalogSearch'
 import { useAuth } from '../auth/AuthProvider'
-import { useCatalogAreas, useCatalogGyms, useCatalogRoutes } from '../../hooks/useCatalog'
-import { useWishlistRouteIds } from '../../hooks/useMigration'
-import { normalizeRouteId, wishlistIdsToSet } from '../../lib/routeIds'
+import { useCatalogAllRoutes, useCatalogAreas, useCatalogGyms } from '../../hooks/useCatalog'
+import { useGeolocation } from '../../hooks/useGeolocation'
+import {
+  formatCragDistance,
+  gradeBandLabel,
+  haversineKm,
+  layersChipLabel,
+  resolveAreaCoordinate,
+  resolveGymCoordinate,
+  routesForPlace,
+  wallCountForRoutes,
+} from '../../lib/cragStats'
+import {
+  applyCragListFilters,
+  countActiveCragFilters,
+  DEFAULT_CRAG_LIST_FILTERS,
+  type CragListFilters,
+  type CragSortOption,
+} from '../../lib/cragListFilters'
 import type { ApiArea, ApiGym, ApiRoute } from '../../types/api'
-import { CragsMap, type CragsMapHandle } from './CragsMap'
+import { ActiveCragPanel } from './ActiveCragPanel'
+import { ApproachGuideDrawer } from './ApproachGuideDrawer'
+import { AreaRoutesSheet } from './AreaRoutesSheet'
+import { CragThumb, type CragPanelRow } from './CragShared'
+import { CreateRouteSheet } from './CreateRouteSheet'
+import { CragsFilterSortSheet } from './CragsFilterSortSheet'
+import { CragsMap, type CragMapPin, type CragsMapHandle } from './CragsMap'
 
-type ListStatusChip = 'all' | 'wishlist'
 type CragKind = 'area' | 'gym'
 
-type ActiveCrag = {
-  id: string
-  kind: CragKind
-  name: string
-  regionOrAddress?: string
-}
+function buildCragRow(
+  kind: CragKind,
+  place: ApiArea | ApiGym,
+  routes: ApiRoute[],
+  userLat: number | null,
+  userLng: number | null,
+): CragPanelRow {
+  const placeRoutes = routesForPlace(routes, place.id, kind)
+  const coord =
+    kind === 'area'
+      ? resolveAreaCoordinate(place as ApiArea, placeRoutes)
+      : resolveGymCoordinate(place as ApiGym)
 
-function stableGradientForId(id: string): string {
-  // Small, deterministic hash -> picks one of a few hardcoded gradients.
-  let h = 0
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 997
-  const palettes = [
-    ['#E0A77A', '#7A4426'],
-    ['#E5C088', '#5C3318'],
-    ['#B5A99A', '#544740'],
-    ['#9CA39A', '#3F523F'],
-    ['#D8BA90', '#7A4426'],
-    ['#1F1F20', '#4A4D52'],
-    ['#2860A3', '#1F1F20'],
-  ] as const
-  const pick = palettes[h % palettes.length]
-  return `linear-gradient(140deg, ${pick[0]}, ${pick[1]})`
-}
+  let distanceKm: number | null = null
+  if (userLat != null && userLng != null && coord) {
+    distanceKm = haversineKm(userLat, userLng, coord.lat, coord.lng)
+  }
 
-function CragThumb({ crag, size = 60 }: { crag: ActiveCrag; size?: number }) {
-  const gradient = stableGradientForId(crag.id)
-  const accent = crag.kind === 'gym' ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.10)'
-
-  return (
-    <div
-      className="thumb"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 12,
-        background: gradient,
-        position: 'relative',
-        overflow: 'hidden',
-        border: '1px solid var(--separator)',
-      }}
-    >
-      <svg viewBox="0 0 60 60" preserveAspectRatio="xMidYMid slice" width={size} height={size}>
-        <path d="M 0 38 C 12 26, 22 36, 34 24 S 54 16, 60 30 L 60 60 L 0 60 Z" fill="#000" opacity={0.15} />
-        <path d="M 0 48 C 14 38, 28 46, 40 38 S 58 30, 60 44 L 60 60 L 0 60 Z" fill="#000" opacity={0.12} />
-        {crag.kind === 'gym' && (
-          <rect
-            x="18"
-            y="14"
-            width="24"
-            height="32"
-            fill={accent}
-            stroke="rgba(255,255,255,0.5)"
-            strokeWidth="1"
-          />
-        )}
-      </svg>
-    </div>
-  )
+  return {
+    id: place.id,
+    kind,
+    name: place.name,
+    regionOrAddress: kind === 'area' ? (place as ApiArea).region : (place as ApiGym).address,
+    routeCount: placeRoutes.length,
+    wallCount: wallCountForRoutes(placeRoutes),
+    distanceKm,
+    lat: coord?.lat ?? null,
+    lng: coord?.lng ?? null,
+  }
 }
 
 export function CragsView({
@@ -81,101 +75,138 @@ export function CragsView({
   onToast?: (msg: string) => void
 }) {
   const { accessToken } = useAuth()
+  const qc = useQueryClient()
   const location = useLocation()
   const isGuest = !accessToken
-  const [filter, setFilter] = useState<'all' | 'crag' | 'gym'>('all')
-  const [listStatusChip, setListStatusChip] = useState<ListStatusChip>('all')
+  const [filter, setFilter] = useState<'all' | 'crags' | 'gym'>('all')
   const [query, setQuery] = useState('')
-  const [activeCrag, setActiveCrag] = useState<ActiveCrag | null>(null)
+  const [activeKey, setActiveKey] = useState<string | null>(null)
+  const [previewHidden, setPreviewHidden] = useState(false)
+  const [approachArea, setApproachArea] = useState<ApiArea | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [routesSheetOpen, setRoutesSheetOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [listFilters, setListFilters] = useState<CragListFilters>(DEFAULT_CRAG_LIST_FILTERS)
+  const [listSort, setListSort] = useState<CragSortOption>('name')
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false)
+  const [filterSheetTab, setFilterSheetTab] = useState<'filter' | 'sort'>('filter')
   const mapRef = useRef<CragsMapHandle>(null)
+  const { point: userPoint } = useGeolocation()
+  const hasLocation = userPoint != null
 
   const areasQ = useCatalogAreas()
   const gymsQ = useCatalogGyms()
-  const routesQ = useCatalogRoutes(0)
-  const wishlistQ = useWishlistRouteIds()
-  const wishlistIds = useMemo(() => wishlistIdsToSet(wishlistQ.data), [wishlistQ.data])
+  const routesQ = useCatalogAllRoutes()
 
   const routes = routesQ.data ?? []
+  const areas = areasQ.data ?? []
+  const userLat = userPoint?.lat ?? null
+  const userLng = userPoint?.lng ?? null
 
-  const allCrags = useMemo((): ActiveCrag[] => {
-    const areas: ApiArea[] = areasQ.data ?? []
+  const baseCrags = useMemo((): CragPanelRow[] => {
     const gyms: ApiGym[] = gymsQ.data ?? []
-
-    const areaRouteCount = new Map<string, number>()
-    const gymRouteCount = new Map<string, number>()
-    for (const r of routes) {
-      if (r.area_id) areaRouteCount.set(r.area_id, (areaRouteCount.get(r.area_id) ?? 0) + 1)
-      if (r.gym_id) gymRouteCount.set(r.gym_id, (gymRouteCount.get(r.gym_id) ?? 0) + 1)
-    }
-
     const q = query.trim().toLowerCase()
 
-    const areaRows: ActiveCrag[] = areas
+    const areaRows = areas
       .filter(() => filter !== 'gym')
       .filter((a) => (!q ? true : a.name.toLowerCase().includes(q)))
-      .map((a) => ({
-        id: a.id,
-        kind: 'area' as const,
-        name: a.name,
-        regionOrAddress: a.region,
-      }))
-      .filter((c) => (routes.length ? (areaRouteCount.get(c.id) ?? 0) > 0 : true))
+      .map((a) => buildCragRow('area', a, routes, userLat, userLng))
+      .filter((c) => (routes.length ? c.routeCount > 0 : true))
 
-    const gymRows: ActiveCrag[] = gyms
-      .filter(() => filter !== 'crag')
+    const gymRows = gyms
+      .filter(() => filter !== 'crags')
       .filter((g) => (!q ? true : g.name.toLowerCase().includes(q)))
-      .map((g) => ({
-        id: g.id,
-        kind: 'gym' as const,
-        name: g.name,
-        regionOrAddress: g.address,
-      }))
-      .filter((c) => (routes.length ? (gymRouteCount.get(c.id) ?? 0) > 0 : true))
+      .map((g) => buildCragRow('gym', g, routes, userLat, userLng))
+      .filter((c) => (routes.length ? c.routeCount > 0 : true))
 
-    const byFilter = (c: ActiveCrag) => {
-      if (filter === 'all') return true
-      if (filter === 'crag') return c.kind === 'area'
-      if (filter === 'gym') return c.kind === 'gym'
-      return true
-    }
+    return [...areaRows, ...gymRows]
+  }, [areas, gymsQ.data, routes, filter, query, userLat, userLng])
 
-    return [...areaRows, ...gymRows].filter(byFilter)
-  }, [areasQ.data, gymsQ.data, routes, filter, query])
+  const allCrags = useMemo(
+    () => applyCragListFilters(baseCrags, listFilters, listSort, hasLocation),
+    [baseCrags, listFilters, listSort, hasLocation],
+  )
 
-  const wishlistCount = useMemo(
-    () => routes.filter((r) => wishlistIds.has(normalizeRouteId(r.id))).length,
-    [routes, wishlistIds],
+  const activeFilterCount = countActiveCragFilters(listFilters, hasLocation)
+
+  const activeCrag = useMemo(() => {
+    if (!activeKey) return allCrags[0] ?? null
+    return allCrags.find((c) => `${c.kind}:${c.id}` === activeKey) ?? allCrags[0] ?? null
+  }, [activeKey, allCrags])
+
+  const activeRoutes = useMemo(() => {
+    if (!activeCrag) return []
+    const list = routesForPlace(routes, activeCrag.id, activeCrag.kind)
+    return [...list].sort(
+      (a, b) => (b.grade ?? '').localeCompare(a.grade ?? '') || a.name.localeCompare(b.name),
+    )
+  }, [activeCrag, routes])
+
+  const mapPins = useMemo((): CragMapPin[] => {
+    return allCrags
+      .filter((c): c is CragPanelRow & { lat: number; lng: number } => c.lat != null && c.lng != null)
+      .map((c) => ({ id: c.id, kind: c.kind, name: c.name, lat: c.lat, lng: c.lng }))
+  }, [allCrags])
+
+  const overlayLayers = useMemo(
+    () => (activeCrag?.kind === 'area' ? layersChipLabel(activeRoutes) : null),
+    [activeCrag, activeRoutes],
+  )
+  const overlayGrades = useMemo(
+    () => gradeBandLabel(activeRoutes.map((r) => r.grade ?? '').filter(Boolean)),
+    [activeRoutes],
   )
 
   useEffect(() => {
-    if (activeCrag) return
-    if (allCrags.length > 0) setActiveCrag(allCrags[0])
-  }, [activeCrag, allCrags])
+    if (activeKey && allCrags.some((c) => `${c.kind}:${c.id}` === activeKey)) return
+    if (allCrags.length > 0) setActiveKey(`${allCrags[0].kind}:${allCrags[0].id}`)
+  }, [activeKey, allCrags])
 
   useEffect(() => {
     const pinName = (location.state as { pinName?: string } | null)?.pinName
     if (!pinName || allCrags.length === 0) return
     const match = allCrags.find((c) => c.name.toLowerCase() === pinName.toLowerCase())
-    if (match) setActiveCrag(match)
+    if (match) {
+      setActiveKey(`${match.kind}:${match.id}`)
+      setPreviewHidden(false)
+    }
   }, [location.state, allCrags])
 
-  const routesForActiveCrag = useMemo(() => {
-    if (!activeCrag) return []
-    const list = routes.filter((r) => (activeCrag.kind === 'area' ? r.area_id === activeCrag.id : r.gym_id === activeCrag.id))
-    const wishFiltered =
-      listStatusChip === 'wishlist' ? list.filter((r) => wishlistIds.has(normalizeRouteId(r.id))) : list
-    // Sort by "best looking" heuristic: grade string then name.
-    return [...wishFiltered].sort((a, b) => (b.grade ?? '').localeCompare(a.grade ?? '') || b.name.localeCompare(a.name))
-  }, [activeCrag, routes, listStatusChip, wishlistIds])
+  const selectCrag = (key: string) => {
+    setActiveKey(key)
+    setPreviewHidden(false)
+  }
 
-  const routeSampleForPreview = routesForActiveCrag.slice(0, 3)
+  const openCreateRoute = () => {
+    if (isGuest) {
+      onSignIn?.('Sign in to suggest a new route.')
+      return
+    }
+    setCreateOpen(true)
+  }
 
-  const gradeBandLabel = useMemo(() => {
-    const grades = routesForActiveCrag.map((r) => r.grade).filter(Boolean) as string[]
-    if (grades.length === 0) return null
-    const sorted = [...grades].sort()
-    return sorted.length === 1 ? sorted[0] : `${sorted[0]} – ${sorted[sorted.length - 1]}`
-  }, [routesForActiveCrag])
+  const refreshCatalog = async () => {
+    setRefreshing(true)
+    try {
+      invalidateCatalogCache()
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['catalog', 'areas'] }),
+        qc.invalidateQueries({ queryKey: ['catalog', 'gyms'] }),
+        qc.invalidateQueries({ queryKey: ['catalog', 'routes', 'all'] }),
+      ])
+      onToast?.('Crags refreshed')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
+  const centerOnUser = () => {
+    if (userLat == null || userLng == null) {
+      onToast?.('Enable location to center the map on you.')
+      return
+    }
+    mapRef.current?.flyTo(userLng, userLat, 11)
+  }
 
   return (
     <div className="crags-split">
@@ -185,11 +216,18 @@ export function CragsView({
             Crags & gyms
           </h1>
           <div className="page-sub" style={{ marginBottom: 14 }}>
-            {allCrags.length} locations · within 800 km
+            {allCrags.length} locations
+            {hasLocation ? ` · within ${Math.round(listFilters.maxDistanceKm)} km` : ''}
           </div>
 
           <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-            {(['all', 'crag', 'gym'] as const).map((f) => (
+            {(
+              [
+                ['all', 'All'],
+                ['crags', 'Outdoor'],
+                ['gym', 'Gyms'],
+              ] as const
+            ).map(([f, lbl]) => (
               <button
                 key={f}
                 className="chip"
@@ -203,21 +241,33 @@ export function CragsView({
                 type="button"
                 onClick={() => setFilter(f)}
               >
-                {f === 'all' ? 'All' : f === 'crag' ? 'Outdoor' : 'Gyms'}
+                {lbl}
               </button>
             ))}
             <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
               <button
-                className="icon-btn"
+                className={`icon-btn ${activeFilterCount > 0 ? 'icon-btn-active' : ''}`}
                 aria-label="Filter"
                 type="button"
                 onClick={() => {
-                  // Placeholder for future filter/sort controls (prototype has icons here).
+                  setFilterSheetTab('filter')
+                  setFilterSheetOpen(true)
                 }}
               >
                 <Icon name="filter" size={18} />
+                {activeFilterCount > 0 && (
+                  <span className="icon-btn-badge">{activeFilterCount}</span>
+                )}
               </button>
-              <button className="icon-btn" aria-label="Sort" type="button" onClick={() => {}}>
+              <button
+                className="icon-btn"
+                aria-label="Sort"
+                type="button"
+                onClick={() => {
+                  setFilterSheetTab('sort')
+                  setFilterSheetOpen(true)
+                }}
+              >
                 <Icon name="sort" size={18} />
               </button>
             </div>
@@ -227,132 +277,119 @@ export function CragsView({
             <Icon name="search" size={14} />
             <input placeholder="Filter by name…" value={query} onChange={(e) => setQuery(e.target.value)} />
           </label>
-
-          <div className="chip-row" style={{ marginTop: 12 }}>
-            {(
-              [
-                ['all', 'All routes', routes.length],
-                ['wishlist', 'Wishlist', wishlistCount],
-              ] as const
-            ).map(([chip, label, count]) => (
-              <button
-                key={chip}
-                type="button"
-                className={`chip ${listStatusChip === chip ? 'active' : ''}`}
-                onClick={() => {
-                  if (chip === 'wishlist' && isGuest) {
-                    onSignIn?.()
-                    return
-                  }
-                  setListStatusChip(chip)
-                }}
-              >
-                {label} ({count})
-              </button>
-            ))}
-          </div>
         </div>
 
         <div>
-          {allCrags.map((c) => (
-            <div
-              key={c.id + c.kind}
-              className={`crag-row ${activeCrag?.id === c.id && activeCrag?.kind === c.kind ? 'active' : ''}`}
-              onClick={() => setActiveCrag(c)}
-              role="button"
-              tabIndex={0}
-            >
-              <CragThumb crag={c} />
-              <div className="info">
-                <div className="name">{c.name}</div>
-                <div className="meta">
-                  <span>
-                    <Icon name="pin" size={12} />
-                    {c.regionOrAddress ?? '—'}
-                  </span>
-                  <span>{routes.filter((r) => (c.kind === 'area' ? r.area_id === c.id : r.gym_id === c.id)).length} routes</span>
+          {allCrags.map((c) => {
+            const key = `${c.kind}:${c.id}`
+            const kindLabel = c.kind === 'gym' ? 'gym' : 'crag'
+            return (
+              <div
+                key={key}
+                className={`crag-row ${activeCrag && `${activeCrag.kind}:${activeCrag.id}` === key ? 'active' : ''}`}
+                onClick={() => selectCrag(key)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    selectCrag(key)
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                <CragThumb crag={c} />
+                <div className="info">
+                  <div className="name">{c.name}</div>
+                  <div className="meta">
+                    <span>
+                      <Icon name="pin" size={12} />
+                      {c.regionOrAddress ?? '—'}
+                    </span>
+                    {gradeBandLabel(
+                      routesForPlace(routes, c.id, c.kind)
+                        .map((r) => r.grade ?? '')
+                        .filter(Boolean),
+                    ) && (
+                      <span>
+                        <Icon name="grade" size={12} />
+                        {gradeBandLabel(
+                          routesForPlace(routes, c.id, c.kind)
+                            .map((r) => r.grade ?? '')
+                            .filter(Boolean),
+                        )}
+                      </span>
+                    )}
+                    <span>
+                      {c.routeCount} routes · {c.wallCount} walls
+                    </span>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="chip outline" style={{ fontWeight: 700 }}>
+                    {formatCragDistance(c.distanceKm)}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: 'var(--fg-2)',
+                      marginTop: 4,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.6,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {kindLabel}
+                  </div>
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div className="chip outline" style={{ fontWeight: 700 }}>
-                  {routes.filter((r) => (c.kind === 'area' ? r.area_id === c.id : r.gym_id === c.id)).length}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--fg-2)',
-                    marginTop: 4,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.6,
-                    fontWeight: 700,
-                  }}
-                >
-                  {c.kind === 'gym' ? 'Gym' : 'Outdoor'}
-                </div>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
-      <div className="crags-map" style={{ position: 'relative', height: '100%', minHeight: 320 }}>
+      <div className="crags-map">
         <CragsMap
           ref={mapRef}
-          areas={areasQ.data ?? []}
-          gyms={gymsQ.data ?? []}
+          pins={mapPins}
           selectedId={activeCrag?.id ?? null}
-          onSelect={(id, kind) => {
-            const name = kind === 'area' ? (areasQ.data ?? []).find((a) => a.id === id)?.name : (gymsQ.data ?? []).find((g) => g.id === id)?.name
-            const regionOrAddress =
-              kind === 'area' ? (areasQ.data ?? []).find((a) => a.id === id)?.region : (gymsQ.data ?? []).find((g) => g.id === id)?.address
-            setActiveCrag({ id, kind, name: name ?? 'Selected', regionOrAddress })
-          }}
+          onSelect={(id, kind) => selectCrag(`${kind}:${id}`)}
         />
 
         <div className="map-overlay">
-          {activeCrag?.kind === 'area' && (
-            <div
-              className="chip solid"
-              style={{
-                background: '#fff',
-                color: 'var(--fg-1)',
-                border: '1px solid var(--separator)',
-                boxShadow: 'var(--shadow-card)',
-                height: 32,
-                padding: '0 12px',
-              }}
-            >
-              <Icon name="layers" size={14} /> Limestone · sport
+          {overlayLayers && (
+            <div className="map-chip">
+              <Icon name="layers" size={14} /> {overlayLayers}
             </div>
           )}
-          {gradeBandLabel && (
-            <div
-              className="chip solid"
-              style={{
-                background: '#fff',
-                color: 'var(--fg-1)',
-                border: '1px solid var(--separator)',
-                boxShadow: 'var(--shadow-card)',
-                height: 32,
-                padding: '0 12px',
-              }}
-            >
-              <Icon name="grade" size={14} /> {gradeBandLabel}
+          {overlayGrades && (
+            <div className="map-chip">
+              <Icon name="grade" size={14} /> {overlayGrades}
             </div>
           )}
           <button
             type="button"
             className="btn-log"
             style={{ marginLeft: 'auto', height: 32, fontSize: 13 }}
-            onClick={() => {
-              if (isGuest) {
-                onSignIn?.('Sign in to suggest a new route.')
-                return
-              }
-              onToast?.('Route suggestions coming soon.')
-            }}
+            onClick={openCreateRoute}
           >
             <Icon name="plus" size={14} /> Add route here
+          </button>
+        </div>
+
+        <div className="map-fabs">
+          {userPoint && (
+            <button type="button" className="map-fab" aria-label="Center on my location" onClick={centerOnUser}>
+              <Icon name="pin" size={18} />
+            </button>
+          )}
+          <button
+            type="button"
+            className="map-fab"
+            aria-label="Refresh crags"
+            disabled={refreshing}
+            onClick={() => void refreshCatalog()}
+          >
+            <Icon name="refresh" size={18} />
           </button>
         </div>
 
@@ -365,78 +402,84 @@ export function CragsView({
           </button>
         </div>
 
-        {activeCrag && (
-          <div
-            style={{
-              position: 'absolute',
-              left: 16,
-              right: 16,
-              bottom: 16,
-              background: '#fff',
-              borderRadius: 'var(--radius-lg)',
-              padding: 16,
-              boxShadow: 'var(--shadow-button)',
-              display: 'flex',
-              alignItems: 'stretch',
-              gap: 14,
-              maxWidth: 720,
-              margin: '0 auto',
-              border: '1px solid var(--separator)',
-            }}
-          >
-            <div style={{ flex: '0 0 auto' }}>
-              <CragThumb crag={activeCrag} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>{activeCrag.name}</div>
-                <span className="chip outline" style={{ height: 22 }}>
-                  {activeCrag.kind === 'gym' ? 'Gym' : 'Outdoor'}
-                </span>
-              </div>
-              <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 4 }}>
-                {activeCrag.regionOrAddress ?? '—'} · {routes.filter((r) => (activeCrag.kind === 'area' ? r.area_id === activeCrag.id : r.gym_id === activeCrag.id)).length} routes
-              </div>
-              <div style={{ display: 'flex', gap: 12, marginTop: 8, fontSize: 12, flexWrap: 'wrap' }}>
-                {routeSampleForPreview.length === 0 ? (
-                  <span className="muted">No routes found in the current page.</span>
-                ) : (
-                  routeSampleForPreview.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
-                      onClick={() => onOpenRoute(r)}
-                    >
-                      <span style={{ fontWeight: 700 }}>{r.name}</span>
-                      <span style={{ color: 'var(--fg-2)' }}> · {r.grade}</span>
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="btn btn-primary"
-              style={{ alignSelf: 'center', height: 36 }}
-              onClick={() => {
-                if (routeSampleForPreview.length > 0) onOpenRoute(routeSampleForPreview[0])
-              }}
-              disabled={routeSampleForPreview.length === 0}
-            >
-              Open <Icon name="chevR" size={16} />
-            </button>
-          </div>
+        {activeCrag && !previewHidden && (
+          <ActiveCragPanel
+            crag={activeCrag}
+            routes={activeRoutes}
+            onDismiss={() => setPreviewHidden(true)}
+            onOpenRoute={onOpenRoute}
+            onApproach={
+              activeCrag.kind === 'area'
+                ? () => {
+                    const area = areas.find((a) => a.id === activeCrag.id)
+                    if (area) setApproachArea(area)
+                  }
+                : undefined
+            }
+            onAddRoute={openCreateRoute}
+            onShowAllRoutes={activeRoutes.length > 3 ? () => setRoutesSheetOpen(true) : undefined}
+          />
         )}
 
-        {routesQ.isLoading && <div style={{ position: 'absolute', top: 16, left: 16 }} className="muted">Loading routes…</div>}
+        {routesQ.isLoading && (
+          <div style={{ position: 'absolute', top: 16, left: 16 }} className="muted">
+            Loading routes…
+          </div>
+        )}
         {routesQ.isError && (
           <div style={{ position: 'absolute', top: 16, left: 16 }} className="error">
             Could not load routes.
           </div>
         )}
       </div>
+
+      <CragsFilterSortSheet
+        open={filterSheetOpen}
+        tab={filterSheetTab}
+        onClose={() => setFilterSheetOpen(false)}
+        draftFilters={listFilters}
+        draftSort={listSort}
+        previewRows={baseCrags}
+        hasLocation={hasLocation}
+        onApply={(f, s) => {
+          setListFilters(f)
+          setListSort(s)
+        }}
+      />
+
+      <ApproachGuideDrawer
+        area={approachArea}
+        open={!!approachArea}
+        userLat={userLat}
+        userLng={userLng}
+        onClose={() => setApproachArea(null)}
+        onSignIn={onSignIn}
+        onToast={onToast}
+      />
+
+      <AreaRoutesSheet
+        open={routesSheetOpen}
+        cragName={activeCrag?.name ?? 'Routes'}
+        routes={activeRoutes}
+        onClose={() => setRoutesSheetOpen(false)}
+        onOpenRoute={onOpenRoute}
+      />
+
+      {activeCrag && (
+        <CreateRouteSheet
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          placeName={activeCrag.name}
+          areaId={activeCrag.kind === 'area' ? activeCrag.id : null}
+          gymId={activeCrag.kind === 'gym' ? activeCrag.id : null}
+          latitude={activeCrag.lat}
+          longitude={activeCrag.lng}
+          onCreated={(route) => {
+            onToast?.(`Added ${route.name}`)
+            onOpenRoute(route)
+          }}
+        />
+      )}
     </div>
   )
 }

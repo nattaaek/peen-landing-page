@@ -1,12 +1,12 @@
 # Web Crags + Route Detail Parity Matrix (Prototype vs Mobile vs Current Web)
 
 Reference designer prototype:
-- `~/Downloads/Peen Design System-10/peen-web/views.jsx` (Crags)
-- `~/Downloads/Peen Design System-10/peen-web/detail.jsx` (Route detail)
+- `~/Downloads/Peen Design System-13/peen-web/views.jsx` (Crags)
+- `~/Downloads/Peen Design System-13/peen-web/detail.jsx` (Route detail)
 
 Production web app:
-- `peen-landing-page/web-app/src/features/crags/CragsView.tsx`
-- `peen-landing-page/web-app/src/features/crags/CragsMap.tsx`
+- `peen-landing-page/web-app/src/features/crags/` (`CragsView.tsx`, `CragsMap.tsx`, `ActiveCragPanel.tsx`, `CragsFilterSortSheet.tsx`, `AreaRoutesSheet.tsx`, `CreateRouteSheet.tsx`, `ApproachGuideDrawer.tsx`, `CragShared.tsx`)
+- `peen-landing-page/web-app/src/lib/cragStats.ts`, `cragListFilters.ts`, `approachGpx.ts`
 - `peen-landing-page/web-app/src/features/route/RouteDetail.tsx`
 - `peen-landing-page/web-app/src/hooks/useMigration.ts`
 - `peen-landing-page/web-app/src/styles/app.css` (layout primitives)
@@ -25,9 +25,14 @@ Mobile reference (iOS/Android):
 
 | Capability | Designer prototype | iOS | Android | Current web |
 |---|---|---|---|---|
-| Primary list in Crags screen | **Crag/gyms rows** with thumbnails + meta | Routes list (map + list of routes) | Routes list (map + list of routes) | **Routes list** (route rows) + map |
-| “Active crag” behavior | Selecting a crag changes map focus and shows **ActiveCragPreview** card with sample routes | Selects area/gym pin and filters routes | Selects area/gym pin and filters routes | Selecting map pin sets `selectedPlace` and filters routes; no preview card |
-| Wishlist filter placement | Wishlist is a filter for the route list within the crag context | Wishlist chip in Crags route list | Wishlist chip in Crags route list | Wishlist chip exists, but it filters the routes list without crag-centric preview |
+| Primary list in Crags screen | **Crag/gyms rows** with thumbnails + meta | Routes list (map + list of routes) | Routes list (map + list of routes) | **Crag/gyms rows** (region, grade sample, routes·walls, distance chip) + MapLibre map |
+| “Active crag” behavior | Selecting a crag changes map focus and shows **ActiveCragPreview** card with sample routes | Selects area/gym pin and filters routes | Selects area/gym pin and filters routes | **`ActiveCragPanel`**: dismiss, approach, add route, route previews, “+ N more”, gym directions |
+| Wishlist filter placement | Wishlist is a filter for the route list within the crag context | Wishlist chip in Crags route list | Wishlist chip in Crags route list | Not on Crags list (wishlist remains on route detail / route list elsewhere) |
+| List filter / sort | Distance + region + route count filters; sort by distance/name/routes/walls | Rich route-list filters (grades, status, areas) | Similar to iOS route list | **`CragsFilterSortSheet`**: max distance, regions, min routes; sort distance/name/routes/walls |
+| Full route list for crag | Sheet / navigation to all routes | Area routes sheet | Area routes | **`AreaRoutesSheet`** |
+| Create route | Sheet from active crag | Create route flow | Create route | **`CreateRouteSheet`** + `useCreateRoute` |
+| Approach + GPX | Approach drawer with track | GPX load/upload/versioning | Approach flows | **`ApproachGuideDrawer`**: load public GPX, map polyline, upload (auth), download/share, version record |
+| Map controls | Stylized SVG map (prototype) | Center on user, refresh | Map controls | MapLibre pins + FABs (center user, refresh catalog); not stylized SVG Thailand map |
 
 **File mapping (where to update web)**
 - Prototype crags implementation: `~/Downloads/Peen Design System-10/peen-web/views.jsx` (CragsView + ActiveCragPreview)
@@ -35,70 +40,69 @@ Mobile reference (iOS/Android):
 - Web crags map: `[web-app/src/features/crags/CragsMap.tsx](web-app/src/features/crags/CragsMap.tsx)`
 - Web layout CSS primitives: `web-app/src/styles/app.css` (e.g. `.crags-split`, `.crag-row`, `.rail-card`, `.crag-list-head`)
 
-### 2) Styling hooks mismatch (high-signal)
+### 2) Styling / remaining gaps
 
-| CSS primitive | Prototype expects | Current web uses | Likely impact |
+| Item | Prototype v13 | Current web | Status |
 |---|---|---|---|
-| Map container class | `.crags-map` | `crags-map-wrap` (wrapper) | Pin/card positioning + background styling can drift |
-| Crag row class | `.crag-row` for list rows | `.crag-row` used for **route** rows | Visual spacing may match, but semantics differ (preview card and thumb/meta rows are missing) |
-| Active crag preview | Absolute positioned card in map area | Not present | Missing “premium” prototype feel |
+| Split layout | `.crags-split` list + map | Same primitives in `app.css` | Aligned |
+| Map background | Stylized SVG Thailand | MapLibre + muted filter + HTML pins | Functional; visual differs |
+| Route list tab (iOS `RoutesListView`) | N/A on Crags page | Not on web Crags | **Open**: status chips, wall grouping live on iOS route list, not web Crags |
+| Filter depth | Crag-appropriate filters | Crag filters only (not iOS grade/status chips) | Partial iOS parity |
 
 ---
 
 ## Route detail slide-over
 
+**Web implementation:** `web-app/src/features/route/RouteDetail.tsx` plus `RouteDetailHero.tsx`, `RouteConditionsCard.tsx`, `RouteTopoModal.tsx`, `RouteDetailStatGrid.tsx`, `TopoImageWithLines.tsx`, `SteepnessConsensusChart.tsx`. Reuses `ApproachGuideDrawer` from Crags.
+
 ### 1) Header + actions
 
 | Capability | Designer prototype | iOS | Android | Current web |
 |---|---|---|---|---|
-| Slide-over shell | `.slideover`, `.slideover-head`, fixed width, right drawer | Uses slide-over style + toolbars | Uses scaffold + hero/action row layout | Uses `.slideover` + `.slideover-head` (shell matches) |
-| Header actions | Close, share, more | Menu + multiple actions (edit/upload/hazards/topo) | Action row + sheets (edit/topo/hazards/steepness) | Close + area label + **wishlist button only** |
-| Log send button | Primary “Log a send” | Present | Present | Present in “overview” tab |
-| Wishlist control | Present | Present (route list + detail) | Present | Present (wishlist button in header; wishlist state fetched via `useWishlistRouteIds`) |
-
-**Key mismatch:** current web route detail is mostly “text + vote UI”, while mobile includes hero topo + cards + hazard/approach tiles and rich action affordances.
+| Slide-over shell | `.slideover`, `.slideover-head` | Slide-over + toolbars | Scaffold + hero/actions | `.slideover` (matches) |
+| Header actions | Close, share, more | Menu + edit/topo/hazards | Action row + sheets | Close, **share** (Web Share / copy), **more** → edit route |
+| Log send | Primary CTA | Present | Present | Present |
+| Wishlist | Heart/save | Present | Present | Bookmark in action row |
 
 ### 2) Hero topo (images + topo lines overlay)
 
 | Capability | Designer prototype | iOS | Android | Current web |
 |---|---|---|---|---|
-| Hero topo gallery | Yes (hero area + topo overlay) | Yes (`loadTopoLines`, topo editor & manage) | Yes (`TopoImageWithLines`, `topoLines` passed to hero) | **Placeholder only** (`route-hero-placeholder`); no topo overlay |
-| Read-only topo lines | Shown in hero | Shown in hero + interactive draw/manage | Shown in hero | Not implemented |
+| Hero gallery | 280px hero + photo index | Yes + topo overlay | `TopoImageWithLines` | **`RouteDetailHero`**: photos + `TopoImageWithLines` overlay |
+| Topo viewer | Topo button | Editor + manage | Sheet | **`RouteTopoModal`**: gallery + line count per photo (read-only) |
+| Draw/edit topo | — | Yes | Yes | **Open**: `useSaveTopoLine` hooks exist; no web editor UI yet |
 
-**File mapping (where to add topo hooks/rendering)**
-- iOS markers: `RouteDetailView.swift` (look for `loadTopoLines()`, `topoImageGalleryGroups`, `TopoImageView`)
-- Android markers: `RouteDetailScreen.kt` (look for `TopoImageWithLines`, `topoLines` usage)
-- Web topo current: none in `RouteDetail.tsx`
-
-### 3) Conditions / weather card
+### 3) Conditions / weather
 
 | Capability | Designer prototype | iOS | Android | Current web |
 |---|---|---|---|---|
-| “Conditions” rail card | Present | Present (`cragWeather`, `heroRatingRow`, approach tile etc) | Present (`weather` + hero tiles) | Not shown |
+| Conditions rail | Dry · temp + subtitle | `cragWeather` tiles | Weather hero | **`RouteConditionsCard`** via Open-Meteo (`useCragWeather`) |
+| Stat tiles | — | 6-tile grid | Tiles | **`RouteDetailStatGrid`**: steepness, length, bring, now, approach, hazards |
 
-### 4) Recent sends + consensus visualization
+### 4) Recent sends + consensus
 
 | Capability | Designer prototype | iOS | Android | Current web |
 |---|---|---|---|---|
-| Recent sends preview | Present in overview | Present in UI (public sends list) | Present with counts and sends list | Present only as a separate tab (“Sends”) |
-| Steepness consensus visualization | Chart/tiles | Present (steepness mascot tile, consensus tiles) | Present | Only text + voting chips |
+| Recent sends | Overview list | Public sends | Sends list | Overview **Recent sends** (top 3) |
+| Steepness chart | 4-bar chart | Consensus tiles | Chart | **`SteepnessConsensusChart`** + vote chips + `useMySteepnessVote` |
 
 ### 5) Hazards + approach
 
 | Capability | Designer prototype | iOS | Android | Current web |
 |---|---|---|---|---|
-| Hazards section | Not shown in the prototype excerpt, but present in mobile | Present (`Hazards Section`, `ReportHazardSheet`, `HazardListView`) | Present (hazard count tile, submit/resolve) | Not shown |
-| Approach section | Present in mobile | Present (approach stat tile + sheet) | Present | Not shown |
-
-**Web hook requirement:** `useMigration.ts` needs new hooks for hazard/approach/topo ops and `RouteDetail.tsx` needs sections wired to them.
+| Hazards | Mobile | Report/resolve/list | Tile + sheets | List, report modal, resolve; stat tile scroll |
+| Approach | Mobile | Stat + sheet + GPX | Present | Rail card + **`ApproachGuideDrawer`** (map, GPX load/upload) |
 
 ---
 
 ## Summary of highest-impact web gaps (Crags + RouteDetail)
 
-1. Replace web Crags list semantics with **crag/gyms rows + ActiveCragPreview** (prototype parity).
-2. Implement web RouteDetail hero topo gallery and **topo-lines overlay** (read-only first).
-3. Add missing RouteDetail sections: **conditions/weather**, **hazards**, **approach**.
-4. Move “Recent sends” into overview (with a tab still allowed) and upgrade steepness from “text” to **consensus visualization**.
-5. Port design/layout hooks from the designer CSS classnames so the drawer and rail cards look identical.
+**Crags (mostly done):**
+1. Optional: stylized map background (v13 SVG) vs MapLibre.
+2. Optional: dedicated **route list** screen with iOS-style status chips and wall grouping (separate from Crags).
+
+**Route detail (done):**
+1. **Topo editor:** `TopoLineEditor` — tap points, colors, label, save/update/delete via migration ops.
+2. **Vote distribution:** `fetchAngleVoteCounts` API + `SteepnessConsensusChart` with live percentages.
+3. **Deep links:** `?route=<uuid>` synced in `App.tsx`; share uses `buildRouteShareUrl`.
 

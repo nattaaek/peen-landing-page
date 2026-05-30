@@ -16,6 +16,11 @@ export interface ApiGym {
   address?: string
 }
 
+export interface ApiRouteType {
+  id: string
+  name: string
+}
+
 export interface ApiRoute {
   id: string
   name: string
@@ -31,6 +36,7 @@ export interface ApiRoute {
   gallery_images?: string[]
   area?: ApiArea | null
   gym?: ApiGym | null
+  route_type?: ApiRouteType | null
 }
 
 export interface HazardReportRow {
@@ -147,6 +153,11 @@ export interface AngleConsensus {
   route_id?: string
   votes?: number
   top_angle?: string
+}
+
+export interface AngleVoteCount {
+  angle: string
+  count: number
 }
 
 export interface InboxNotification {
