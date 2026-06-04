@@ -413,6 +413,262 @@
   outline-offset: 2px;
   box-shadow: 0 0 0 4px rgba(213, 90, 31, 0.12);
 }
+.feed-body-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 18px 14px;
+}
+.feed-body-btn:hover {
+  color: var(--fg-1);
+}
+.feed-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-2);
+}
+.feed-featured-badge svg {
+  color: var(--tint);
+  flex-shrink: 0;
+}
+.profile-peek-featured {
+  margin-top: 8px;
+}
+.page-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.feed-reels {
+  max-width: 720px;
+  margin: 0 auto 16px;
+  padding: 0 0 4px;
+}
+.feed-reels-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0 4px 10px;
+  gap: 12px;
+}
+.feed-reels-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+.feed-reels-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+.feed-reels-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 2px 4px 8px;
+  -webkit-overflow-scrolling: touch;
+}
+.feed-reel-tile {
+  position: relative;
+  flex: 0 0 112px;
+  width: 112px;
+  height: 200px;
+  border: none;
+  padding: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+.feed-reel-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.feed-reel-thumb-placeholder {
+  background: var(--surface);
+}
+.feed-reel-overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(31, 31, 32, 0.75));
+}
+
+.feed-card-skeleton .sk-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, var(--surface) 25%, #fff 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: feedCommentShimmer 1.1s ease-in-out infinite;
+}
+.feed-card-skeleton .sk-line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface) 25%, #fff 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: feedCommentShimmer 1.1s ease-in-out infinite;
+}
+.feed-card-skeleton .sk-line.short {
+  height: 10px;
+}
+.feed-card-skeleton .sk-block {
+  background: linear-gradient(90deg, var(--surface) 25%, #fff 50%, var(--surface) 75%);
+  background-size: 200% 100%;
+  animation: feedCommentShimmer 1.1s ease-in-out infinite;
+}
+
+.achievements-strip {
+  margin-top: 4px;
+}
+.achievements-strip-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.achievements-strip-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.achievement-tile {
+  flex: 0 0 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.achievement-tile.locked {
+  opacity: 0.45;
+}
+.achievement-tile-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-2);
+}
+.achievement-tile-icon.unlocked {
+  border-color: rgba(213, 90, 31, 0.35);
+  background: rgba(213, 90, 31, 0.08);
+  color: var(--tint);
+}
+.achievement-tile-title {
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--fg-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ascent-detail-slideover {
+  max-width: 480px;
+}
+.ascent-detail {
+  padding: 0 22px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ascent-detail-send {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ascent-detail-when {
+  font-size: 13px;
+  color: var(--fg-2);
+}
+.ascent-detail-climber {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--separator);
+  background: var(--surface);
+  cursor: pointer;
+}
+.ascent-detail-climber-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+.ascent-detail-climber-handle {
+  font-size: 13px;
+  color: var(--fg-2);
+}
+.ascent-detail-route-btn {
+  align-self: flex-start;
+}
+.ascent-detail-meta {
+  font-size: 14px;
+  margin: 0;
+}
+.ascent-detail-meta-label {
+  font-weight: 600;
+  color: var(--fg-2);
+  margin-right: 6px;
+}
+.ascent-detail-notes p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.ascent-detail-reactions {
+  font-size: 13px;
+  color: var(--fg-2);
+  display: flex;
+  gap: 8px;
+}
+.ascent-detail-comments-toggle {
+  align-self: flex-start;
+  font-size: 13px;
+}
+.ascent-detail-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+.ascent-detail .feed-comments {
+  margin: 0 -22px;
+  border-radius: 0;
+}
 
 .crew-guest-hero { max-width: 880px; margin: 28px auto 0; padding: 0 24px 24px; }
 .crew-guest-hero-kicker {

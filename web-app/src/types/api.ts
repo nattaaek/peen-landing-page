@@ -89,6 +89,21 @@ export interface UserProfile {
   avatar_url?: string | null
   bio?: string | null
   is_profile_public?: boolean
+  featured_achievement_id?: string | null
+}
+
+export interface InstagramFeaturedMedia {
+  id: string
+  ig_media_id: string
+  media_type?: string
+  permalink: string
+  shortcode?: string | null
+  thumbnail_url?: string | null
+  caption?: string | null
+  username?: string | null
+  published_at?: string | null
+  source?: string
+  status?: string
 }
 
 export interface FeedReactionCountRow {
@@ -117,7 +132,14 @@ export interface FeedClimbRow {
   personal_rating?: number
   created_at?: string
   route?: ApiRoute
-  profile?: { id?: string; nickname?: string; username?: string; avatar_url?: string }
+  profile?: {
+    id?: string
+    nickname?: string
+    username?: string
+    avatar_url?: string
+    featured_achievement_id?: string
+  }
+  featured_achievement_id?: string
 }
 
 export interface ClimbLogRow {

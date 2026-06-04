@@ -10,11 +10,17 @@ import {
 import { migrationInvoke } from '../lib/peen-api/migration'
 import { invalidateCatalogCache } from '../lib/catalogSearch'
 import {
+  featuredAchievements,
+  mergeAchievements,
+  parseUserAchievements,
+} from '../domain/achievements'
+import {
   fetchMyProfile,
   fetchProfileIdentities,
   fetchUserProfile,
   patchProfile,
 } from '../lib/peen-api/profiles'
+import { fetchFeaturedAchievementIds, fetchInstagramFeaturedReels } from '../lib/peen-api/social'
 import type { UserProfileIdentity } from '../lib/peen-api/profiles'
 import type {
   AngleConsensus,
@@ -88,7 +94,7 @@ export const FEED_PAGE_SIZE = 20
 
 export type FeedPageCursor = { created_at: string; id: string }
 
-function feedInfiniteQueryKey(userId?: string) {
+export function feedInfiniteQueryKey(userId?: string) {
   return ['feed', 'public', 'infinite', userId] as const
 }
 
@@ -119,7 +125,7 @@ async function hydrateFeedPage(
   const userIds = [...new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id))]
   const climbIds = rows.map((r) => r.id).filter(Boolean)
 
-  const [identities, avatarRows, reactionRows, myLikes, mySendIts] = await Promise.all([
+  const [identities, avatarRows, featuredMap, reactionRows, myLikes, mySendIts] = await Promise.all([
     userIds.length > 0 ? fetchProfileIdentities(accessToken, userIds) : Promise.resolve([]),
     userIds.length > 0
       ? migrationInvoke<{ user_id: string; avatar_url?: string | null }[]>(
@@ -129,6 +135,9 @@ async function hydrateFeedPage(
           accessToken,
         )
       : Promise.resolve([]),
+    userIds.length > 0
+      ? fetchFeaturedAchievementIds(accessToken, userIds)
+      : Promise.resolve(new Map<string, string>()),
     climbIds.length > 0
       ? migrationInvoke<FeedReactionCountRow[]>(
           'social',
@@ -167,18 +176,21 @@ async function hydrateFeedPage(
     const uid = row.user_id
     const identity = uid ? byUserId.get(uid) : undefined
     const avatarUrl = uid ? avatarByUserId.get(uid) ?? row.profile?.avatar_url : row.profile?.avatar_url
+    const featuredId = uid ? featuredMap.get(uid) : undefined
     const reaction = reactionsByClimb.get(row.id)
     return {
       ...row,
       like_count: reaction?.likes_count ?? row.like_count ?? 0,
       comment_count: reaction?.comments_count ?? row.comment_count ?? 0,
+      featured_achievement_id: featuredId,
       profile:
-        uid || identity || avatarUrl
+        uid || identity || avatarUrl || featuredId
           ? {
               id: uid,
               nickname: identity?.nickname ?? row.profile?.nickname,
               username: identity?.username ?? row.profile?.username,
               avatar_url: avatarUrl,
+              featured_achievement_id: featuredId,
             }
           : row.profile,
     }
@@ -189,6 +201,66 @@ async function hydrateFeedPage(
     likedClimbIds: myLikes.map((r) => r.climb_id),
     sendItClimbIds: mySendIts.map((r) => r.climb_id),
   }
+}
+
+export async function fetchPublicClimbHydrated(
+  climbId: string,
+  accessToken: string,
+  userId?: string,
+): Promise<FeedClimbRow | null> {
+  const rows = await migrationInvoke<FeedClimbRow[]>(
+    'social',
+    'fetchPublicClimb',
+    { id: climbId },
+    accessToken,
+  )
+  const page = await hydrateFeedPage(rows, accessToken, userId)
+  return page.posts[0] ?? null
+}
+
+export function usePublicClimb(climbId: string | null, initial?: FeedClimbRow | null) {
+  const { accessToken, user } = useAuth()
+  return useQuery({
+    queryKey: ['social', 'climb', climbId, user?.id],
+    queryFn: () => fetchPublicClimbHydrated(climbId!, accessToken!, user?.id),
+    enabled: !!accessToken && !!climbId,
+    initialData: initial ?? undefined,
+    staleTime: initial ? 30_000 : 0,
+  })
+}
+
+export function useInstagramFeaturedReels(limit = 20) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['social', 'instagram-reels', limit],
+    queryFn: () => fetchInstagramFeaturedReels(accessToken!, limit),
+    enabled: !!accessToken,
+    staleTime: 5 * 60_000,
+  })
+}
+
+export function useUserAchievements(userId: string | null) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['climbs', 'achievements', userId],
+    queryFn: async () => {
+      const raw = await migrationInvoke<unknown>(
+        'climbs',
+        'fetchAchievements',
+        { user_id: userId! },
+        accessToken!,
+      )
+      const rows = parseUserAchievements(raw)
+      const merged = mergeAchievements(rows)
+      return {
+        all: merged,
+        strip: featuredAchievements(merged),
+        unlockedCount: merged.filter((a) => a.isUnlocked).length,
+        totalCount: merged.length,
+      }
+    },
+    enabled: !!accessToken && !!userId,
+  })
 }
 
 export function useInfinitePublicFeed() {

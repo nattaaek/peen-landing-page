@@ -13,28 +13,26 @@ Priorities below use **P0** (broken parity / high user pain) through **P3** (nic
 
 ---
 
-## P0 — Fix broken parity (do first)
+## P0 — Fix broken parity ✅ (Jun 2026)
 
-| # | Item | Why P0 | Mobile reference | Suggested web work |
-|---|------|--------|------------------|-------------------|
-| P0-1 | **Notification tap → climb in feed** | Like / comment / send-it notifications cannot open the send on web; iOS routes `entity_type: climb` to ascent detail | `PushNotificationManager` → `FeedNav.ascent` | Extend `App.tsx` `onNotificationNavigate`: `climb` → `/feed?climb={id}` (or ascent overlay). Reuse existing `FeedView` deep-link logic. |
-| P0-2 | **Ascent / send detail screen** | Card tap on mobile opens send context (notes, photos, reactions); web only opens **route** overlay | iOS `FeedClimbDetailDestination`, Android `FeedClimbDetailScreen` | Add `AscentDetailOverlay` (or route) keyed by `climbId`: `social.fetchPublicClimb` / migration op `fetchPublicClimb`. Wire `FeedCard` route row vs card body: card → ascent, grade chip → route (match iOS). |
-| P0-3 | **`fetchPublicClimb` when not in feed window** | Notification or share link may target a send outside loaded pages | `SocialFeedManager.fetchPublicClimb` | On deep link / notification, if pagination exhausts without match, call single-climb fetch then show ascent overlay (fallback before “not found”). |
-
-**P0 exit criteria:** Tap a comment notification on web → land on the correct send with comments visible; tap feed card → ascent detail, not only route catalog page.
+| # | Item | Status |
+|---|------|--------|
+| P0-1 | Notification tap → climb | Done — `AscentDetailOverlay` + `?climb=` |
+| P0-2 | Ascent / send detail screen | Done — route row opens ascent; route from overlay |
+| P0-3 | `fetchPublicClimb` fallback | Done — `usePublicClimb` / `fetchPublicClimbHydrated` |
 
 **Dependencies:** P0-1 depends on P0-2 or `?climb=` path; implement P0-3 with P0-1 for reliable notification UX.
 
 ---
 
-## P1 — High-value parity (next sprint)
+## P1 — High-value parity
 
-| # | Item | Why P1 | Mobile reference | Suggested web work |
-|---|------|--------|------------------|-------------------|
-| P1-1 | **Rich share for own sends** | Owners expect Instagram / copy caption flow after logging | iOS `ClimbShareComposerSheet`, Android `InstagramShareHelper` | Gate share menu to `isSelf`; add composer modal: copy link, copy caption, `navigator.share`, optional “open Instagram” (web-safe deeplink docs). Remove stub toasts for crew/message until real APIs exist. |
-| P1-2 | **Community reels carousel** | Discoverability / parity with feed header on native | `CommunityReelsCarouselView`, `FeedReelsCarousel` | Migration: featured reels list (same as `InstagramFeaturedMediaService`). Horizontal scroll under feed tabs; open permalink in new tab. Feature flag if iOS uses `InstagramCommunityReelsFeature`. |
-| P1-3 | **Featured achievement on feed cards** | Social identity on cards | `userFeaturedAchievementId` on `FeedClimbEntry` | Ensure `hydrateFeedPage` loads featured achievement ids (iOS `fetchFeaturedAchievementIds`). Small badge on `FeedCard` header. |
-| P1-4 | **Achievements on public profile peek** | Opening climber from feed should match native profile depth | Android achievements overlay from feed; iOS `AchievementsStripCard` on `PublicClimberProfileView` | In `PublicProfilePeek`: fetch achievements + strip; “See all” can link to profile tab or modal grid (read-only). |
+| # | Item | Status |
+|---|------|--------|
+| P1-1 | Rich share for own sends | Open — web uses copy link on share tap |
+| P1-2 | Community reels carousel | Done — `GET /v1/social/instagram/reels` |
+| P1-3 | Featured achievement on feed cards | Done — batch `featured-achievement-ids` on hydrate |
+| P1-4 | Achievements on public profile peek | Done — `AchievementsStrip` + `fetchAchievements` |
 
 **P1 exit criteria:** Own-send share feels as useful as mobile (at least link + caption + system share); feed header shows reels when API returns data; cards and profile peek show featured achievement.
 
@@ -42,11 +40,11 @@ Priorities below use **P0** (broken parity / high user pain) through **P3** (nic
 
 ## P2 — UX polish & shell routing
 
-| # | Item | Why P2 | Mobile reference | Suggested web work |
-|---|------|--------|------------------|-------------------|
-| P2-1 | **Pull-to-refresh on feed** | Expected mobile gesture; web only implicit refetch | iOS `.refreshable`, Android `PullToRefreshBox` | `queryClient.invalidateQueries` on feed + following + reels keys; optional touch pull library or manual “Refresh” in page head. |
-| P2-2 | **Feed loading skeletons** | Perceived performance | `FeedCardSkeleton` | Reuse comment skeleton pattern; 3–4 placeholder cards while `!feedQ.data`. |
-| P2-3 | **Notification → crew invite / belay** | iOS feed stack handles non-climb entities | `FeedNav.crewInvite`, `FeedNav.belayVerification` | Map `entity_type` in `onNotificationNavigate` to `/crew` + invite id or belay respond UI (may live under crew/profile, not feed route). |
+| # | Item | Status |
+|---|------|--------|
+| P2-1 | Refresh feed | Done — refresh button invalidates feed + reels |
+| P2-2 | Feed loading skeletons | Done — `FeedCardSkeleton` ×3 |
+| P2-3 | Notification → crew invite / belay | Partial — crew → `/crew`; belay → profile + toast (respond on native) |
 | P2-4 | **Following tab: server-side scope (optional)** | Today both platforms filter client-side on loaded window; web copy warns “in loaded feed” | iOS `filterEntries` after `loadPublicFeed` | **API change:** `loadPublicFeed` param `scope=following` + cursor. Reduces confusion vs infinite scroll. Coordinate with `peen-api` / migration handler. |
 
 **P2 exit criteria:** Refresh reloads feed without full page reload; loading state matches native feel; all notification entity types navigate somewhere sensible.

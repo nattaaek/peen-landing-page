@@ -17,7 +17,7 @@ The web app is **largely aligned** with the designer prototype for shell, feed, 
 | Crags | Map overlay, zoom, preview card, wishlist filter |
 | Profile | 4-stat grid, heatmap, crew rank, privacy toggle, public peek |
 | Crew | Tabs; weekly + year leaderboard, shared projects, beta spray, partners filters, challenge list |
-| Notifications | Drawer, mark read, route links |
+| Notifications | Drawer, mark read, route + climb + crew links |
 
 ## Implemented in web
 

@@ -1,12 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { FeedCard } from '../../components/FeedCard'
+import { FeedCardSkeleton } from '../../components/FeedCardSkeleton'
 import { Icon } from '../../components/Icon'
 import { BrowseCragsLink, LoginRequired } from '../auth/LoginGate'
 import { useAuth } from '../auth/AuthProvider'
 import {
   useFollowingIds,
+  feedInfiniteQueryKey,
   useInfinitePublicFeed,
+  useInstagramFeaturedReels,
   useLikeClimb,
   useSendItClimb,
   useToggleFollow,
@@ -27,31 +30,24 @@ import {
   uniqueCragsFromPosts,
   type FeedFilterState,
 } from './feedFilterLogic'
+import { FeedReelsCarousel } from './FeedReelsCarousel'
 
 export function FeedView({
   onSignIn,
-  onOpenRoute,
+  onOpenAscent,
   onToast,
   onOpenProfile,
 }: {
   onSignIn: (msg?: string) => void
-  onOpenRoute: (routeId: string) => void
+  onOpenAscent: (climbId: string, post?: FeedClimbRow) => void
   onToast?: (msg: string) => void
   onOpenProfile: (userId: string, fallbackName?: string) => void
 }) {
-  const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const deepLinkClimbId = searchParams.get('climb')
   const { accessToken, user } = useAuth()
   const [tab, setTab] = useState<'Following' | 'Everyone'>('Following')
   const [liked, setLiked] = useState<Set<string>>(new Set())
   const [sendIt, setSendIt] = useState<Set<string>>(new Set())
   const [likeDeltas, setLikeDeltas] = useState<Map<string, number>>(new Map())
-  const [highlightClimbId, setHighlightClimbId] = useState<string | null>(null)
-  const [expandedCommentsId, setExpandedCommentsId] = useState<string | null>(null)
-  const [deepLinkMissing, setDeepLinkMissing] = useState(false)
-  const deepLinkHandled = useRef(false)
-  const cardRefs = useRef<Map<string, HTMLElement>>(new Map())
   const [filterState, setFilterState] = useState<FeedFilterState>({
     styleSet: new Set(),
     gradeRange: [...DEFAULT_GRADE_RANGE],
@@ -60,7 +56,10 @@ export function FeedView({
     sortBy: 'recent',
   })
 
+  const qc = useQueryClient()
   const feedQ = useInfinitePublicFeed()
+  const reelsQ = useInstagramFeaturedReels()
+  const [refreshing, setRefreshing] = useState(false)
   const followingQ = useFollowingIds()
   const wishlistQ = useWishlistRouteIds()
   const like = useLikeClimb()
@@ -106,83 +105,6 @@ export function FeedView({
     () => sortFeedPosts(filterFeedPosts(tabRows, filterState), filterState.sortBy),
     [tabRows, filterState],
   )
-
-  const registerCardRef = useCallback((postId: string, el: HTMLElement | null) => {
-    if (el) cardRefs.current.set(postId, el)
-    else cardRefs.current.delete(postId)
-  }, [])
-
-  useEffect(() => {
-    deepLinkHandled.current = false
-    setHighlightClimbId(null)
-    setExpandedCommentsId(null)
-    setDeepLinkMissing(false)
-  }, [deepLinkClimbId])
-
-  useEffect(() => {
-    if (!deepLinkClimbId) return
-    const post = allRows.find((p) => p.id === deepLinkClimbId)
-    if (!post || filteredRows.some((p) => p.id === deepLinkClimbId)) return
-    setTab('Everyone')
-    setFilterState({
-      styleSet: new Set(),
-      gradeRange: [...DEFAULT_GRADE_RANGE],
-      cragSet: new Set(),
-      whenChoice: 'any',
-      sortBy: 'recent',
-    })
-  }, [deepLinkClimbId, allRows, filteredRows])
-
-  useEffect(() => {
-    if (!deepLinkClimbId || !accessToken || !feedQ.data) return
-    if (allRows.some((p) => p.id === deepLinkClimbId)) return
-    if (feedQ.hasNextPage && !feedQ.isFetchingNextPage) {
-      void feedQ.fetchNextPage()
-    }
-  }, [deepLinkClimbId, allRows, accessToken, feedQ])
-
-  useEffect(() => {
-    if (!deepLinkClimbId || deepLinkHandled.current || !accessToken) return
-    if (!filteredRows.some((p) => p.id === deepLinkClimbId)) return
-
-    const el = cardRefs.current.get(deepLinkClimbId)
-    if (!el) return
-
-    deepLinkHandled.current = true
-    setExpandedCommentsId(deepLinkClimbId)
-    setHighlightClimbId(deepLinkClimbId)
-    window.setTimeout(() => setHighlightClimbId(null), 2800)
-
-    requestAnimationFrame(() => {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    })
-
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-        next.delete('climb')
-        return next
-      },
-      { replace: true },
-    )
-  }, [deepLinkClimbId, filteredRows, accessToken, setSearchParams])
-
-  useEffect(() => {
-    if (!deepLinkClimbId || !feedQ.data || deepLinkHandled.current) return
-    if (allRows.some((p) => p.id === deepLinkClimbId)) return
-    if (feedQ.hasNextPage || feedQ.isFetchingNextPage) return
-
-    deepLinkHandled.current = true
-    setDeepLinkMissing(true)
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev)
-        next.delete('climb')
-        return next
-      },
-      { replace: true },
-    )
-  }, [deepLinkClimbId, allRows, feedQ.data, feedQ.hasNextPage, feedQ.isFetchingNextPage, setSearchParams])
 
   useEffect(() => {
     const el = loadMoreRef.current
@@ -253,6 +175,20 @@ export function FeedView({
     }
   }
 
+  const refreshFeed = async () => {
+    setRefreshing(true)
+    try {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: feedInfiniteQueryKey(user?.id) }),
+        qc.invalidateQueries({ queryKey: ['social', 'instagram-reels'] }),
+        qc.invalidateQueries({ queryKey: ['social', 'following', user?.id] }),
+      ])
+      onToast?.('Feed refreshed')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   const clearFilters = () => {
     setFilterState({
       styleSet: new Set(),
@@ -277,14 +213,11 @@ export function FeedView({
         sendItOn={sendIt.has(post.id)}
         likeCount={displayLikeCount(post)}
         commentCount={post.comment_count ?? 0}
-        highlighted={highlightClimbId === post.id}
-        commentsOpen={expandedCommentsId === post.id}
-        cardRef={(el) => registerCardRef(post.id, el)}
         isFollowing={isFollowing}
         isSelf={isSelf}
         isSaved={routeId ? wishlistIds.has(normalizeRouteId(routeId)) : false}
         isGuest={guest || !accessToken}
-        onOpenRoute={() => routeId && onOpenRoute(routeId)}
+        onOpenAscent={() => onOpenAscent(post.id, post)}
         onOpenProfile={() =>
           authorId &&
           onOpenProfile(
@@ -356,7 +289,17 @@ export function FeedView({
           <h1 className="page-title">Feed</h1>
           <p className="page-sub">Sends from your crew and the wider community.</p>
         </div>
-        <div className="segmented" role="tablist" aria-label="Feed scope">
+        <div className="page-head-actions">
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Refresh feed"
+            disabled={refreshing || feedQ.isFetching}
+            onClick={() => void refreshFeed()}
+          >
+            <Icon name="refresh" size={18} />
+          </button>
+          <div className="segmented" role="tablist" aria-label="Feed scope">
           {(['Following', 'Everyone'] as const).map((t) => (
             <button
               key={t}
@@ -369,8 +312,18 @@ export function FeedView({
               {t}
             </button>
           ))}
+          </div>
         </div>
       </div>
+
+      {(reelsQ.data?.length ?? 0) > 0 ? (
+        <FeedReelsCarousel
+          items={reelsQ.data ?? []}
+          onSelect={(item) => {
+            if (item.permalink) window.open(item.permalink, '_blank', 'noopener,noreferrer')
+          }}
+        />
+      ) : null}
 
       <FeedFilterBar
         state={filterState}
@@ -394,19 +347,16 @@ export function FeedView({
           </button>
         </p>
       )}
-      {deepLinkClimbId && !deepLinkHandled.current && feedQ.isFetchingNextPage ? (
-        <p className="muted feed-tab-hint">Finding shared send…</p>
-      ) : null}
-      {deepLinkMissing ? (
-        <p className="muted feed-tab-hint">That send isn&apos;t in the feed or may no longer be public.</p>
-      ) : null}
-      {feedQ.isLoading && !feedQ.data && (
-        <p className="muted feed-tab-hint">Loading feed…</p>
-      )}
       {feedQ.isError && <p className="error feed-tab-hint">Could not load feed.</p>}
 
       <div className="feed-list">
-        {filteredRows.length === 0 && !feedQ.isLoading ? (
+        {feedQ.isLoading && !feedQ.data ? (
+          <>
+            <FeedCardSkeleton />
+            <FeedCardSkeleton />
+            <FeedCardSkeleton />
+          </>
+        ) : filteredRows.length === 0 && !feedQ.isLoading ? (
           tabRows.length > 0 ? (
             <div className="feed-empty">
               <Icon name="filter" size={28} style={{ opacity: 0.4 }} />
@@ -427,14 +377,6 @@ export function FeedView({
       {feedQ.hasNextPage ? <div ref={loadMoreRef} className="feed-sentinel" aria-hidden /> : null}
       {feedQ.isFetchingNextPage && (
         <p className="muted feed-loading-more">Loading more…</p>
-      )}
-      {!feedQ.hasNextPage && !feedQ.isFetchingNextPage && filteredRows.length > 0 && (
-        <div className="feed-end">
-          That&apos;s everything.{' '}
-          <button type="button" className="link-btn" onClick={() => navigate('/crags')}>
-            Find new climbers →
-          </button>
-        </div>
       )}
     </div>
   )

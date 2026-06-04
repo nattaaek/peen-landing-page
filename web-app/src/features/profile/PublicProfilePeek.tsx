@@ -6,10 +6,13 @@ import {
   useFollowingIds,
   useProfileIdentities,
   useToggleFollow,
+  useUserAchievements,
   useUserProfile,
   useUserPublicSends,
 } from '../../hooks/useMigration'
+import { AchievementsStrip } from '../../components/AchievementsStrip'
 import { ActivityHeatmap } from '../../components/ActivityHeatmap'
+import { achievementDef } from '../../domain/achievements'
 import { computeClimbStats } from '../../lib/climbStats'
 import { profileHandle } from '../../lib/peen-api/profiles'
 
@@ -38,6 +41,7 @@ export function PublicProfilePeek({
   const profileResult = profileQ.data
   const profile = profileResult?.kind === 'ok' ? profileResult.profile : null
   const isPrivate = profileQ.isSuccess && profileResult?.kind === 'private'
+  const achievementsQ = useUserAchievements(isPrivate ? null : userId)
   const profileLoadError =
     profileQ.isError || profileResult?.kind === 'error'
       ? profileResult?.kind === 'error'
@@ -56,6 +60,8 @@ export function PublicProfilePeek({
   const stats = useMemo(() => computeClimbStats(sends), [sends])
   const isMe = user?.id === userId
   const isFollowing = followingQ.data?.has(userId) ?? false
+  const featuredId = profile?.featured_achievement_id
+  const featuredBadge = featuredId ? achievementDef(featuredId) : null
 
   const follow = () => {
     if (isGuest) {
@@ -102,6 +108,12 @@ export function PublicProfilePeek({
               {handle && (
                 <div style={{ color: 'var(--fg-2)', fontSize: 14 }}>{handle}</div>
               )}
+              {featuredBadge ? (
+                <div className="feed-featured-badge profile-peek-featured" title={featuredBadge.title}>
+                  <Icon name={featuredBadge.icon} size={12} />
+                  <span>Featured: {featuredBadge.title}</span>
+                </div>
+              ) : null}
             </div>
 
             {!isMe && (
@@ -150,6 +162,20 @@ export function PublicProfilePeek({
                     <ActivityHeatmap logs={sends} />
                   </div>
                 )}
+
+                {achievementsQ.data ? (
+                  <div style={{ marginTop: 16 }}>
+                    <AchievementsStrip
+                      achievements={achievementsQ.data.strip}
+                      totalCount={achievementsQ.data.totalCount}
+                      unlockedCount={achievementsQ.data.unlockedCount}
+                    />
+                  </div>
+                ) : achievementsQ.isLoading ? (
+                  <p className="muted" style={{ marginTop: 16, fontSize: 13 }}>
+                    Loading achievements…
+                  </p>
+                ) : null}
 
                 <h4 className="profile-section-label">Recent sends</h4>
                 {sendsQ.isLoading && <p className="muted">Loading…</p>}

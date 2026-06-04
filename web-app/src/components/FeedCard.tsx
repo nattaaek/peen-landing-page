@@ -6,6 +6,8 @@ import { HeartBurst } from './HeartBurst'
 import { Icon, SendBadge } from './Icon'
 import { PhotoLightbox } from './PhotoLightbox'
 import { PopDivider, PopItem, Popover } from './Popover'
+import { achievementDef } from '../domain/achievements'
+import { buildClimbShareUrl } from '../lib/climbDeepLink'
 import { formatWhen } from '../lib/formatWhen'
 import { SEND_COLORS } from '../types/api'
 import type { FeedClimbRow } from '../types/api'
@@ -22,10 +24,6 @@ function routeMeta(route: FeedClimbRow['route']) {
 
 function climbPhotoUrls(post: FeedClimbRow): string[] {
   return (post.photo_urls ?? []).filter((u) => u?.trim().startsWith('http')).slice(0, 3)
-}
-
-function climbShareUrl(postId: string) {
-  return `${window.location.origin}/app/feed?climb=${postId}`
 }
 
 function FeedPhotoGrid({
@@ -89,7 +87,7 @@ export function FeedCard({
   isSelf,
   isSaved,
   isGuest,
-  onOpenRoute,
+  onOpenAscent,
   onOpenProfile,
   onLike,
   onSendIt,
@@ -115,7 +113,7 @@ export function FeedCard({
   highlighted?: boolean
   commentsOpen?: boolean
   cardRef?: (el: HTMLElement | null) => void
-  onOpenRoute: () => void
+  onOpenAscent: () => void
   onOpenProfile: () => void
   onLike: () => void
   onSendIt: () => void
@@ -129,6 +127,8 @@ export function FeedCard({
   const sendType = (post.send_type ?? 'attempt').toLowerCase()
   const stripeColor = SEND_COLORS[sendType] ?? 'var(--tint)'
   const when = formatWhen(post.created_at)
+  const featuredId = post.featured_achievement_id ?? post.profile?.featured_achievement_id
+  const featured = featuredId ? achievementDef(featuredId) : null
   const photos = climbPhotoUrls(post)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [likePulse, setLikePulse] = useState(0)
@@ -166,7 +166,7 @@ export function FeedCard({
 
   const copyLink = () => {
     try {
-      void navigator.clipboard?.writeText(climbShareUrl(post.id))
+      void navigator.clipboard?.writeText(buildClimbShareUrl(post.id))
     } catch {
       /* ignore */
     }
@@ -212,6 +212,12 @@ export function FeedCard({
             {when ? `${when} · ` : null}
             <SendBadge type={post.send_type} />
           </div>
+          {featured ? (
+            <div className="feed-featured-badge" title={featured.title}>
+              <Icon name={featured.icon} size={10} />
+              <span>{featured.title}</span>
+            </div>
+          ) : null}
         </div>
         <div className="act feed-head-actions" ref={moreRef}>
           {!isFollowing && !isSelf && !isGuest ? (
@@ -280,11 +286,11 @@ export function FeedCard({
         className="feed-route"
         role="button"
         tabIndex={0}
-        onClick={onOpenRoute}
+        onClick={onOpenAscent}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
-            onOpenRoute()
+            onOpenAscent()
           }
         }}
       >
@@ -304,7 +310,11 @@ export function FeedCard({
         <FeedPhotoGrid urls={photos} onOpen={(i) => setLightboxIndex(i)} onDoubleLike={handleLike} />
       ) : null}
 
-      {post.notes ? <div className="feed-body">{post.notes}</div> : null}
+      {post.notes ? (
+        <button type="button" className="feed-body feed-body-btn" onClick={onOpenAscent}>
+          {post.notes}
+        </button>
+      ) : null}
 
       <footer className="feed-actions">
         <button
