@@ -307,15 +307,20 @@
   align-items: center;
   justify-content: center;
 }
-.feed-share-wrap { position: relative; }
+.feed-share-wrap { position: relative; z-index: 1; }
+.feed-actions { position: relative; }
 .menu-popover {
   background: #fff;
   border: 1px solid var(--separator);
   border-radius: 12px;
   padding: 6px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
-  z-index: 20;
+  z-index: 40;
   animation: popIn 0.14s ease;
+}
+.menu-popover-above {
+  /* Opens over the action bar; keeps clear of the next feed card */
+  margin-bottom: 0;
 }
 .pop-menu-item {
   display: flex;

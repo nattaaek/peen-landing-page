@@ -418,10 +418,16 @@ input, textarea { font-family: inherit; color: inherit; }
 /* ------ Feed card ------ */
 .feed-list { display: flex; flex-direction: column; gap: 14px; max-width: 720px; margin: 0 auto; }
 .feed-card {
+  position: relative;
   background: var(--card-fill); border-radius: var(--radius-lg);
   border: 1px solid var(--separator);
   overflow: hidden;
   transition: border-color .15s, transform .12s;
+}
+/* Share / more menus are absolutely positioned; overflow:hidden + next card hid them */
+.feed-card.feed-card-popover-open {
+  overflow: visible;
+  z-index: 30;
 }
 .feed-card:hover { border-color: rgba(31,31,32,0.18); }
 .feed-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px 10px; }

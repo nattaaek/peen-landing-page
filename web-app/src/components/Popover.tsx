@@ -5,16 +5,23 @@ export function Popover({
   children,
   anchor = 'right',
   top = 40,
+  placement = 'below',
 }: {
   children: ReactNode
   anchor?: 'left' | 'right'
   top?: number
+  /** `above` avoids clipping under feed action bars (card overflow + next card stack). */
+  placement?: 'below' | 'above'
 }) {
   const side = anchor === 'left' ? { left: 0 } : { right: 0 }
+  const position =
+    placement === 'above'
+      ? { bottom: `calc(100% + 6px)`, top: 'auto' as const }
+      : { top, bottom: 'auto' as const }
   return (
     <div
-      className="menu-popover"
-      style={{ position: 'absolute', top, minWidth: 200, ...side }}
+      className={`menu-popover${placement === 'above' ? ' menu-popover-above' : ''}`}
+      style={{ position: 'absolute', minWidth: 200, ...side, ...position }}
       onClick={(e) => e.stopPropagation()}
       role="menu"
     >

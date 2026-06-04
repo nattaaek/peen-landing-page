@@ -184,7 +184,9 @@ export function FeedCard({
     <article
       id={`feed-climb-${post.id}`}
       ref={cardRef}
-      className={`feed-card${highlighted ? ' feed-card-highlight' : ''}`}
+      className={`feed-card${highlighted ? ' feed-card-highlight' : ''}${
+        shareOpen || moreOpen ? ' feed-card-popover-open' : ''
+      }`}
     >
       <header className="feed-head">
         <button
@@ -359,7 +361,7 @@ export function FeedCard({
             <Icon name="share" size={16} />
           </button>
           {shareOpen ? (
-            <Popover anchor="left" top={38}>
+            <Popover anchor="left" placement="above">
               <PopItem icon="share" label="Copy link" onClick={copyLink} />
               <PopItem
                 icon="crew"

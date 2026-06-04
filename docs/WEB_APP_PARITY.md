@@ -13,7 +13,7 @@ The web app is **largely aligned** with the designer prototype for shell, feed, 
 | Area | Status |
 |------|--------|
 | Shell | Wishlist sidebar, ⌘K search (full catalog scan), challenge shortcuts, pinned crags → map |
-| Feed | Filters, inline comments with reply (@mention) + local likes, follow, wishlist, deep links |
+| Feed | Filters, inline comments with reply (@mention) + local likes, follow, wishlist, deep links — [backlog](./FEED_PARITY_BACKLOG.md) |
 | Crags | Map overlay, zoom, preview card, wishlist filter |
 | Profile | 4-stat grid, heatmap, crew rank, privacy toggle, public peek |
 | Crew | Tabs; weekly + year leaderboard, shared projects, beta spray, partners filters, challenge list |
@@ -38,5 +38,7 @@ The web app is **largely aligned** with the designer prototype for shell, feed, 
 - **Crew invite / manage** — view invites count; send/manage on iOS
 - **Challenge route checklist** — seasonal hero only on web
 - **Post partner availability** — web links to profile / iOS
+
+**Feed gaps (prioritized):** [FEED_PARITY_BACKLOG.md](./FEED_PARITY_BACKLOG.md)
 
 Track progress in PRs labeled `web-parity`.
