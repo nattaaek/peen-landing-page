@@ -34,6 +34,11 @@ export interface ApiRoute {
   style_tags?: string[]
   images?: string[]
   gallery_images?: string[]
+  bolted_by?: string
+  first_ascent?: string
+  bolt_count?: number
+  last_edited_by?: string | null
+  last_edited_at?: string | null
   area?: ApiArea | null
   gym?: ApiGym | null
   route_type?: ApiRouteType | null
@@ -149,6 +154,7 @@ export interface ClimbLogRow {
   grade?: string
   climbed_date?: string
   notes?: string
+  photo_urls?: string[]
   personal_rating?: number
   attempts?: number
   is_public?: boolean

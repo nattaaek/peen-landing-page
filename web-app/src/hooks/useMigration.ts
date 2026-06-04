@@ -15,6 +15,11 @@ import {
   parseUserAchievements,
 } from '../domain/achievements'
 import {
+  mapCommunityPartner,
+  type CommunityPartner,
+  type CommunityPartnerApiRow,
+} from '../domain/communityPartner'
+import {
   fetchMyProfile,
   fetchProfileIdentities,
   fetchUserProfile,
@@ -413,6 +418,23 @@ export function useInbox() {
   })
 }
 
+export function useRoutePartners(routeId: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['community', 'partners', 'route', routeId],
+    queryFn: async () => {
+      const rows = await migrationInvoke<CommunityPartnerApiRow[]>(
+        'community',
+        'fetchPartnersForProjectRoute',
+        { route_id: routeId!, limit: 32 },
+        accessToken!,
+      )
+      return rows.map(mapCommunityPartner) as CommunityPartner[]
+    },
+    enabled: !!accessToken && !!routeId,
+  })
+}
+
 export function usePartners() {
   const { accessToken } = useAuth()
   return useQuery({
@@ -685,10 +707,25 @@ export function usePublicRouteLogs(routeId: string | undefined) {
       migrationInvoke<ClimbLogRow[]>(
         'climbs',
         'fetchPublicLogsForRoute',
-        { route_id: routeId!, limit: 20 },
+        { route_id: routeId!, limit: 24 },
         accessToken!,
       ),
     enabled: !!accessToken && !!routeId,
+  })
+}
+
+export function useMyLogsForRoute(routeId: string | undefined) {
+  const { accessToken, user } = useAuth()
+  return useQuery({
+    queryKey: ['climbs', 'my', routeId, user?.id],
+    queryFn: () =>
+      migrationInvoke<ClimbLogRow[]>(
+        'climbs',
+        'fetchLogsForRoute',
+        { user_id: user!.id, route_id: routeId! },
+        accessToken!,
+      ),
+    enabled: !!accessToken && !!user?.id && !!routeId,
   })
 }
 
@@ -1026,6 +1063,10 @@ export function useUpdateRoute() {
       description?: string
       lengthMeters?: number
       styleTags?: string[]
+      images?: string[]
+      galleryImages?: string[]
+      boltedBy?: string
+      firstAscent?: string
     }) =>
       migrationInvoke<ApiRoute>(
         'routes',
@@ -1037,11 +1078,17 @@ export function useUpdateRoute() {
           description: params.description,
           length_meters: params.lengthMeters,
           style_tags: params.styleTags,
+          images: params.images,
+          gallery_images: params.galleryImages,
+          bolted_by: params.boltedBy,
+          first_ascent: params.firstAscent,
         },
         accessToken!,
       ),
     onSuccess: (_route, vars) => {
+      invalidateCatalogCache()
       qc.invalidateQueries({ queryKey: ['catalog', 'route', vars.id] })
+      qc.invalidateQueries({ queryKey: ['catalog'] })
     },
   })
 }

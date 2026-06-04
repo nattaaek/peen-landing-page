@@ -8,19 +8,28 @@ export function RouteDetailHero({
   onSelectImage,
   topoLines,
   onOpenTopo,
+  homeRouteId,
+  onLineRouteTap,
 }: {
   imageUrls: string[]
   activeImageUrl: string | null
   onSelectImage: (url: string) => void
   topoLines: RouteTopoLine[]
   onOpenTopo: () => void
+  homeRouteId?: string
+  onLineRouteTap?: (routeId: string) => void
 }) {
   const activeIndex = activeImageUrl ? imageUrls.indexOf(activeImageUrl) : -1
 
   return (
     <div className="route-detail-hero">
       {activeImageUrl ? (
-        <TopoImageWithLines imageUrl={activeImageUrl} lines={topoLines} />
+        <TopoImageWithLines
+          imageUrl={activeImageUrl}
+          lines={topoLines}
+          homeRouteId={homeRouteId}
+          onLineRouteTap={onLineRouteTap}
+        />
       ) : (
         <div className="route-hero-placeholder" />
       )}

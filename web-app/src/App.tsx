@@ -227,6 +227,7 @@ function AppLayout() {
           routeId={routeId}
           onClose={closeRoute}
           onLog={(r) => openLog(r)}
+          onOpenRoute={openRouteById}
           isGuest={isGuest}
           onSignIn={() => openLogin('Sign in to log a send.')}
           onToast={setToast}

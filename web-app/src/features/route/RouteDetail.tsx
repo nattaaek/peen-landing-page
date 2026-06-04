@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
-import { Icon, SendBadge } from '../../components/Icon'
+import { Icon } from '../../components/Icon'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import { useCatalogRoute } from '../../hooks/useCatalog'
 import { ApproachGuideDrawer } from '../crags/ApproachGuideDrawer'
@@ -9,7 +9,9 @@ import {
   useAngleVoteCounts,
   usePublicRouteLogs,
   useLatestApproachVersion,
+  useMyLogsForRoute,
   useMySteepnessVote,
+  useRoutePartners,
   useRouteTopoLines,
   useRouteTopoLinesForImages,
   useResolveHazardReport,
@@ -21,6 +23,21 @@ import {
   useWishlistRouteIds,
   useUpdateRoute,
 } from '../../hooks/useMigration'
+import { useAuth } from '../auth/AuthProvider'
+import {
+  mergeUniqueUrls,
+  uploadRouteGalleryPhoto,
+  uploadRouteWallPhoto,
+} from '../../lib/routePhotos'
+import { LinkTopoPhotosSheet } from './LinkTopoPhotosSheet'
+import { MyRouteLogsSheet } from './MyRouteLogsSheet'
+import { PublicSendsSheet } from './PublicSendsSheet'
+import { RouteDetailCommunityTabs } from './RouteDetailCommunityTabs'
+import { RouteDetailLineage } from './RouteDetailLineage'
+import {
+  logPhotoUrlsFromSends,
+  RouteDetailPhotosSection,
+} from './RouteDetailPhotosSection'
 import { buildRouteShareUrl } from '../../lib/routeDeepLink'
 import { imageUrlMatches } from '../../lib/topoFittedLayout'
 import { firstImageUrlWithTopo, normalizeTopoLines } from '../../lib/topoLines'
@@ -58,6 +75,7 @@ export function RouteDetailOverlay({
   routeId: routeIdProp,
   onClose,
   onLog,
+  onOpenRoute,
   isGuest,
   onSignIn,
   onToast,
@@ -65,6 +83,7 @@ export function RouteDetailOverlay({
   routeId: string
   onClose: () => void
   onLog: (route: ApiRoute) => void
+  onOpenRoute?: (routeId: string) => void
   isGuest: boolean
   onSignIn: () => void
   onToast?: (message: string) => void
@@ -79,29 +98,38 @@ export function RouteDetailOverlay({
   const [showApproach, setShowApproach] = useState(false)
   const [showHazardReport, setShowHazardReport] = useState(false)
   const [showEditRoute, setShowEditRoute] = useState(false)
+  const [showMyLogs, setShowMyLogs] = useState(false)
+  const [showAllPublicSends, setShowAllPublicSends] = useState(false)
+  const [showLinkTopo, setShowLinkTopo] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
   const [hazardType, setHazardType] = useState('rockfall')
   const [hazardSeverity, setHazardSeverity] = useState<'low' | 'medium' | 'high'>('medium')
   const [hazardTitle, setHazardTitle] = useState('')
   const [hazardDescription, setHazardDescription] = useState('')
   const [activeHeroImageUrl, setActiveHeroImageUrl] = useState<string | null>(null)
 
+  const { accessToken } = useAuth()
   const geo = useGeolocation()
   const routeQ = useCatalogRoute(routeId)
   const route = routeQ.data
 
   const sendsQ = usePublicRouteLogs(isGuest ? undefined : routeId)
+  const partnersQ = useRoutePartners(isGuest ? undefined : routeId)
+  const myLogsQ = useMyLogsForRoute(isGuest ? undefined : routeId)
   const ratingQ = useRouteRating(isGuest ? undefined : routeId)
   const consensusQ = useRouteConsensus(isGuest ? undefined : routeId)
   const angleCountsQ = useAngleVoteCounts(isGuest ? undefined : routeId)
   const myVoteQ = useMySteepnessVote(isGuest ? undefined : routeId)
   const vote = useUpsertSteepnessVote()
+  const updateRoute = useUpdateRoute()
+  const submitHazard = useSubmitHazardReport()
 
   const wishlistQ = useWishlistRouteIds()
   const toggleWishlist = useToggleWishlist()
   const wishlistIds = useMemo(() => wishlistIdsToSet(wishlistQ.data), [wishlistQ.data])
   const isInWishlist = routeId ? wishlistIds.has(normalizeRouteId(routeId)) : false
 
-  const recentTop3 = (sendsQ.data ?? []).slice(0, 3)
+  const publicLogs = sendsQ.data ?? []
 
   const topoByRouteQ = useRouteTopoLines(isGuest ? undefined : routeId)
 
@@ -127,7 +155,79 @@ export function RouteDetailOverlay({
   }, [topoByRouteQ.data, topoByImagesQ.data])
 
   const stackModalOpen =
-    showTopoModal || !!topoEditor || showApproach || showHazardReport || showEditRoute
+    showTopoModal ||
+    !!topoEditor ||
+    showApproach ||
+    showHazardReport ||
+    showEditRoute ||
+    showMyLogs ||
+    showAllPublicSends ||
+    showLinkTopo
+
+  const existingImageUrls = useMemo(() => {
+    return [...(route?.images ?? []), ...(route?.gallery_images ?? [])].filter(Boolean)
+  }, [route?.images, route?.gallery_images])
+
+  const logPhotoUrls = useMemo(() => logPhotoUrlsFromSends(publicLogs), [publicLogs])
+
+  const handleLineRouteTap = (otherRouteId: string) => {
+    if (otherRouteId === routeId) return
+    onOpenRoute?.(otherRouteId)
+  }
+
+  const persistRouteImages = async (images: string[], galleryImages: string[]) => {
+    if (!route) return
+    await updateRoute.mutateAsync({
+      id: routeId,
+      name: route.name,
+      grade: route.grade,
+      description: route.description,
+      lengthMeters: route.length_meters ?? undefined,
+      styleTags: route.style_tags,
+      images,
+      galleryImages,
+    })
+  }
+
+  const handleUploadGallery = async (file: File) => {
+    if (!accessToken || !route) return
+    setPhotoUploading(true)
+    try {
+      const url = await uploadRouteGalleryPhoto(accessToken, routeId, file)
+      const gallery = mergeUniqueUrls(route.gallery_images ?? [], [url])
+      await persistRouteImages(route.images ?? [], gallery)
+      onToast?.('Gallery photo added')
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  const handleUploadWall = async (file: File) => {
+    if (!accessToken || !route) return
+    setPhotoUploading(true)
+    try {
+      const url = await uploadRouteWallPhoto(accessToken, routeId, file)
+      const images = mergeUniqueUrls(route.images ?? [], [url])
+      await persistRouteImages(images, route.gallery_images ?? [])
+      onToast?.('Wall photo added')
+      setActiveHeroImageUrl(url)
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  const handleLinkTopoUrls = async (urls: string[]) => {
+    if (!route || urls.length === 0) return
+    setPhotoUploading(true)
+    try {
+      const images = mergeUniqueUrls(route.images ?? [], urls)
+      await persistRouteImages(images, route.gallery_images ?? [])
+      onToast?.(`Linked ${urls.length} photo${urls.length === 1 ? '' : 's'}`)
+      if (urls[0]) setActiveHeroImageUrl(urls[0])
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
 
   const openTopoModal = () => {
     const urlWithLine = firstImageUrlWithTopo(allTopoLines, heroImageUrls)
@@ -160,8 +260,6 @@ export function RouteDetailOverlay({
   const hazardsQ = useActiveHazardsForRoute(isGuest ? undefined : routeId)
   const resolveHazard = useResolveHazardReport()
   const latestApproachQ = useLatestApproachVersion(route?.area?.id)
-  const submitHazard = useSubmitHazardReport()
-  const updateRoute = useUpdateRoute()
 
   const [editName, setEditName] = useState('')
   const [editGrade, setEditGrade] = useState('')
@@ -249,6 +347,8 @@ export function RouteDetailOverlay({
                 onSelectImage={setActiveHeroImageUrl}
                 topoLines={heroTopoLines}
                 onOpenTopo={openTopoModal}
+                homeRouteId={routeId}
+                onLineRouteTap={isGuest ? undefined : handleLineRouteTap}
               />
 
               <div className="route-detail-pad">
@@ -335,35 +435,36 @@ export function RouteDetailOverlay({
                 <h4 className="route-detail-section-title">Conditions</h4>
                 <RouteConditionsCard area={route.area ?? undefined} />
 
+                <RouteDetailLineage route={route} />
+
                 {route.description && <p className="route-detail-description">{route.description}</p>}
 
                 {!isGuest && (
                   <>
-                    <h4 className="route-detail-section-title">Recent sends</h4>
-                    <div className="rail-card route-sends-card">
-                      {sendsQ.isLoading ? (
-                        <div className="route-sends-row muted">Loading sends…</div>
-                      ) : recentTop3.length === 0 ? (
-                        <div className="route-sends-row muted">No public sends on this route yet.</div>
-                      ) : (
-                        recentTop3.map((log, i) => (
-                          <div
-                            key={log.id}
-                            className="route-sends-row"
-                            style={{ borderBottom: i < recentTop3.length - 1 ? '1px solid var(--separator)' : 'none' }}
-                          >
-                            <div className="route-sends-avatar">
-                              {(log.profile?.nickname?.trim()?.[0] ?? '?').toUpperCase()}
-                            </div>
-                            <div className="route-sends-meta">
-                              <div className="route-sends-name">{log.profile?.nickname ?? 'Climber'}</div>
-                              <div className="route-sends-grade">{log.grade ?? route.grade}</div>
-                            </div>
-                            <SendBadge type={log.send_type} />
-                          </div>
-                        ))
+                    <div className="route-detail-section-head">
+                      <h4 className="route-detail-section-title">Community</h4>
+                      {(myLogsQ.data?.length ?? 0) > 0 && (
+                        <button type="button" className="link-btn" onClick={() => setShowMyLogs(true)}>
+                          My sends ({myLogsQ.data?.length})
+                        </button>
                       )}
                     </div>
+                    <RouteDetailCommunityTabs
+                      publicLogs={publicLogs}
+                      publicLoading={sendsQ.isLoading}
+                      partners={partnersQ.data ?? []}
+                      partnersLoading={partnersQ.isLoading}
+                      fallbackGrade={route.grade}
+                      onViewAllSends={() => setShowAllPublicSends(true)}
+                    />
+                    <RouteDetailPhotosSection
+                      route={route}
+                      logPhotoUrls={logPhotoUrls}
+                      uploading={photoUploading}
+                      onUploadGallery={handleUploadGallery}
+                      onUploadWall={handleUploadWall}
+                      onLinkPhotos={() => setShowLinkTopo(true)}
+                    />
                   </>
                 )}
 
@@ -372,7 +473,7 @@ export function RouteDetailOverlay({
                     <button type="button" className="link-btn" onClick={onSignIn}>
                       Sign in
                     </button>{' '}
-                    to see recent sends and vote on steepness.
+                    to see sends, partners, photos, and vote on steepness.
                   </p>
                 )}
 
@@ -508,6 +609,8 @@ export function RouteDetailOverlay({
         loading={topoLoading}
         isGuest={isGuest}
         onSignIn={onSignIn}
+        homeRouteId={routeId}
+        onLineRouteTap={isGuest ? undefined : handleLineRouteTap}
         onDrawTopo={(imageUrl) => {
           setShowTopoModal(false)
           setTopoEditor({ imageUrl })
@@ -644,6 +747,31 @@ export function RouteDetailOverlay({
           </div>
         </>
       )}
+
+      <MyRouteLogsSheet
+        open={showMyLogs}
+        routeName={route?.name ?? 'Route'}
+        logs={myLogsQ.data ?? []}
+        loading={myLogsQ.isLoading}
+        onClose={() => setShowMyLogs(false)}
+      />
+
+      <PublicSendsSheet
+        open={showAllPublicSends}
+        routeName={route?.name ?? 'Route'}
+        logs={publicLogs}
+        loading={sendsQ.isLoading}
+        onClose={() => setShowAllPublicSends(false)}
+      />
+
+      <LinkTopoPhotosSheet
+        open={showLinkTopo}
+        routeId={routeId}
+        areaId={route?.area_id}
+        existingUrls={existingImageUrls}
+        onClose={() => setShowLinkTopo(false)}
+        onLink={(urls) => void handleLinkTopoUrls(urls)}
+      />
 
       {showEditRoute && (
         <>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import {
   contentRectAspectFill,
   normalizeTopoPathPoints,
@@ -8,22 +8,27 @@ import type { RouteTopoLine } from '../../types/api'
 
 const VIEW = 100
 
-function renderLinePath(points: { x: number; y: number }[], color: string, key: string) {
+function renderLinePath(
+  points: { x: number; y: number }[],
+  color: string,
+  key: string,
+  opts?: { strokeWidth?: number; opacity?: number; onClick?: (e: MouseEvent) => void },
+) {
   if (points.length < 2) return null
   const d = points
     .map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x * VIEW} ${p.y * VIEW}`)
     .join(' ')
   return (
-    <g key={key}>
+    <g key={key} style={{ cursor: opts?.onClick ? 'pointer' : undefined }} onClick={opts?.onClick}>
       <path
         d={d}
         fill="none"
         stroke={color}
-        strokeWidth={2.2}
+        strokeWidth={opts?.strokeWidth ?? 2.2}
         strokeLinecap="round"
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
-        opacity={0.92}
+        opacity={opts?.opacity ?? 0.92}
       />
       {points.map((p, idx) => (
         <circle
@@ -44,11 +49,15 @@ export function TopoImageWithLines({
   imageUrl,
   lines,
   fit = 'cover',
+  homeRouteId,
+  onLineRouteTap,
 }: {
   imageUrl: string
   lines: RouteTopoLine[]
   /** Hero uses cover (iOS aspect fill); editor/modal use contain. */
   fit?: 'cover' | 'contain'
+  homeRouteId?: string
+  onLineRouteTap?: (routeId: string) => void
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null)
@@ -124,11 +133,22 @@ export function TopoImageWithLines({
           }}
           viewBox={`0 0 ${VIEW} ${VIEW}`}
           preserveAspectRatio="none"
-          pointerEvents="none"
+          pointerEvents={onLineRouteTap ? 'auto' : 'none'}
         >
-          {preparedLines.map((line) =>
-            renderLinePath(line.path_points, line.color || '#FF6B35', line.id),
-          )}
+          {preparedLines.map((line) => {
+            const isHome = homeRouteId != null && line.route_id === homeRouteId
+            const canTap = !!onLineRouteTap && !isHome && line.route_id
+            return renderLinePath(line.path_points, line.color || '#FF6B35', line.id, {
+              strokeWidth: isHome ? 3.2 : 2.2,
+              opacity: isHome ? 1 : 0.88,
+              onClick: canTap
+                ? (e) => {
+                    e.stopPropagation()
+                    onLineRouteTap(line.route_id)
+                  }
+                : undefined,
+            })
+          })}
         </svg>
       )}
     </div>

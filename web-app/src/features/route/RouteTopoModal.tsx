@@ -15,6 +15,8 @@ export function RouteTopoModal({
   onSignIn,
   onDrawTopo,
   onEditLine,
+  homeRouteId,
+  onLineRouteTap,
 }: {
   open: boolean
   onClose: () => void
@@ -27,6 +29,8 @@ export function RouteTopoModal({
   onSignIn: () => void
   onDrawTopo: (imageUrl: string) => void
   onEditLine: (line: RouteTopoLine) => void
+  homeRouteId?: string
+  onLineRouteTap?: (routeId: string) => void
 }) {
   if (!open) return null
 
@@ -80,7 +84,13 @@ export function RouteTopoModal({
           ) : activeImageUrl ? (
             <>
               <div className="route-topo-modal-stage">
-                <TopoImageWithLines imageUrl={activeImageUrl} lines={activeLines} fit="contain" />
+                <TopoImageWithLines
+                  imageUrl={activeImageUrl}
+                  lines={activeLines}
+                  fit="contain"
+                  homeRouteId={homeRouteId}
+                  onLineRouteTap={onLineRouteTap}
+                />
               </div>
               {imageUrls.length > 1 && (
                 <div className="scroll-x route-topo-modal-thumbs">

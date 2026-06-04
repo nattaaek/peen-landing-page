@@ -70,7 +70,13 @@ Mobile reference (iOS/Android):
 |---|---|---|---|---|
 | Hero gallery | 280px hero + photo index | Yes + topo overlay | `TopoImageWithLines` | **`RouteDetailHero`**: photos + `TopoImageWithLines` overlay |
 | Topo viewer | Topo button | Editor + manage | Sheet | **`RouteTopoModal`**: gallery + line count per photo (read-only) |
-| Draw/edit topo | — | Yes | Yes | **Open**: `useSaveTopoLine` hooks exist; no web editor UI yet |
+| Draw/edit topo | — | Yes | Yes | **`TopoLineEditor`** + migration save/update/delete |
+| Community tabs (sends / partners / beta) | — | Yes | Partial | **`RouteDetailCommunityTabs`** + `fetchPartnersForProjectRoute` |
+| Partners on route | — | Yes | — | Wired |
+| My sends on route | — | Yes | — | **`fetchLogsForRoute`** + `MyRouteLogsSheet` |
+| Route lineage (FA / bolted) | — | Yes | — | **`RouteDetailLineage`** (catalog fields) |
+| Photo upload / link wall | — | Yes | — | **`/v1/storage/upload`** + `LinkTopoPhotosSheet` |
+| Topo line → other route | — | Yes | — | Tap line on hero/topo modal → `onOpenRoute` |
 
 ### 3) Conditions / weather
 

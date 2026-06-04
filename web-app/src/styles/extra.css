@@ -2053,6 +2053,229 @@ button.route-stat-tile:hover {
 .route-detail-guest-hint {
   margin-top: 12px;
 }
+.route-detail-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+.route-lineage-card {
+  display: flex;
+  align-items: stretch;
+  padding: 12px 14px;
+  margin-top: 12px;
+  gap: 0;
+}
+.route-lineage-col {
+  flex: 1;
+  min-width: 0;
+}
+.route-lineage-divider {
+  width: 1px;
+  background: var(--separator);
+  margin: 0 12px;
+}
+.route-lineage-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+}
+.route-lineage-value {
+  font-size: 14px;
+  margin-top: 4px;
+}
+.route-community-block {
+  margin-top: 8px;
+}
+.route-community-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border-radius: 12px;
+  margin-bottom: 10px;
+}
+.route-community-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 8px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--fg-2);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.route-community-tab.active {
+  background: #fff;
+  color: var(--fg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.route-community-tab-count {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+}
+.route-community-empty {
+  padding: 8px 4px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.route-community-more {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 10px;
+  padding-top: 8px;
+}
+.route-partner-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--separator);
+}
+.route-partner-row:last-of-type {
+  border-bottom: none;
+}
+.route-sends-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.route-sends-sub {
+  font-size: 12px;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.route-photos-section {
+  margin-top: 20px;
+}
+.route-photos-hint {
+  font-size: 13px;
+  margin: 4px 0 10px;
+}
+.route-photos-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.btn-sm {
+  height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+.route-photos-scroll {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 4px;
+}
+.route-photo-thumb {
+  flex: 0 0 auto;
+  width: 88px;
+  height: 66px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--separator);
+}
+.route-photo-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.route-photos-subtitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-2);
+  margin: 12px 0 6px;
+}
+.route-photos-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  text-align: center;
+}
+.route-photos-error {
+  color: var(--danger, #c0392b);
+  font-size: 13px;
+}
+.route-link-search {
+  width: 100%;
+  margin-bottom: 12px;
+}
+.route-link-route-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.route-link-route-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--separator);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: pointer;
+  text-align: left;
+}
+.route-link-route-name {
+  font-weight: 600;
+}
+.route-link-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+}
+.route-link-image-btn {
+  position: relative;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 0;
+  cursor: pointer;
+}
+.route-link-image-btn.selected {
+  border-color: var(--tint);
+}
+.route-link-image-btn img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  display: block;
+}
+.route-link-image-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: var(--tint);
+  color: #fff;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .route-steepness-card {
   padding: 14px;
   margin-top: 12px;
