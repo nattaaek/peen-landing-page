@@ -122,6 +122,42 @@ export function bumpFeedCommentCount(
   })
 }
 
+async function hydrateClimbLogs(rows: ClimbLogRow[], accessToken: string): Promise<ClimbLogRow[]> {
+  const userIds = [...new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id))]
+  if (userIds.length === 0) {
+    return rows.map((row) => ({
+      ...row,
+      grade: row.grade ?? row.climbed_grade,
+    }))
+  }
+  try {
+    const identities = await fetchProfileIdentities(accessToken, userIds)
+    const byUserId = new Map(identities.map((i) => [i.user_id, i]))
+    return rows.map((row) => {
+      const uid = row.user_id
+      const identity = uid ? byUserId.get(uid) : undefined
+      const nickname = identity?.nickname ?? row.profile?.nickname
+      const username = identity?.username ?? row.profile?.username
+      return {
+        ...row,
+        grade: row.grade ?? row.climbed_grade,
+        profile:
+          uid || identity
+            ? {
+                nickname,
+                username,
+              }
+            : row.profile,
+      }
+    })
+  } catch {
+    return rows.map((row) => ({
+      ...row,
+      grade: row.grade ?? row.climbed_grade,
+    }))
+  }
+}
+
 async function hydrateFeedPage(
   rows: FeedClimbRow[],
   accessToken: string,
@@ -703,13 +739,15 @@ export function usePublicRouteLogs(routeId: string | undefined) {
   const { accessToken } = useAuth()
   return useQuery({
     queryKey: ['climbs', 'public', routeId],
-    queryFn: () =>
-      migrationInvoke<ClimbLogRow[]>(
+    queryFn: async () => {
+      const rows = await migrationInvoke<ClimbLogRow[]>(
         'climbs',
         'fetchPublicLogsForRoute',
         { route_id: routeId!, limit: 24 },
         accessToken!,
-      ),
+      )
+      return hydrateClimbLogs(rows, accessToken!)
+    },
     enabled: !!accessToken && !!routeId,
   })
 }
@@ -718,13 +756,15 @@ export function useMyLogsForRoute(routeId: string | undefined) {
   const { accessToken, user } = useAuth()
   return useQuery({
     queryKey: ['climbs', 'my', routeId, user?.id],
-    queryFn: () =>
-      migrationInvoke<ClimbLogRow[]>(
+    queryFn: async () => {
+      const rows = await migrationInvoke<ClimbLogRow[]>(
         'climbs',
         'fetchLogsForRoute',
         { user_id: user!.id, route_id: routeId! },
         accessToken!,
-      ),
+      )
+      return hydrateClimbLogs(rows, accessToken!)
+    },
     enabled: !!accessToken && !!user?.id && !!routeId,
   })
 }

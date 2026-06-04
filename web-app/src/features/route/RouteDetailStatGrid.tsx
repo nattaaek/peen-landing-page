@@ -1,5 +1,6 @@
 import { Icon, type IconName } from '../../components/Icon'
 import { useCragWeather } from '../../hooks/useCragWeather'
+import { bringStatForRoute } from '../../lib/routePacking'
 import type { ApiRoute } from '../../types/api'
 
 type StatTileProps = {
@@ -9,9 +10,10 @@ type StatTileProps = {
   sub?: string
   onClick?: () => void
   valueTone?: 'default' | 'warn' | 'good'
+  disabled?: boolean
 }
 
-function StatTile({ icon, label, value, sub, onClick, valueTone = 'default' }: StatTileProps) {
+function StatTile({ icon, label, value, sub, onClick, valueTone = 'default', disabled }: StatTileProps) {
   const inner = (
     <>
       <Icon name={icon} size={16} className="route-stat-icon" />
@@ -22,7 +24,7 @@ function StatTile({ icon, label, value, sub, onClick, valueTone = 'default' }: S
   )
   if (onClick) {
     return (
-      <button type="button" className="route-stat-tile" onClick={onClick}>
+      <button type="button" className="route-stat-tile" onClick={onClick} disabled={disabled}>
         {inner}
       </button>
     )
@@ -33,15 +35,19 @@ function StatTile({ icon, label, value, sub, onClick, valueTone = 'default' }: S
 export function RouteDetailStatGrid({
   route,
   topAngle,
+  consensusVotes,
+  isGuest,
   hazardCount,
-  onSteepness,
+  onSteepnessVote,
   onApproach,
   onHazards,
 }: {
   route: ApiRoute
   topAngle?: string | null
+  consensusVotes?: number
+  isGuest?: boolean
   hazardCount: number
-  onSteepness: () => void
+  onSteepnessVote: () => void
   onApproach: () => void
   onHazards: () => void
 }) {
@@ -49,11 +55,19 @@ export function RouteDetailStatGrid({
   const nowTemp = conditions ? `${conditions.temp}°` : '—'
   const approachMin =
     route.area?.approach_minutes_from_carpark != null ? `${route.area.approach_minutes_from_carpark} min` : '—'
-  const walkIn = route.area?.walk_in_angle ?? '—'
-  const bring =
-    (route.style_tags ?? []).find((t) => /quickdraw|trad|sport/i.test(t)) ??
-    (route.style_tags ?? [])[0] ??
-    '—'
+  const approachSub = route.area
+    ? route.area.walk_in_angle ?? 'From carpark'
+    : route.gym
+      ? 'Indoor'
+      : 'Wall not linked'
+  const bring = bringStatForRoute(route)
+
+  const votes = consensusVotes ?? 0
+  const steepnessSub = isGuest
+    ? 'Sign in to vote'
+    : votes > 0
+      ? `${votes} vote${votes === 1 ? '' : 's'} · tap to vote`
+      : 'Tap to vote'
 
   return (
     <div className="route-stat-grid">
@@ -61,18 +75,19 @@ export function RouteDetailStatGrid({
         icon="mountain"
         label="Steepness"
         value={topAngle ?? '—'}
-        sub="Community vote"
-        onClick={onSteepness}
+        sub={steepnessSub}
+        onClick={onSteepnessVote}
+        disabled={isGuest}
       />
       <StatTile
         icon="grade"
         label="Length"
         value={route.length_meters != null ? `${route.length_meters} m` : '—'}
-        sub={route.grade ?? undefined}
+        sub={route.bolt_count && route.bolt_count > 0 ? `${route.bolt_count} bolts to chains` : route.grade ?? undefined}
       />
-      <StatTile icon="layers" label="Bring" value={bring} sub="Style hint" />
+      <StatTile icon="layers" label="Bring" value={bring.value} sub={bring.sub} />
       <StatTile icon={conditions?.icon === 'cloud' ? 'cloud' : 'sun'} label="Now" value={nowTemp} sub={conditions?.rock.v ?? '—'} />
-      <StatTile icon="pin" label="Approach" value={approachMin} sub={walkIn} onClick={onApproach} />
+      <StatTile icon="pin" label="Approach" value={approachMin} sub={approachSub} onClick={onApproach} />
       <StatTile
         icon={hazardCount > 0 ? 'flag' : 'check'}
         label="Hazards"

@@ -14,7 +14,11 @@ function relativeDay(iso?: string): string {
 }
 
 function displayName(log: ClimbLogRow): string {
-  return log.profile?.nickname ?? log.profile?.username ?? 'Climber'
+  const nick = log.profile?.nickname?.trim()
+  const user = log.profile?.username?.trim()
+  if (nick) return nick
+  if (user) return user.startsWith('@') ? user : `@${user}`
+  return 'Climber'
 }
 
 export function RouteSendsList({

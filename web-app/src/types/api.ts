@@ -149,9 +149,11 @@ export interface FeedClimbRow {
 
 export interface ClimbLogRow {
   id: string
+  user_id?: string
   route_id?: string
   send_type?: string
   grade?: string
+  climbed_grade?: string
   climbed_date?: string
   notes?: string
   photo_urls?: string[]

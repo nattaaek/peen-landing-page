@@ -2327,6 +2327,31 @@ button.route-stat-tile:hover {
   font-size: 13px;
   margin: 12px 0;
 }
+.route-steepness-block {
+  margin-top: 16px;
+}
+.route-steepness-inline-vote {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--separator);
+}
+.route-steepness-vote-intro {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.route-steepness-vote-consensus {
+  margin: 0 0 16px;
+  font-size: 14px;
+}
+.steepness-grid-vote-sheet .chip {
+  flex: 1 1 calc(33% - 8px);
+  min-width: 88px;
+  justify-content: center;
+}
+.route-stat-tile:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 .route-hazards-card {
   padding: 14px;
   margin-top: 12px;
