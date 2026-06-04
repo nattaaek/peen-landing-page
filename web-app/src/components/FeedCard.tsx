@@ -133,10 +133,8 @@ export function FeedCard({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [likePulse, setLikePulse] = useState(0)
   const [showComments, setShowComments] = useState(commentsOpen)
-  const [shareOpen, setShareOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const moreRef = useRef<HTMLDivElement>(null)
-  const shareRef = useRef<HTMLDivElement>(null)
 
   const gate = (msg: string, fn: () => void) => () => {
     if (isGuest) {
@@ -151,18 +149,15 @@ export function FeedCard({
   }, [commentsOpen])
 
   useEffect(() => {
-    if (!moreOpen && !shareOpen) return
+    if (!moreOpen) return
     const onDoc = (e: MouseEvent) => {
-      if (moreOpen && moreRef.current && !moreRef.current.contains(e.target as Node)) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
         setMoreOpen(false)
-      }
-      if (shareOpen && shareRef.current && !shareRef.current.contains(e.target as Node)) {
-        setShareOpen(false)
       }
     }
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
-  }, [moreOpen, shareOpen])
+  }, [moreOpen])
 
   const handleLike = gate('Sign in to like sends.', () => {
     if (!liked) setLikePulse((p) => p + 1)
@@ -176,7 +171,6 @@ export function FeedCard({
       /* ignore */
     }
     onToast?.('Link copied')
-    setShareOpen(false)
     setMoreOpen(false)
   }
 
@@ -185,7 +179,7 @@ export function FeedCard({
       id={`feed-climb-${post.id}`}
       ref={cardRef}
       className={`feed-card${highlighted ? ' feed-card-highlight' : ''}${
-        shareOpen || moreOpen ? ' feed-card-popover-open' : ''
+        moreOpen ? ' feed-card-popover-open' : ''
       }`}
     >
       <header className="feed-head">
@@ -347,42 +341,18 @@ export function FeedCard({
           <Icon name="comment" size={18} />
           <span className="mono-num">{commentCount}</span>
         </button>
-        <div className="feed-share-wrap" ref={shareRef}>
-          <button
-            type="button"
-            className="act-btn"
-            onClick={(e) => {
-              e.stopPropagation()
-              setShareOpen((v) => !v)
-            }}
-            aria-label="Share"
-            title="Share"
-          >
-            <Icon name="share" size={16} />
-          </button>
-          {shareOpen ? (
-            <Popover anchor="left" placement="above">
-              <PopItem icon="share" label="Copy link" onClick={copyLink} />
-              <PopItem
-                icon="crew"
-                label="Send to crew"
-                onClick={gate('Sign in to share with your crew.', () => {
-                  onToast?.('Shared with your crew')
-                  setShareOpen(false)
-                })}
-              />
-              <PopItem
-                icon="comment"
-                label="Send in message"
-                onClick={gate('Sign in to send a message.', () => {
-                  onToast?.('Opened in messages')
-                  setShareOpen(false)
-                })}
-              />
-              <PopItem icon="upload" label="Share externally" onClick={copyLink} />
-            </Popover>
-          ) : null}
-        </div>
+        <button
+          type="button"
+          className="act-btn"
+          onClick={(e) => {
+            e.stopPropagation()
+            copyLink()
+          }}
+          aria-label="Copy link to send"
+          title="Copy link"
+        >
+          <Icon name="share" size={16} />
+        </button>
         <button
           type="button"
           className={`act-btn ${isSaved ? 'liked' : ''}`}
