@@ -1,7 +1,10 @@
+import type { ReactNode } from 'react'
 import { Icon, type IconName } from '../../components/Icon'
+import { steepnessMetaFor } from '../../domain/steepnessAngles'
 import { useCragWeather } from '../../hooks/useCragWeather'
 import { bringStatForRoute } from '../../lib/routePacking'
 import type { ApiRoute } from '../../types/api'
+import { SteepnessMascotIcon } from './SteepnessMascotIcon'
 
 type StatTileProps = {
   icon: IconName
@@ -11,14 +14,18 @@ type StatTileProps = {
   onClick?: () => void
   valueTone?: 'default' | 'warn' | 'good'
   disabled?: boolean
+  leading?: ReactNode
 }
 
-function StatTile({ icon, label, value, sub, onClick, valueTone = 'default', disabled }: StatTileProps) {
+function StatTile({ icon, label, value, sub, onClick, valueTone = 'default', disabled, leading }: StatTileProps) {
   const inner = (
     <>
       <Icon name={icon} size={16} className="route-stat-icon" />
       <div className="route-stat-label">{label}</div>
-      <div className={`route-stat-value tone-${valueTone}`}>{value}</div>
+      <div className={`route-stat-value tone-${valueTone} route-stat-value-row`}>
+        {leading}
+        <span>{value}</span>
+      </div>
       {sub ? <div className="route-stat-sub">{sub}</div> : null}
     </>
   )
@@ -61,6 +68,7 @@ export function RouteDetailStatGrid({
       ? 'Indoor'
       : 'Wall not linked'
   const bring = bringStatForRoute(route)
+  const steepnessMeta = steepnessMetaFor(topAngle)
 
   const votes = consensusVotes ?? 0
   const steepnessSub = isGuest
@@ -74,10 +82,11 @@ export function RouteDetailStatGrid({
       <StatTile
         icon="mountain"
         label="Steepness"
-        value={topAngle ?? '—'}
+        value={steepnessMeta?.label ?? topAngle ?? '—'}
         sub={steepnessSub}
         onClick={onSteepnessVote}
         disabled={isGuest}
+        leading={steepnessMeta ? <SteepnessMascotIcon meta={steepnessMeta} size={22} /> : undefined}
       />
       <StatTile
         icon="grade"

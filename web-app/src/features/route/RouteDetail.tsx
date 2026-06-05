@@ -4,7 +4,6 @@ import { useGeolocation } from '../../hooks/useGeolocation'
 import { useCatalogRoute } from '../../hooks/useCatalog'
 import { ApproachGuideDrawer } from '../crags/ApproachGuideDrawer'
 import {
-  STEEPNESS_ANGLES,
   useActiveHazardsForRoute,
   useAngleVoteCounts,
   usePublicRouteLogs,
@@ -19,7 +18,6 @@ import {
   useRouteConsensus,
   useRouteRating,
   useToggleWishlist,
-  useUpsertSteepnessVote,
   useWishlistRouteIds,
   useUpdateRoute,
 } from '../../hooks/useMigration'
@@ -48,8 +46,10 @@ import { RouteConditionsCard } from './RouteConditionsCard'
 import { RouteDetailHero } from './RouteDetailHero'
 import { RouteDetailStatGrid } from './RouteDetailStatGrid'
 import { RouteTopoModal } from './RouteTopoModal'
+import { STEEPNESS_ANGLE_META, normalizeSteepnessAngle, type SteepnessAngleId } from '../../domain/steepnessAngles'
 import { SteepnessConsensusChart } from './SteepnessConsensusChart'
 import { SteepnessVoteSheet } from './SteepnessVoteSheet'
+import { SteepnessVoteTile } from './SteepnessVoteTile'
 import { TopoLineEditor } from './TopoLineEditor'
 
 async function shareRoute(route: ApiRoute, onToast?: (message: string) => void) {
@@ -103,6 +103,7 @@ export function RouteDetailOverlay({
   const [showAllPublicSends, setShowAllPublicSends] = useState(false)
   const [showLinkTopo, setShowLinkTopo] = useState(false)
   const [showSteepnessVote, setShowSteepnessVote] = useState(false)
+  const [steepnessVoteSeed, setSteepnessVoteSeed] = useState<SteepnessAngleId | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [hazardType, setHazardType] = useState('rockfall')
   const [hazardSeverity, setHazardSeverity] = useState<'low' | 'medium' | 'high'>('medium')
@@ -122,7 +123,6 @@ export function RouteDetailOverlay({
   const consensusQ = useRouteConsensus(isGuest ? undefined : routeId)
   const angleCountsQ = useAngleVoteCounts(isGuest ? undefined : routeId)
   const myVoteQ = useMySteepnessVote(isGuest ? undefined : routeId)
-  const vote = useUpsertSteepnessVote()
   const updateRoute = useUpdateRoute()
   const submitHazard = useSubmitHazardReport()
 
@@ -304,6 +304,12 @@ export function RouteDetailOverlay({
   }
 
   const myAngle = myVoteQ.data?.angle ?? null
+  const myAngleNorm = normalizeSteepnessAngle(myAngle)
+
+  const openSteepnessVote = (seed?: SteepnessAngleId | null) => {
+    setSteepnessVoteSeed(seed ?? null)
+    setShowSteepnessVote(true)
+  }
   const hazardCount = hazardsQ.data?.length ?? 0
 
   return (
@@ -432,7 +438,7 @@ export function RouteDetailOverlay({
                   consensusVotes={consensusQ.data?.votes}
                   isGuest={isGuest}
                   hazardCount={hazardCount}
-                  onSteepnessVote={() => (isGuest ? onSignIn() : setShowSteepnessVote(true))}
+                  onSteepnessVote={() => (isGuest ? onSignIn() : openSteepnessVote())}
                   onApproach={() => setShowApproach(true)}
                   onHazards={() => scrollToRef(hazardsRef)}
                 />
@@ -441,7 +447,7 @@ export function RouteDetailOverlay({
                   <div ref={steepnessRef} className="route-steepness-block">
                     <div className="route-detail-section-head">
                       <h4 className="route-detail-section-title">Steepness consensus</h4>
-                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowSteepnessVote(true)}>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => openSteepnessVote()}>
                         Vote
                       </button>
                     </div>
@@ -454,22 +460,18 @@ export function RouteDetailOverlay({
                         Based on {consensusQ.data?.votes ?? 0} climber votes
                         {angleCountsQ.data && angleCountsQ.data.length > 0 ? ' · live distribution' : ''}
                       </div>
-                      <div className="steepness-grid route-steepness-inline-vote">
-                        {STEEPNESS_ANGLES.map((angle) => (
-                          <button
-                            key={angle}
-                            type="button"
-                            className={`chip ${myAngle === angle || consensusQ.data?.top_angle === angle ? 'active' : ''}`}
-                            disabled={vote.isPending}
-                            onClick={() =>
-                              vote.mutate(
-                                { route_id: route.id, angle },
-                                { onError: () => onToast?.('Could not save vote') },
-                              )
+                      <div className="steepness-vote-inline-scroll scroll-x">
+                        {STEEPNESS_ANGLE_META.map((meta) => (
+                          <SteepnessVoteTile
+                            key={meta.id}
+                            meta={meta}
+                            compact
+                            selected={
+                              myAngleNorm === meta.id ||
+                              normalizeSteepnessAngle(consensusQ.data?.top_angle) === meta.id
                             }
-                          >
-                            {angle}
-                          </button>
+                            onSelect={() => openSteepnessVote(meta.id)}
+                          />
                         ))}
                       </div>
                     </div>
@@ -782,10 +784,12 @@ export function RouteDetailOverlay({
         open={showSteepnessVote}
         routeId={routeId}
         routeName={route?.name ?? 'Route'}
-        myAngle={myAngle}
-        topAngle={consensusQ.data?.top_angle}
-        voteCount={consensusQ.data?.votes}
-        onClose={() => setShowSteepnessVote(false)}
+        savedAngle={myAngle}
+        initialDraft={steepnessVoteSeed}
+        onClose={() => {
+          setShowSteepnessVote(false)
+          setSteepnessVoteSeed(null)
+        }}
         onVoted={() => onToast?.('Vote saved')}
       />
 
