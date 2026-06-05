@@ -4,7 +4,6 @@ import { ProfileMenu } from './ProfileMenu'
 import { RailInboxRow } from './RailInboxRow'
 import { RailWeather } from './RailWeather'
 import { TopbarSearch } from './TopbarSearch'
-import { TopoLines } from './TopoLines'
 import { useAuth } from '../features/auth/AuthProvider'
 import {
   useCommunityChallenges,
@@ -140,23 +139,6 @@ export function AppShell({
             </div>
           </>
         )}
-
-        <div className="crag-snapshot">
-          <TopoLines />
-          <div className="label">Today · Chiang Mai</div>
-          <div className="name">Crazy Horse</div>
-          <div className="stats">
-            <div className="stat">
-              <b>28°</b>Air
-            </div>
-            <div className="stat">
-              <b>34%</b>Humidity
-            </div>
-            <div className="stat">
-              <b>—</b>Friction
-            </div>
-          </div>
-        </div>
       </aside>
 
       <header className="topbar">

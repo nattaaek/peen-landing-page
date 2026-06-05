@@ -158,25 +158,6 @@ input, textarea { font-family: inherit; color: inherit; }
 .app.sidebar-rail .nav-item { justify-content: center; padding: 12px; }
 .app.sidebar-rail .nav-item .label, .app.sidebar-rail .nav-item .nav-badge { display: none; }
 
-/* Sidebar bottom card */
-.crag-snapshot {
-  margin-top: auto;
-  background: var(--peen-charcoal);
-  color: #fff;
-  border-radius: var(--radius-lg);
-  padding: 14px;
-  font-size: 13px;
-  position: relative;
-  overflow: hidden;
-}
-.crag-snapshot .label { color: rgba(255,255,255,0.6); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; }
-.crag-snapshot .name { font-size: 16px; font-weight: 700; margin-top: 4px; }
-.crag-snapshot .stats { display: flex; gap: 14px; margin-top: 10px; }
-.crag-snapshot .stat { font-size: 11px; color: rgba(255,255,255,0.7); }
-.crag-snapshot .stat b { display: block; font-size: 18px; color: #fff; font-weight: 700; line-height: 1.1; }
-.crag-snapshot .topo { position: absolute; inset: 0; pointer-events: none; opacity: 0.18; }
-.app.sidebar-rail .crag-snapshot { display: none; }
-
 /* ------ Right rail ------ */
 .rail {
   position: sticky; top: var(--top-h);
@@ -1089,7 +1070,6 @@ button.feed-route {
   .app:not(.force-expand) .nav-item { justify-content: center; padding: 12px; }
   .app:not(.force-expand) .nav-item .label,
   .app:not(.force-expand) .nav-item .nav-badge { display: none; }
-  .app:not(.force-expand) .crag-snapshot { display: none; }
   .crags-split { grid-template-columns: 1fr; height: auto; }
   .crags-list { border-right: none; border-bottom: 1px solid var(--separator); max-height: 50vh; }
   .crags-map { height: 50vh; }
