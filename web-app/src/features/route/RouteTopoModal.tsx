@@ -78,84 +78,81 @@ export function RouteTopoModal({
         </div>
         <div className="modal-body route-topo-modal-body">
           {loading && imageUrls.length > 0 ? (
-            <p className="muted">Loading topo lines…</p>
+            <p className="muted route-topo-modal-empty">Loading topo lines…</p>
           ) : imageUrls.length === 0 ? (
-            <p className="muted">No route photos available.</p>
+            <p className="muted route-topo-modal-empty">No route photos available.</p>
           ) : activeImageUrl ? (
             <>
               <div className="route-topo-modal-stage">
                 <TopoImageWithLines
                   imageUrl={activeImageUrl}
                   lines={activeLines}
-                  fit="contain"
+                  fit="cover"
                   homeRouteId={homeRouteId}
                   onLineRouteTap={onLineRouteTap}
                 />
+                {imageUrls.length > 1 && (
+                  <div className="route-topo-modal-thumbs scroll-x">
+                    {imageUrls.map((url) => {
+                      const active = imageUrlMatches(url, activeImageUrl)
+                      const count = lines.filter((l) => imageUrlMatches(l.image_url, url)).length
+                      return (
+                        <button
+                          key={url}
+                          type="button"
+                          className={`route-topo-thumb route-topo-thumb-on-dark${active ? ' active' : ''}`}
+                          onClick={() => onSelectImage(url)}
+                          aria-label="Select photo"
+                        >
+                          <img src={url} alt="" />
+                          {count > 0 && <span className="route-topo-thumb-badge">{count}</span>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-              {imageUrls.length > 1 && (
-                <div className="scroll-x route-topo-modal-thumbs">
-                  {imageUrls.map((url) => {
-                    const active = url === activeImageUrl
-                    const count = lines.filter((l) => imageUrlMatches(l.image_url, url)).length
-                    return (
-                      <button
-                        key={url}
-                        type="button"
-                        className={`route-topo-thumb${active ? ' active' : ''}`}
-                        onClick={() => onSelectImage(url)}
-                        aria-label="Select photo"
-                      >
-                        <img src={url} alt="" />
-                        {count > 0 && <span className="route-topo-thumb-badge">{count}</span>}
-                      </button>
-                    )
-                  })}
+              <div className="route-topo-modal-panel">
+                <div className="route-topo-modal-actions">
+                  <button type="button" className="btn btn-primary" onClick={startDraw}>
+                    <Icon name="plus" size={16} /> Draw topo line
+                  </button>
                 </div>
-              )}
-              <div className="route-topo-modal-actions">
-                <button type="button" className="btn btn-primary" onClick={startDraw}>
-                  <Icon name="plus" size={16} /> Draw topo line
-                </button>
+                {activeLines.length > 0 ? (
+                  <ul className="route-topo-line-list">
+                    {activeLines.map((line) => (
+                      <li key={line.id} className="route-topo-line-item">
+                        <span
+                          className="route-topo-line-swatch"
+                          style={{ background: line.color }}
+                          aria-hidden
+                        />
+                        <span className="route-topo-line-meta">
+                          {line.label?.trim() || 'Topo line'} · {(line.path_points ?? []).length} points
+                        </span>
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          style={{ height: 32, padding: '0 12px' }}
+                          onClick={() => (isGuest ? onSignIn() : onEditLine(line))}
+                        >
+                          Edit
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="muted route-topo-modal-hint">
+                    {linesOnOtherPhotos
+                      ? 'Topo line is on another photo — switch thumbnails on the image.'
+                      : lines.length > 0
+                        ? 'No topo lines on this photo.'
+                        : 'No topo lines on this route yet.'}
+                  </p>
+                )}
               </div>
-              {activeLines.length > 0 ? (
-                <ul className="route-topo-line-list">
-                  {activeLines.map((line) => (
-                    <li key={line.id} className="route-topo-line-item">
-                      <span
-                        className="route-topo-line-swatch"
-                        style={{ background: line.color }}
-                        aria-hidden
-                      />
-                      <span className="route-topo-line-meta">
-                        {line.label?.trim() || 'Topo line'} · {(line.path_points ?? []).length} points
-                      </span>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{ height: 32, padding: '0 12px' }}
-                        onClick={() => (isGuest ? onSignIn() : onEditLine(line))}
-                      >
-                        Edit
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>
-                  {linesOnOtherPhotos
-                    ? 'Topo line is on another photo — switch thumbnails above.'
-                    : lines.length > 0
-                      ? 'No topo lines on this photo.'
-                      : 'No topo lines on this route yet.'}
-                </p>
-              )}
             </>
           ) : null}
-        </div>
-        <div className="modal-foot">
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
-            Close
-          </button>
         </div>
       </div>
     </>
