@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Icon } from '../../components/Icon'
+import { ModalPortal } from '../../components/ModalPortal'
 import {
   normalizeSteepnessAngle,
   STEEPNESS_ANGLE_META,
@@ -65,7 +66,7 @@ export function SteepnessVoteSheet({
   }
 
   return (
-    <>
+    <ModalPortal>
       <div className="modal-backdrop route-stack-modal-backdrop" onClick={onClose} role="presentation" />
       <div
         className="modal route-stack-modal steepness-vote-modal"
@@ -122,6 +123,6 @@ export function SteepnessVoteSheet({
           </div>
         </div>
       </div>
-    </>
+    </ModalPortal>
   )
 }

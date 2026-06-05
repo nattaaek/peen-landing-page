@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { Icon } from '../../components/Icon'
 import { useGeolocation } from '../../hooks/useGeolocation'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import { useCatalogRoute } from '../../hooks/useCatalog'
 import { ApproachGuideDrawer } from '../crags/ApproachGuideDrawer'
 import {
@@ -166,6 +167,18 @@ export function RouteDetailOverlay({
     showAllPublicSends ||
     showLinkTopo ||
     showSteepnessVote
+
+  useScrollLock(true)
+
+  useEffect(() => {
+    const el = bodyRef.current
+    if (!el || !stackModalOpen) return
+    const prevOverflow = el.style.overflow
+    el.style.overflow = 'hidden'
+    return () => {
+      el.style.overflow = prevOverflow
+    }
+  }, [stackModalOpen])
 
   const existingImageUrls = useMemo(() => {
     return [...(route?.images ?? []), ...(route?.gallery_images ?? [])].filter(Boolean)

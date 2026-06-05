@@ -1002,7 +1002,11 @@ button.feed-route {
   max-height: calc(100vh - 48px);
   overflow: hidden; display: flex; flex-direction: column;
   box-shadow: 0 30px 80px rgba(0,0,0,0.30);
-  animation: slideIn .22s ease;
+  animation: modalCenterIn .22s ease;
+}
+@keyframes modalCenterIn {
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 10px)); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
 }
 .modal:not(:has(.modal-head)) {
   padding: 28px;

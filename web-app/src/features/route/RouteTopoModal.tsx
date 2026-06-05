@@ -1,4 +1,5 @@
 import { Icon } from '../../components/Icon'
+import { ModalPortal } from '../../components/ModalPortal'
 import { imageUrlMatches } from '../../lib/topoFittedLayout'
 import type { RouteTopoLine } from '../../types/api'
 import { TopoImageWithLines } from './TopoImageWithLines'
@@ -56,7 +57,7 @@ export function RouteTopoModal({
     imageUrls.some((url) => !imageUrlMatches(url, activeImageUrl ?? '') && lines.some((l) => imageUrlMatches(l.image_url, url)))
 
   return (
-    <>
+    <ModalPortal>
       <div className="modal-backdrop route-stack-modal-backdrop" onClick={onClose} role="presentation" />
       <div
         className="modal route-topo-modal route-stack-modal"
@@ -87,7 +88,7 @@ export function RouteTopoModal({
                 <TopoImageWithLines
                   imageUrl={activeImageUrl}
                   lines={activeLines}
-                  fit="cover"
+                  fit="contain"
                   homeRouteId={homeRouteId}
                   onLineRouteTap={onLineRouteTap}
                 />
@@ -155,6 +156,6 @@ export function RouteTopoModal({
           ) : null}
         </div>
       </div>
-    </>
+    </ModalPortal>
   )
 }

@@ -60,11 +60,22 @@ export function TopoImageWithLines({
   onLineRouteTap?: (routeId: string) => void
 }) {
   const wrapRef = useRef<HTMLDivElement>(null)
+  const imgRef = useRef<HTMLImageElement>(null)
   const [natural, setNatural] = useState<{ w: number; h: number } | null>(null)
   const [content, setContent] = useState<FittedRect>({ x: 0, y: 0, width: 0, height: 0 })
 
+  const syncNaturalFromImage = (img: HTMLImageElement) => {
+    if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+      setNatural({ w: img.naturalWidth, h: img.naturalHeight })
+    }
+  }
+
   useEffect(() => {
     setNatural(null)
+    const img = imgRef.current
+    if (img?.complete) {
+      syncNaturalFromImage(img)
+    }
   }, [imageUrl])
 
   useEffect(() => {
@@ -106,21 +117,17 @@ export function TopoImageWithLines({
   return (
     <div ref={wrapRef} className="route-topo-image-wrap">
       <img
+        ref={imgRef}
         src={imageUrl}
         alt="Topo photo"
         className={`route-topo-image route-topo-image-${fit}`}
         style={{
           left: content.x,
           top: content.y,
-          width: content.width,
-          height: content.height,
+          width: content.width > 0 ? content.width : '100%',
+          height: content.height > 0 ? content.height : '100%',
         }}
-        onLoad={(e) => {
-          const img = e.currentTarget
-          if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-            setNatural({ w: img.naturalWidth, h: img.naturalHeight })
-          }
-        }}
+        onLoad={(e) => syncNaturalFromImage(e.currentTarget)}
       />
       {preparedLines.length > 0 && content.width > 0 && (
         <svg
