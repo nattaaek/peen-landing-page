@@ -639,14 +639,11 @@ export function RouteDetailOverlay({
         isGuest={isGuest}
         onSignIn={onSignIn}
         homeRouteId={routeId}
+        originRoute={route}
         onLineRouteTap={isGuest ? undefined : handleLineRouteTap}
         onDrawTopo={(imageUrl) => {
           setShowTopoModal(false)
           setTopoEditor({ imageUrl })
-        }}
-        onEditLine={(line) => {
-          setShowTopoModal(false)
-          setTopoEditor({ imageUrl: line.image_url, line })
         }}
       />
 

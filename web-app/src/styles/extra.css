@@ -2579,11 +2579,17 @@ button.route-stat-tile:hover {
   text-align: right;
   flex: 0 0 auto;
 }
-/* Topo viewer — dark immersive stage like iOS fullscreen (not beige letterbox) */
+/* Topo viewer — dark immersive stage like iOS fullscreen */
 .route-topo-modal {
   max-width: min(720px, calc(100vw - 24px));
   width: min(720px, calc(100vw - 24px));
   max-height: calc(100vh - 24px);
+}
+.route-topo-modal-ios {
+  background: #12100e;
+}
+.route-topo-modal-ios .modal-body {
+  padding: 0;
 }
 .route-topo-modal-body {
   padding: 0;
@@ -2594,26 +2600,135 @@ button.route-stat-tile:hover {
 .route-topo-modal-stage {
   position: relative;
   flex: 0 0 auto;
-  height: min(56vh, 520px);
-  min-height: 280px;
+  height: min(68vh, 620px);
+  min-height: 360px;
   overflow: hidden;
-  background: #121212;
+  background: #000;
 }
 .route-topo-modal-stage .route-topo-image-wrap {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  background: #121212;
+  background: #000;
+}
+.route-topo-modal-stage-chrome {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px;
+  pointer-events: none;
+}
+.route-topo-modal-counter {
+  margin-right: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(0, 0, 0, 0.45);
+  padding: 4px 10px;
+  border-radius: 999px;
+  pointer-events: auto;
+}
+.route-topo-modal-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  pointer-events: auto;
 }
 .route-topo-modal-thumbs {
   position: absolute;
   left: 12px;
-  right: 12px;
-  bottom: 12px;
+  top: 12px;
+  right: auto;
+  bottom: auto;
   z-index: 2;
   gap: 8px;
   padding-bottom: 0;
+  max-width: calc(100% - 56px);
+}
+.route-topo-lines-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  background: rgba(18, 16, 14, 0.96);
+  padding: 8px 8px 10px;
+}
+.route-topo-lines-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 4px 8px 6px;
+}
+.route-topo-lines-panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+.route-topo-lines-panel-hint {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.38);
+  white-space: nowrap;
+}
+.route-topo-lines-panel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 132px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.route-topo-lines-panel-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+.route-topo-lines-panel-row:hover,
+.route-topo-lines-panel-row.selected {
+  background: rgba(255, 255, 255, 0.08);
+}
+.route-topo-lines-panel-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.route-topo-lines-panel-grade {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 7px;
+}
+.route-topo-lines-panel-chev {
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.35);
 }
 .route-topo-thumb-on-dark {
   border-color: rgba(255, 255, 255, 0.35);
@@ -2624,8 +2739,13 @@ button.route-stat-tile:hover {
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55);
 }
 .route-topo-modal-panel {
-  padding: 16px 20px 20px;
+  padding: 14px 16px 16px;
   flex-shrink: 0;
+  background: #12100e;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.route-topo-modal-ios .route-topo-modal-hint {
+  color: rgba(255, 255, 255, 0.55);
 }
 .route-topo-modal-actions {
   margin-top: 0;
