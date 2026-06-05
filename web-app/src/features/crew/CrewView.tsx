@@ -2,19 +2,24 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Avatar, Icon } from '../../components/Icon'
 import { TopoLines } from '../../components/TopoLines'
+import { pastSeasonMeta } from '../../lib/seasonalChallenge'
 import { BrowseCragsLink, LoginRequired } from '../auth/LoginGate'
 import { useAuth } from '../auth/AuthProvider'
 import {
   useBetaSpray,
-  useCommunityChallenges,
   useCrewLeaderboard,
   usePartners,
   usePendingCrewInvites,
+  useSeasonalPastChallenges,
   useSeasonalSpotlight,
   useSharedProjects,
   useWeeklyLeaderboard,
 } from '../../hooks/useMigration'
+import { SeasonalChallengeDetailOverlay } from './SeasonalChallengeDetailOverlay'
+import { SeasonalSpotlightCard } from './SeasonalSpotlightCard'
+
 type CrewTab = 'Crew' | 'Partners' | 'Challenges'
+type CrewLocationState = { tab?: CrewTab; challengeId?: string }
 
 export function CrewView({
   onSignIn,
@@ -27,6 +32,7 @@ export function CrewView({
   const location = useLocation()
   const navigate = useNavigate()
   const [tab, setTab] = useState<CrewTab>('Crew')
+  const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null)
   const [partnerWhen, setPartnerWhen] = useState<string>('Any')
   const [partnerStyle, setPartnerStyle] = useState<string>('Any')
 
@@ -36,12 +42,16 @@ export function CrewView({
   const projectsQ = useSharedProjects()
   const betaQ = useBetaSpray()
   const invitesQ = usePendingCrewInvites()
-  const challengesQ = useCommunityChallenges()
   const seasonalQ = useSeasonalSpotlight()
+  const pastQ = useSeasonalPastChallenges()
 
   useEffect(() => {
-    const t = (location.state as { tab?: CrewTab } | null)?.tab
-    if (t) setTab(t)
+    const state = location.state as CrewLocationState | null
+    if (state?.tab) setTab(state.tab)
+    if (state?.challengeId) {
+      setTab('Challenges')
+      setSelectedChallengeId(state.challengeId)
+    }
   }, [location.state])
 
   const partners = partnersQ.data ?? []
@@ -96,8 +106,8 @@ export function CrewView({
   const projects = projectsQ.data ?? []
   const beta = betaQ.data ?? []
   const invites = invitesQ.data ?? []
-  const challenges = challengesQ.data ?? []
-  const seasonal = seasonalQ.data as Record<string, unknown> | null | undefined
+  const seasonal = seasonalQ.data
+  const pastSeasons = pastQ.data ?? []
 
   const leaderboardName = (row: (typeof weekly)[0]) =>
     row.display_name ?? row.nickname ?? row.username ?? 'Climber'
@@ -300,60 +310,49 @@ export function CrewView({
 
       {tab === 'Challenges' && (
         <section className="crew-challenges">
-          {seasonalQ.isLoading && <p className="muted">Loading challenge…</p>}
-          {seasonal != null && (
-            <div className="crew-challenge-hero crew-challenge-hero--signed-in">
-              <TopoLines />
-              <div className="wordmark">SEASONAL CHALLENGE</div>
-              <h2>{String(seasonal.title ?? seasonal.name ?? 'Active challenge')}</h2>
-              <p className="muted" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                {seasonal.description != null
-                  ? String(seasonal.description)
-                  : 'Progress and route checklist match the iOS Challenges tab.'}
-              </p>
-              {seasonal.progress != null && seasonal.total != null && (
-                <p style={{ fontWeight: 700, marginTop: 12 }}>
-                  {String(seasonal.progress)} / {String(seasonal.total)} routes
-                </p>
-              )}
-            </div>
-          )}
-          {challengesQ.isLoading && <p className="muted">Loading challenges…</p>}
-          <div className="challenge-list">
-            {challenges.map((ch) => {
-              const done = ch.done ?? 0
-              const total = ch.total ?? 1
-              const pct = Math.round((done / total) * 100)
-              return (
-                <div key={ch.id} className="rail-card challenge-card">
-                  <div className="challenge-card-head">
-                    <Icon name="trophy" size={18} style={{ color: ch.color_hex ?? 'var(--peen-orange)' }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700 }}>{ch.title ?? 'Challenge'}</div>
-                      {ch.subtitle && (
-                        <div className="muted" style={{ fontSize: 12 }}>{ch.subtitle}</div>
-                      )}
+          {seasonalQ.isLoading && !seasonal && <p className="muted">Loading challenge…</p>}
+          {seasonal ? (
+            <SeasonalSpotlightCard
+              spotlight={seasonal}
+              onOpen={() => setSelectedChallengeId(seasonal.challenge_id)}
+            />
+          ) : !seasonalQ.isLoading ? (
+            <p className="muted">No seasonal challenge is active right now.</p>
+          ) : null}
+
+          {pastSeasons.length > 0 ? (
+            <div className="past-seasons-block">
+              <div className="past-seasons-label">Past seasons</div>
+              <div className="past-seasons-list">
+                {pastSeasons.map((row) => (
+                  <button
+                    key={row.challenge_id}
+                    type="button"
+                    className="past-season-row"
+                    onClick={() => setSelectedChallengeId(row.challenge_id)}
+                  >
+                    <div className="past-season-main">
+                      <div className="past-season-title">{row.title}</div>
+                      <div className="past-season-meta">{pastSeasonMeta(row)}</div>
                     </div>
-                    {ch.days_left != null && (
-                      <span className="chip outline">{ch.days_left}d left</span>
-                    )}
-                  </div>
-                  <div className="challenge-progress-bar">
-                    <div className="challenge-progress-fill" style={{ width: `${pct}%` }} />
-                  </div>
-                  <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>
-                    {done}/{total} done
-                    {ch.joined != null ? ` · ${ch.joined} joined` : ''}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-          {!challengesQ.isLoading && challenges.length === 0 && !seasonal && (
-            <p className="muted">No active challenges right now.</p>
-          )}
+                    <Icon name="chevR" size={14} style={{ color: 'var(--fg-3)' }} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </section>
       )}
+
+      {selectedChallengeId ? (
+        <SeasonalChallengeDetailOverlay
+          challengeId={selectedChallengeId}
+          onClose={() => setSelectedChallengeId(null)}
+          onOpenRoute={onOpenRoute}
+          onSignIn={onSignIn}
+          isGuest={!accessToken}
+        />
+      ) : null}
     </div>
   )
 }

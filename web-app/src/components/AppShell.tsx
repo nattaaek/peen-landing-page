@@ -6,7 +6,6 @@ import { RailWeather } from './RailWeather'
 import { TopbarSearch } from './TopbarSearch'
 import { useAuth } from '../features/auth/AuthProvider'
 import {
-  useCommunityChallenges,
   useInbox,
   useMarkAllNotificationsRead,
   useMyProfile,
@@ -15,7 +14,7 @@ import {
   useSeasonalSpotlight,
   useWishlistRoutes,
 } from '../hooks/useMigration'
-import type { CommunityChallengeRow } from '../types/api'
+import { spotlightProgressPct } from '../lib/seasonalChallenge'
 
 const NAV = [
   { to: '/feed', label: 'Feed', icon: 'feed' as const },
@@ -182,7 +181,13 @@ export function AppShell({
           isGuest={isGuest}
           onSignIn={onSignIn}
           onNotifs={onNotifs}
-          onOpenCrew={() => navigate('/crew')}
+          onOpenCrew={(challengeId) =>
+            navigate('/crew', {
+              state: challengeId
+                ? { tab: 'Challenges' as const, challengeId }
+                : { tab: 'Challenges' as const },
+            })
+          }
           onToast={onToast}
           homeAreaId={wishlist[0]?.area_id ?? undefined}
         />
@@ -209,13 +214,6 @@ export function AppShell({
       </nav>
     </div>
   )
-}
-
-function challengePct(ch: CommunityChallengeRow): number | null {
-  const done = ch.done ?? 0
-  const total = ch.total ?? 0
-  if (!total) return null
-  return Math.round((done / total) * 100)
 }
 
 function RailChallengeRow({
@@ -273,38 +271,17 @@ function RightRail({
   isGuest: boolean
   onSignIn: () => void
   onNotifs: () => void
-  onOpenCrew: () => void
+  onOpenCrew: (challengeId?: string) => void
   onToast?: (msg: string) => void
   homeAreaId?: string
 }) {
   const partnersQ = usePartners()
-  const challengesQ = useCommunityChallenges()
   const seasonalQ = useSeasonalSpotlight()
   const inboxQ = useInbox()
   const markAllRead = useMarkAllNotificationsRead()
   const partners = partnersQ.data ?? []
-  const challenges = challengesQ.data ?? []
-  const seasonal = seasonalQ.data as
-    | { name?: string; title?: string; progress?: number; total?: number; days_left?: number }
-    | null
-    | undefined
+  const seasonal = seasonalQ.data
   const inbox = (inboxQ.data ?? []).slice(0, 3)
-
-  const railChallenges: CommunityChallengeRow[] =
-    challenges.length > 0
-      ? challenges.slice(0, 2)
-      : seasonal?.total
-        ? [
-            {
-              id: 'seasonal-spotlight',
-              title: seasonal.title ?? seasonal.name ?? 'Seasonal challenge',
-              done: Number(seasonal.progress ?? 0),
-              total: Number(seasonal.total ?? 0),
-              days_left: seasonal.days_left,
-              color_hex: '#D55A1F',
-            },
-          ]
-        : []
 
   const partnerDisplayName = (p: (typeof partners)[0]) =>
     p.display_name ?? p.nickname ?? p.username ?? 'Climber'
@@ -320,7 +297,7 @@ function RightRail({
             type="button"
             className="rail-link"
             style={{ marginLeft: 'auto' }}
-            onClick={isGuest ? onSignIn : onOpenCrew}
+            onClick={isGuest ? onSignIn : () => onOpenCrew()}
           >
             See all
           </button>
@@ -376,31 +353,29 @@ function RightRail({
         )}
       </div>
 
-      {railChallenges.length > 0 && (
+      {seasonal ? (
         <div className="rail-card">
           <h4>Seasonal challenges</h4>
-          {railChallenges.map((ch) => {
-            const pct = challengePct(ch)
-            const accent = ch.color_hex ?? 'var(--peen-orange)'
-            const subtitle = [
-              ch.done != null && ch.total != null ? `${ch.done}/${ch.total} routes` : null,
-              ch.days_left != null ? `${ch.days_left} days left` : null,
+          <RailChallengeRow
+            title={seasonal.title}
+            subtitle={[
+              seasonal.my_completed_count != null && seasonal.routes_total != null
+                ? `${seasonal.my_completed_count}/${seasonal.routes_total} routes`
+                : null,
+              seasonal.days_left != null ? `${seasonal.days_left} days left` : null,
             ]
               .filter(Boolean)
-              .join(' · ')
-            return (
-              <RailChallengeRow
-                key={ch.id}
-                title={ch.title ?? 'Challenge'}
-                subtitle={subtitle || 'In progress'}
-                pct={pct}
-                accent={accent}
-                onClick={isGuest ? onSignIn : onOpenCrew}
-              />
-            )
-          })}
+              .join(' · ') || 'In progress'}
+            pct={spotlightProgressPct(seasonal)}
+            accent="var(--peen-orange)"
+            onClick={
+              isGuest
+                ? onSignIn
+                : () => onOpenCrew(seasonal.challenge_id)
+            }
+          />
         </div>
-      )}
+      ) : null}
 
       {!isGuest && (
         <div className="rail-card">

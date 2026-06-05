@@ -51,6 +51,8 @@ import type {
 } from '../types/api'
 import { useAuth } from '../features/auth/AuthProvider'
 import { normalizeRouteId, parseRouteId } from '../lib/routeIds'
+import { parseSeasonalSpotlight } from '../lib/seasonalChallenge'
+import type { SeasonalChallengeProgress, SeasonalPastChallenge } from '../types/seasonalChallenge'
 
 export function useMyProfile() {
   const { accessToken } = useAuth()
@@ -601,8 +603,62 @@ export function useSeasonalSpotlight() {
   const { accessToken } = useAuth()
   return useQuery({
     queryKey: ['seasonal', 'spotlight'],
-    queryFn: () => migrationInvoke<unknown>('seasonal', 'seasonal_challenge_spotlight', {}, accessToken!),
+    queryFn: async () => {
+      const raw = await migrationInvoke<unknown>('seasonal', 'seasonal_challenge_spotlight', {}, accessToken!)
+      return parseSeasonalSpotlight(raw)
+    },
     enabled: !!accessToken,
+  })
+}
+
+export function useSeasonalPastChallenges() {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['seasonal', 'past'],
+    queryFn: async () => {
+      const raw = await migrationInvoke<SeasonalPastChallenge[] | null>(
+        'seasonal',
+        'seasonal_past_challenges_list',
+        {},
+        accessToken!,
+      )
+      return raw ?? []
+    },
+    enabled: !!accessToken,
+  })
+}
+
+export function useSeasonalProgress(challengeId: string | undefined) {
+  const { accessToken } = useAuth()
+  return useQuery({
+    queryKey: ['seasonal', 'progress', challengeId],
+    queryFn: () =>
+      migrationInvoke<SeasonalChallengeProgress>(
+        'seasonal',
+        'seasonal_challenge_progress',
+        { p_challenge_id: challengeId },
+        accessToken!,
+      ),
+    enabled: !!accessToken && !!challengeId,
+  })
+}
+
+export function useJoinSeasonalChallenge() {
+  const { accessToken } = useAuth()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (challengeId: string) =>
+      migrationInvoke<Record<string, never>>(
+        'seasonal',
+        'joinChallenge',
+        { challenge_id: challengeId },
+        accessToken!,
+      ),
+    onSuccess: (_data, challengeId) => {
+      qc.invalidateQueries({ queryKey: ['seasonal', 'progress', challengeId] })
+      qc.invalidateQueries({ queryKey: ['seasonal', 'spotlight'] })
+      qc.invalidateQueries({ queryKey: ['community', 'challenges'] })
+    },
   })
 }
 

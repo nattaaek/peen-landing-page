@@ -6,7 +6,7 @@ Mobile reference: `peen-ios/peen/`.
 
 ## Status (May 2026)
 
-The web app is **largely aligned** with the designer prototype for shell, feed, crags, profile, and crew. Remaining gaps are mostly **partner messaging/requests** (no web compose yet), **server-synced comment likes**, and **challenge route checklists** (detail lives on iOS).
+The web app is **largely aligned** with the designer prototype for shell, feed, crags, profile, and crew. Remaining gaps are mostly **partner messaging/requests** (no web compose yet) and **server-synced comment likes**.
 
 ## Coverage (~80% of design + core iOS community)
 
@@ -16,7 +16,7 @@ The web app is **largely aligned** with the designer prototype for shell, feed, 
 | Feed | Filters, inline comments with reply (@mention) + local likes, follow, wishlist, deep links — [backlog](./FEED_PARITY_BACKLOG.md) |
 | Crags | Map overlay, zoom, preview card, wishlist filter |
 | Profile | 4-stat grid, heatmap, crew rank, privacy toggle, public peek |
-| Crew | Tabs; weekly + year leaderboard, shared projects, beta spray, partners filters, challenge list |
+| Crew | Tabs; weekly + year leaderboard, shared projects, beta spray, partners filters, seasonal challenges + detail |
 | Notifications | Drawer, mark read, route + climb + crew links |
 
 ## Implemented in web
@@ -27,7 +27,7 @@ The web app is **largely aligned** with the designer prototype for shell, feed, 
 - Activity heatmap (12-week grid, streak)
 - Crew rank from `community_fetch_weekly_leaderboard`
 - Crew tab: `community_fetch_shared_projects`, `community_fetch_beta_spray`, invites count
-- Challenges: `fetchChallenges` in sidebar + Challenges tab
+- Seasonal challenges: spotlight card, past seasons, detail slide-over (progress, join, route checklist)
 - Comment reply (prefill @handle) and like (browser-local until API exists)
 
 ## Still open / intentional limits
@@ -36,7 +36,6 @@ The web app is **largely aligned** with the designer prototype for shell, feed, 
 - **Comment threading** — replies are flat comments with @mentions, not `parent_id`
 - **Partner Message / Request** — buttons present; full flow is iOS-first
 - **Crew invite / manage** — view invites count; send/manage on iOS
-- **Challenge route checklist** — seasonal hero only on web
 - **Post partner availability** — web links to profile / iOS
 
 **Feed gaps (prioritized):** [FEED_PARITY_BACKLOG.md](./FEED_PARITY_BACKLOG.md)
