@@ -1,1 +1,1 @@
-// TEST WRITE - will be replaced with full restore
+@file:/workspace/_content
