@@ -1,1 +1,1 @@
-@file:/tmp/peen_restore_content.jsx
+// TEST WRITE - will be replaced with full restore
