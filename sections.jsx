@@ -1,1 +1,1 @@
-PLACEHOLDER_LOAD_FROM_FILE
+@file:/tmp/peen_restore_content.jsx
