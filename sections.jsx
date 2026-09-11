@@ -3,6 +3,7 @@
 
 function Nav({ tweaks, setTweak }) {
   const APP_STORE_URL = 'https://apps.apple.com/th/app/peen-climbing-companion/id6759548288';
+  const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.harvestidea.peen&hl=en';
   const WEB_APP_URL = '/app/';
   return (
     <nav style={{
@@ -38,6 +39,14 @@ function Nav({ tweaks, setTweak }) {
         }}>
           <PIcon name="apple" size={14} color="#fff"/> {tweaks.ctaText}
         </a>
+        <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          padding: '9px 16px', background: PEEN.fg1, color: '#fff',
+          borderRadius: 999, fontFamily: PFONT, fontSize: 13, fontWeight: 600,
+          textDecoration: 'none', boxShadow: '0 6px 14px rgba(0,0,0,0.10)',
+        }}>
+          <PIcon name="google-play" size={14} color="#fff"/> Google Play
+        </a>
       </div>
     </nav>
   );
@@ -45,6 +54,7 @@ function Nav({ tweaks, setTweak }) {
 
 function Hero({ tweaks }) {
   const APP_STORE_URL = 'https://apps.apple.com/th/app/peen-climbing-companion/id6759548288';
+  const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.harvestidea.peen&hl=en';
   return (
     <section id="top" style={{
       position: 'relative', minHeight: '100vh', overflow: 'hidden',
@@ -122,6 +132,24 @@ function Hero({ tweaks }) {
               <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 }}>
                 <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.75 }}>Download on the</span>
                 <span style={{ fontSize: 16, fontWeight: 700 }}>App Store</span>
+              </span>
+            </a>
+            <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '14px 22px', borderRadius: 14,
+              background: '#000', color: '#fff', textDecoration: 'none',
+              fontFamily: PFONT, fontSize: 15, fontWeight: 600,
+              boxShadow: '0 12px 22px rgba(0,0,0,0.18)',
+              transition: 'transform .2s',
+            }}
+            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.97)'}
+            onMouseUp={e => e.currentTarget.style.transform = ''}
+            onMouseLeave={e => e.currentTarget.style.transform = ''}
+            >
+              <PIcon name="google-play" size={18} color="#fff"/>
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 }}>
+                <span style={{ fontSize: 10, fontWeight: 400, opacity: 0.75 }}>GET IT ON</span>
+                <span style={{ fontSize: 16, fontWeight: 700 }}>Google Play</span>
               </span>
             </a>
             <a href="#community" style={{
@@ -492,6 +520,7 @@ function ForGyms({ tweaks }) {
 // ----- Final CTA -----
 function FinalCTA({ tweaks }) {
   const APP_STORE_URL = 'https://apps.apple.com/th/app/peen-climbing-companion/id6759548288';
+  const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.harvestidea.peen&hl=en';
   const WEB_APP_URL = '/app/';
   return (
     <section id="download" style={{
@@ -529,6 +558,19 @@ function FinalCTA({ tweaks }) {
               <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 }}>
                 <span style={{ fontSize: 11, fontWeight: 400, opacity: 0.75 }}>Download on the</span>
                 <span style={{ fontSize: 17, fontWeight: 700 }}>App Store</span>
+              </span>
+            </a>
+            <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 10,
+              padding: '16px 26px', borderRadius: 14,
+              background: '#000', color: '#fff', textDecoration: 'none',
+              fontFamily: PFONT, fontSize: 16, fontWeight: 600,
+              boxShadow: '0 12px 22px rgba(0,0,0,0.18)',
+            }}>
+              <PIcon name="google-play" size={20} color="#fff"/>
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 }}>
+                <span style={{ fontSize: 11, fontWeight: 400, opacity: 0.75 }}>GET IT ON</span>
+                <span style={{ fontSize: 17, fontWeight: 700 }}>Google Play</span>
               </span>
             </a>
             <a href={WEB_APP_URL} style={{

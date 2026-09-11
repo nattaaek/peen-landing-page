@@ -53,6 +53,7 @@ function PIcon({ name, size = 22, color = 'currentColor', strokeWidth = 2, fill 
     case 'qr':             return <svg {...p}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3M21 14v3M14 21h7M17 17v4"/></svg>;
     case 'carabiner':      return <svg {...p}><path d="M12 3a6 6 0 0 1 6 6v9a3 3 0 0 1-6 0V9a6 6 0 1 0-6 6"/><path d="M9 12h3"/></svg>;
     case 'arrow-down':     return <svg {...p}><path d="M12 5v14M5 12l7 7 7-7"/></svg>;
+    case 'google-play':    return <svg {...{...p, fill: color, stroke: 'none'}}><path d="M3.6 2.8c-.4.2-.6.6-.6 1.1v16.2c0 .5.2.9.6 1.1l.2.1 10.2-10.2v-.2L3.8 2.7l-.2.1zm12.1 7.1-2.3 2.3 2.3 2.3 2.7-1.5c.7-.4.7-1.4 0-1.8l-2.7-1.3zM14.2 13.4 3.9 23.7c.2 0 .3.1.5 0l11.1-6.4-1.3-1.9zM4.4 2.3c-.2-.1-.3 0-.5 0l10.3 10.3 1.3-1.3L4.4 2.3z"/></svg>;
     default: return null;
   }
 }
