@@ -8,6 +8,7 @@ import { PhotoLightbox } from './PhotoLightbox'
 import { PopDivider, PopItem, Popover } from './Popover'
 import { achievementDef } from '../domain/achievements'
 import { buildClimbShareUrl } from '../lib/climbDeepLink'
+import { climbLocationName, shareClimb } from '../lib/climbShare'
 import { formatWhen } from '../lib/formatWhen'
 import { SEND_COLORS } from '../types/api'
 import type { FeedClimbRow } from '../types/api'
@@ -174,6 +175,21 @@ export function FeedCard({
     setMoreOpen(false)
   }
 
+  const richShare = () => {
+    void shareClimb({
+      climbId: post.id,
+      routeName: post.route?.name,
+      locationName: climbLocationName(post.route),
+      onToast,
+    })
+    setMoreOpen(false)
+  }
+
+  const handleShareButton = () => {
+    if (isSelf) richShare()
+    else copyLink()
+  }
+
   return (
     <article
       id={`feed-climb-${post.id}`}
@@ -250,7 +266,14 @@ export function FeedCard({
                   setMoreOpen(false)
                 })}
               />
-              <PopItem icon="share" label="Copy link" onClick={copyLink} />
+              {isSelf ? (
+                <>
+                  <PopItem icon="share" label="Share…" onClick={richShare} />
+                  <PopItem icon="share" label="Copy link" onClick={copyLink} />
+                </>
+              ) : (
+                <PopItem icon="share" label="Copy link" onClick={copyLink} />
+              )}
               <PopItem
                 icon={isFollowing ? 'check' : 'plus'}
                 label={isFollowing ? `Unfollow ${name}` : `Follow ${name}`}
@@ -356,10 +379,10 @@ export function FeedCard({
           className="act-btn"
           onClick={(e) => {
             e.stopPropagation()
-            copyLink()
+            handleShareButton()
           }}
-          aria-label="Copy link to send"
-          title="Copy link"
+          aria-label={isSelf ? 'Share send' : 'Copy link to send'}
+          title={isSelf ? 'Share' : 'Copy link'}
         >
           <Icon name="share" size={16} />
         </button>

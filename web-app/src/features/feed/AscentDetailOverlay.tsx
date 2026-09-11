@@ -5,7 +5,7 @@ import { Icon, SendBadge } from '../../components/Icon'
 import { PhotoLightbox } from '../../components/PhotoLightbox'
 import { useAuth } from '../auth/AuthProvider'
 import { usePublicClimb } from '../../hooks/useMigration'
-import { buildClimbShareUrl } from '../../lib/climbDeepLink'
+import { climbLocationName, shareClimb } from '../../lib/climbShare'
 import { formatWhen } from '../../lib/formatWhen'
 import { parseRouteId } from '../../lib/routeIds'
 import { profileDisplayName, profileHandle } from '../../lib/peen-api/profiles'
@@ -14,11 +14,6 @@ import type { FeedClimbRow } from '../../types/api'
 
 function climbPhotoUrls(post: FeedClimbRow): string[] {
   return (post.photo_urls ?? []).filter((u) => u?.trim().startsWith('http'))
-}
-
-function routeLocation(route: FeedClimbRow['route']) {
-  if (!route) return null
-  return route.area?.name ?? route.gym?.name ?? null
 }
 
 export function AscentDetailOverlay({
@@ -55,13 +50,13 @@ export function AscentDetailOverlay({
   const sendType = (post?.send_type ?? 'attempt').toLowerCase()
   const stripeColor = SEND_COLORS[sendType] ?? 'var(--tint)'
 
-  const copyLink = () => {
-    try {
-      void navigator.clipboard?.writeText(buildClimbShareUrl(climbId))
-    } catch {
-      /* ignore */
-    }
-    onToast?.('Link copied')
+  const handleShare = () => {
+    void shareClimb({
+      climbId,
+      routeName: post?.route?.name,
+      locationName: climbLocationName(post?.route),
+      onToast,
+    })
   }
 
   return (
@@ -74,7 +69,7 @@ export function AscentDetailOverlay({
           </button>
           <div className="route-detail-head-title">Ascent</div>
           {isSelf ? (
-            <button type="button" className="icon-btn" aria-label="Copy link" onClick={copyLink}>
+            <button type="button" className="icon-btn" aria-label="Share" onClick={handleShare}>
               <Icon name="share" size={18} />
             </button>
           ) : (
@@ -129,7 +124,7 @@ export function AscentDetailOverlay({
                   <div className="info">
                     <div className="name">{post.route.name}</div>
                     <div className="meta">
-                      {[routeLocation(post.route), post.route.style_tags?.[0]]
+                      {[climbLocationName(post.route), post.route.style_tags?.[0]]
                         .filter(Boolean)
                         .join(' · ')}
                     </div>
