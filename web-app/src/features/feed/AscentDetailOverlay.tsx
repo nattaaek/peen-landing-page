@@ -59,7 +59,7 @@ export function AscentDetailOverlay({
     void shareClimb({
       climbId,
       routeName: post?.route?.name,
-      grade: post?.route?.grade,
+      locationName: routeLocation(post?.route),
       onToast,
     })
   }

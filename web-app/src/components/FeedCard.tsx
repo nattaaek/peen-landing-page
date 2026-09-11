@@ -23,6 +23,11 @@ function routeMeta(route: FeedClimbRow['route']) {
   return parts.join(' · ')
 }
 
+function climbLocationName(route: FeedClimbRow['route']): string | null {
+  if (!route) return null
+  return route.area?.name ?? route.gym?.name ?? null
+}
+
 function climbPhotoUrls(post: FeedClimbRow): string[] {
   return (post.photo_urls ?? []).filter((u) => u?.trim().startsWith('http')).slice(0, 3)
 }
@@ -175,18 +180,19 @@ export function FeedCard({
     setMoreOpen(false)
   }
 
-  const handleShare = () => {
-    if (isSelf) {
-      void shareClimb({
-        climbId: post.id,
-        routeName: post.route?.name,
-        grade: post.route?.grade,
-        onToast,
-      })
-      setMoreOpen(false)
-      return
-    }
-    copyLink()
+  const richShare = () => {
+    void shareClimb({
+      climbId: post.id,
+      routeName: post.route?.name,
+      locationName: climbLocationName(post.route),
+      onToast,
+    })
+    setMoreOpen(false)
+  }
+
+  const handleShareButton = () => {
+    if (isSelf) richShare()
+    else copyLink()
   }
 
   return (
@@ -265,11 +271,14 @@ export function FeedCard({
                   setMoreOpen(false)
                 })}
               />
-              <PopItem
-                icon="share"
-                label={isSelf ? 'Share' : 'Copy link'}
-                onClick={handleShare}
-              />
+              {isSelf ? (
+                <>
+                  <PopItem icon="share" label="Share…" onClick={richShare} />
+                  <PopItem icon="share" label="Copy link" onClick={copyLink} />
+                </>
+              ) : (
+                <PopItem icon="share" label="Copy link" onClick={copyLink} />
+              )}
               <PopItem
                 icon={isFollowing ? 'check' : 'plus'}
                 label={isFollowing ? `Unfollow ${name}` : `Follow ${name}`}
@@ -375,7 +384,7 @@ export function FeedCard({
           className="act-btn"
           onClick={(e) => {
             e.stopPropagation()
-            handleShare()
+            handleShareButton()
           }}
           aria-label={isSelf ? 'Share send' : 'Copy link to send'}
           title={isSelf ? 'Share' : 'Copy link'}
