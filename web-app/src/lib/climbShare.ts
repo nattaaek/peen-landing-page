@@ -6,6 +6,19 @@ export const CLIMB_SHARE_BRAND_HANDLE = '@getpeen'
 /** Mirrors peen-ios `InstagramReelCaptionBuilder.baseHashtags` (use `#PeenSend`, not `#Peen`). */
 export const CLIMB_SHARE_BASE_HASHTAGS = ['#PeenSend', '#climbing'] as const
 
+/** Area/gym display name from a feed climb route (shared by FeedCard + AscentDetailOverlay). */
+export function climbLocationName(
+  route?:
+    | {
+        area?: { name?: string | null } | null
+        gym?: { name?: string | null } | null
+      }
+    | null,
+): string | null {
+  if (!route) return null
+  return route.area?.name ?? route.gym?.name ?? null
+}
+
 /** `#bangkok` style slug from location text (first segment before comma). */
 export function cityHashtag(from?: string | null): string | null {
   const raw = from?.trim()
@@ -41,6 +54,15 @@ export function buildClimbShareCaption(opts: {
   return `${line1}\n${opts.url}\n${tags.join(' ')}`
 }
 
+function isAbortError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'name' in err &&
+    (err as { name: unknown }).name === 'AbortError'
+  )
+}
+
 export async function shareClimb({
   climbId,
   routeName,
@@ -55,17 +77,21 @@ export async function shareClimb({
   const url = buildClimbShareUrl(climbId)
   const text = buildClimbShareCaption({ routeName, locationName, url })
 
-  if (navigator.share) {
+  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
     try {
       await navigator.share({ url, text })
       return
     } catch (err) {
-      // Sheet cancel is non-fatal.
-      if (err instanceof Error && err.name === 'AbortError') return
+      // Sheet cancel is non-fatal; other share failures fall through to clipboard.
+      if (isAbortError(err)) return
     }
   }
 
   try {
+    if (!navigator.clipboard?.writeText) {
+      onToast?.('Could not share send')
+      return
+    }
     await navigator.clipboard.writeText(text)
     onToast?.('Caption + link copied')
   } catch {

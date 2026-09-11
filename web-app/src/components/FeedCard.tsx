@@ -8,7 +8,7 @@ import { PhotoLightbox } from './PhotoLightbox'
 import { PopDivider, PopItem, Popover } from './Popover'
 import { achievementDef } from '../domain/achievements'
 import { buildClimbShareUrl } from '../lib/climbDeepLink'
-import { shareClimb } from '../lib/climbShare'
+import { climbLocationName, shareClimb } from '../lib/climbShare'
 import { formatWhen } from '../lib/formatWhen'
 import { SEND_COLORS } from '../types/api'
 import type { FeedClimbRow } from '../types/api'
@@ -21,11 +21,6 @@ function routeMeta(route: FeedClimbRow['route']) {
     route.length_meters != null ? `${route.length_meters}m` : null,
   ].filter(Boolean)
   return parts.join(' · ')
-}
-
-function climbLocationName(route: FeedClimbRow['route']): string | null {
-  if (!route) return null
-  return route.area?.name ?? route.gym?.name ?? null
 }
 
 function climbPhotoUrls(post: FeedClimbRow): string[] {

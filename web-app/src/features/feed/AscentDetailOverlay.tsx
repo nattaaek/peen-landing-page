@@ -5,7 +5,7 @@ import { Icon, SendBadge } from '../../components/Icon'
 import { PhotoLightbox } from '../../components/PhotoLightbox'
 import { useAuth } from '../auth/AuthProvider'
 import { usePublicClimb } from '../../hooks/useMigration'
-import { shareClimb } from '../../lib/climbShare'
+import { climbLocationName, shareClimb } from '../../lib/climbShare'
 import { formatWhen } from '../../lib/formatWhen'
 import { parseRouteId } from '../../lib/routeIds'
 import { profileDisplayName, profileHandle } from '../../lib/peen-api/profiles'
@@ -14,11 +14,6 @@ import type { FeedClimbRow } from '../../types/api'
 
 function climbPhotoUrls(post: FeedClimbRow): string[] {
   return (post.photo_urls ?? []).filter((u) => u?.trim().startsWith('http'))
-}
-
-function routeLocation(route: FeedClimbRow['route']) {
-  if (!route) return null
-  return route.area?.name ?? route.gym?.name ?? null
 }
 
 export function AscentDetailOverlay({
@@ -59,7 +54,7 @@ export function AscentDetailOverlay({
     void shareClimb({
       climbId,
       routeName: post?.route?.name,
-      locationName: routeLocation(post?.route),
+      locationName: climbLocationName(post?.route),
       onToast,
     })
   }
@@ -129,7 +124,7 @@ export function AscentDetailOverlay({
                   <div className="info">
                     <div className="name">{post.route.name}</div>
                     <div className="meta">
-                      {[routeLocation(post.route), post.route.style_tags?.[0]]
+                      {[climbLocationName(post.route), post.route.style_tags?.[0]]
                         .filter(Boolean)
                         .join(' · ')}
                     </div>
