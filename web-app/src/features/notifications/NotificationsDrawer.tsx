@@ -131,7 +131,7 @@ export function NotificationsDrawer({
   onClose: () => void
   onSignIn: () => void
   isGuest: boolean
-  onNavigate?: (entityType?: string, entityId?: string) => void
+  onNavigate?: (entityType?: string, entityId?: string, notificationType?: string) => void
 }) {
   const inboxQ = useInbox()
   const markRead = useMarkNotificationRead()
@@ -150,7 +150,7 @@ export function NotificationsDrawer({
         /* ignore */
       }
     }
-    onNavigate?.(n.entity_type, n.entity_id)
+    onNavigate?.(n.entity_type, n.entity_id, n.type ?? n.kind)
     onClose()
   }
 

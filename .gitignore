@@ -18,3 +18,8 @@ web-app/.env.local
 Thumbs.db
 .vercel
 .env*
+
+# Local quality evidence and role handoffs
+coverage/
+.gauntlet/runs/
+.gauntlet/scripts/

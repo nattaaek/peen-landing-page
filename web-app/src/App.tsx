@@ -15,6 +15,7 @@ import { RouteDetailOverlay } from './features/route/RouteDetail'
 import { applyClimbSearchParam, climbIdFromSearchParams } from './lib/climbDeepLink'
 import { applyRouteSearchParam, routeIdFromSearchParams } from './lib/routeDeepLink'
 import { parseRouteId } from './lib/routeIds'
+import { resolveNotificationNavigation } from './lib/notificationNavigation'
 import type { ApiRoute, FeedClimbRow } from './types/api'
 
 type AscentOverlayState = {
@@ -128,29 +129,26 @@ function AppLayout() {
   )
 
   const onNotificationNavigate = useCallback(
-    (entityType?: string, entityId?: string) => {
+    (entityType?: string, entityId?: string, notificationType?: string) => {
       setNotifsOpen(false)
-      if (!entityId) return
-      const type = entityType?.toLowerCase()
-      if (type === 'route' || type === 'routes') {
-        openRouteById(entityId)
-        return
-      }
-      if (type === 'climb') {
+      const navigation = resolveNotificationNavigation({ entityType, entityId, notificationType })
+      if (navigation.destination === 'route') {
+        openRouteById(navigation.id)
+      } else if (navigation.destination === 'climb') {
         navigate('/feed')
-        openAscent(entityId, { expandComments: true })
-        return
-      }
-      if (type === 'crew_invite') {
+        openAscent(navigation.id, { expandComments: true })
+      } else if (navigation.destination === 'crew') {
         navigate('/crew')
-        return
-      }
-      if (type === 'belay_verify_request' || type === 'belay_verify_result') {
+      } else if (navigation.destination === 'public-profile') {
+        setPublicProfile({ userId: navigation.id })
+      } else if (navigation.destination === 'profile-guidance') {
         navigate('/profile')
-        setToast('Respond to belay verification in the Peen iOS or Android app.')
+        setToast(navigation.message)
+      } else if ('message' in navigation) {
+        setToast(navigation.message)
       }
     },
-    [openRouteById, navigate, openAscent],
+    [openRouteById, navigate, openAscent, setToast],
   )
 
   return (

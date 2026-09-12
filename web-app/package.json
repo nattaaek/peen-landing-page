@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test": "node --experimental-strip-types --test src/lib/*.test.ts",
     "dev": "vite",
     "build": "tsc -b && vite build && vite build --config vite.auth.config.ts && cp ../auth/callback/auth-callback.html ../auth/callback/index.html",
     "lint": "eslint .",
