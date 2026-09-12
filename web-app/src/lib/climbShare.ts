@@ -1,4 +1,4 @@
-import { buildClimbShareUrl } from './climbDeepLink'
+import { buildClimbShareUrl } from './climbDeepLink.ts'
 
 /** Mirrors peen-ios `InstagramReelCaptionBuilder.brandHandle`. */
 export const CLIMB_SHARE_BRAND_HANDLE = '@getpeen'

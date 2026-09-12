@@ -24,7 +24,7 @@ jobs:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-anon-key
           VITE_PEEN_API_URL: https://api.peen.app
-        run: npm ci --prefix web-app && npm run build --prefix web-app
+        run: npm ci --prefix web-app && npm test --prefix web-app && npm run build --prefix web-app
 
       - name: Verify key files exist
         run: |

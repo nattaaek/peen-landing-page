@@ -1,0 +1,11 @@
+{
+  "libPrefix": "web-app/src/lib/",
+  "srcRoot": "web-app/src",
+  "testGlob": "web-app/src/lib/*.test.ts",
+  "layers": {
+    "app": ["web-app/src/App.tsx"],
+    "components": ["web-app/src/components/", "web-app/src/features/"],
+    "lib": ["web-app/src/lib/"],
+    "utils": ["web-app/src/utils/"]
+  }
+}
