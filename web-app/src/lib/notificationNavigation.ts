@@ -40,6 +40,8 @@ export function resolveNotificationNavigation({
   }
   if (
     type === 'belay_verification' ||
+    type === 'belay_verify_request' ||
+    type === 'belay_verify_result' ||
     kind === 'belay_verify_request' ||
     kind === 'belay_verify_result'
   ) {

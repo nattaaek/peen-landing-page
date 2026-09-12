@@ -114,3 +114,10 @@ test('rich share uses system share and preserves clipboard fallback and cancella
   await shareClimb(opts)
   assert.equal(notices.at(-1), 'Could not share send')
 })
+
+test('preserves legacy belay entity aliases and plural route targets', () => {
+  for (const entityType of ['belay_verify_request', 'belay_verify_result']) {
+    assert.equal(resolveNotificationNavigation({ entityType, entityId: 'request-1' }).destination, 'profile-guidance')
+  }
+  assert.deepEqual(resolveNotificationNavigation({ entityType: 'routes', entityId: 'route-1' }), { destination: 'route', id: 'route-1' })
+})
