@@ -19,7 +19,7 @@
 5. Given the reels service returns data, reload the feed and verify the `Community reels` header and returned tiles appear. Open one tile and verify Instagram opens in a separate tab or window. Repeat with an empty response and verify no empty carousel is shown.
 6. Given a feed item has a featured achievement, verify its badge is visible on the card. Open the climber's public profile peek and verify the featured badge and achievements strip. Repeat with an empty or failed achievement response; verify the profile remains usable and does not show broken tiles.
 7. Given the feed is loaded, activate refresh. Verify skeleton/loading feedback appears, the feed updates in place, the URL/screen stays on Feed, and `Feed refreshed` appears after success. Capture the three skeleton cards while the initial feed request is pending.
-8. Given the Inbox contains each notification fixture, open the drawer and tap each row. Verify the app attempts the mark-read operation and the drawer closes. Use the fixture's `type` (kind) and `entity_type` separately: route→route detail, climb/like/send-it/comment→send detail, crew_invite→Crew, belay request/result with `entity_type=belay_verification`→Profile with guidance, follow with `entity_type=user`→sender profile, and climb_request→sender profile. Unsupported or stale targets must show a clear supported-app message.
+8. Given the Inbox contains each notification fixture, open the drawer and tap each row. Verify the app attempts the mark-read operation and the drawer closes. Use the fixture's `type` (kind) and `entity_type` separately: route→route detail, climb/like/send-it/comment→send detail, crew_invite→Crew, belay request/result with `entity_type=belay_verification`→Profile with guidance, follow with `entity_type=user`→sender profile, and climb_request→explicit native-app guidance (the entity ID identifies the request). Unsupported or stale targets must show a clear supported-app message.
 
 ## Edge cases
 
@@ -36,3 +36,11 @@
 
 - Pass if: every P1 exit is observable; refresh and skeleton behavior satisfy P2-1/P2-2; every notification fixture reaches the declared destination or presents explicit supported-app guidance; no regression appears in filters, inline comments, deep links, or guest gating.
 - Fail if: an owner share is URL-only, another user's share exposes the rich path, canceling share throws an error, reels/achievements are absent when data exists, refresh reloads the page, skeletons are absent, or any notification tap silently does nothing.
+
+## Execution checkpoint — 2026-09-13
+
+Actual production main: signed-in feed and another climber's link action verified (`Link copied`). Profile logs were an HTTP200 empty array from the production API; no synthetic production content was created.
+
+Actual candidate App with isolated DEV-only authentication and disposable fixture API: Inbox follow/profile, belay request/result/Profile+guidance, climb-request guidance, unknown feedback, crew screen, route overlay and climb/comment overlay passed. Featured badges/profile strip and empty achievements passed. Community reels visible/empty states and separate Instagram destination passed. Delayed initial feed rendered exactly three skeleton cards; refresh disabled during loading and showed `Feed refreshed` in place. Own More menu includes separate rich-share and URL-only actions; owner URL-only and other footer show `Link copied`.
+
+Remaining observation: native rich-share payload/clipboard content from the actual App is not yet captured; unit capability tests verify the payload but are distinct evidence. Preview's missing public Supabase/API environment scope was corrected in Vercel; its new build and hosted sign-in still require verification. Detailed local logs and fixture harness remain in ignored `coverage/`.

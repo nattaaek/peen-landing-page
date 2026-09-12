@@ -99,7 +99,7 @@ Feature: Hosted feed parity acceptance
       | like                  | climb              | climb-1   | the send detail overlay         |
       | sendit                | climb              | climb-1   | the send detail overlay         |
       | comment               | climb              | climb-1   | the send detail overlay         |
-      | climb_request         | climb_request      | request-1 | the sender's profile peek       |
+      | climb_request         | climb_request      | request-1 | native-app guidance             |
 
   Scenario: An unsupported inbox notification explains what to do
     Given the inbox contains a notification type the web app cannot open
