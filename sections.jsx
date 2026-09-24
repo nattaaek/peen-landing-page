@@ -1,6 +1,26 @@
 // Landing page sections — Hero, Features, SendTypes, Phones gallery, Community, Stats, CTA, Footer
 // Uses primitives.jsx + phone-screens.jsx
 
+const PEEN_SOCIAL_LINKS = [
+  ['Instagram', 'https://www.instagram.com/getpeen/'],
+  ['Facebook', 'https://www.facebook.com/get.peen'],
+];
+
+function SocialLinks({ centered = false }) {
+  return (
+    <div style={{ marginTop: 20, fontFamily: PFONT, fontSize: 14, color: PEEN.fg1 }}>
+      <p style={{ margin: '0 0 4px' }}>follow peen. keep climbing.</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, justifyContent: centered ? 'center' : 'flex-start' }}>
+        {PEEN_SOCIAL_LINKS.map(([label, href]) => (
+          <a key={label} href={href} style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, color: PEEN.fg1, fontWeight: 600, textUnderlineOffset: 4 }}>
+            Follow on {label}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Nav({ tweaks, setTweak }) {
   const APP_STORE_URL = 'https://apps.apple.com/th/app/peen-climbing-companion/id6759548288';
   const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.harvestidea.peen&hl=en';
@@ -163,6 +183,8 @@ function Hero({ tweaks }) {
               <PIcon name="play" size={12} color={PEEN.fg1}/> see the app
             </a>
           </div>
+
+          <SocialLinks/>
 
           {/* three-bullet rhythm — brand signature */}
           <div style={{ marginTop: 36, display: 'flex', gap: 24, flexWrap: 'wrap' }}>
@@ -591,6 +613,7 @@ function FinalCTA({ tweaks }) {
               <PIcon name="qr" size={18} color={PEEN.fg1}/> get a launch flyer
             </a>
           </div>
+          <SocialLinks centered/>
         </Reveal>
       </div>
     </section>
@@ -614,7 +637,7 @@ function Footer() {
         <div style={{ display: 'flex', gap: 48, flexWrap: 'wrap' }}>
           {[
             { h: 'product', items: [['Features','#features'],['Send types','#sends'],['Stats','#community'],['Maps','#community']] },
-            { h: 'community', items: [['Crew','#community'],['Partners','#community'],['Challenges','#community']] },
+            { h: 'community', items: [['Crew','#community'],['Partners','#community'],['Challenges','#community'], ...PEEN_SOCIAL_LINKS] },
             { h: 'company', items: [['About','#top'],['Use on web','/app/'],['Privacy','privacy.html'],['Delete account','delete-account.html'],['Terms','terms.html'],['Press kit','mailto:hello@peen.app?subject=Press%20kit']] },
           ].map(col => (
             <div key={col.h}>
