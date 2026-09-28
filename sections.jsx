@@ -453,6 +453,9 @@ function PhonesGallery() {
           <h2 style={{ margin: '8px 0 0', fontFamily: PFONT, fontSize: 'clamp(36px, 5vw, 64px)', fontWeight: 700, letterSpacing: '-1.5px', lineHeight: 1.05 }}>
             built for the gym, the crag, the carpool.
           </h2>
+          <p style={{ margin: '20px auto 0', maxWidth: 640, fontFamily: PFONT, fontSize: 17, lineHeight: 1.6, color: PEEN.fg2 }}>
+            Share your send on Instagram: tag <a href="https://www.instagram.com/getpeen/" style={{ color: PEEN.fg1, fontWeight: 700, textUnderlineOffset: 4 }}>@getpeen</a> + <strong>#PeenSend</strong>. Eligible public reels may appear in Peen’s community feed.
+          </p>
         </Reveal>
 
         <div className="peen-phones-row" style={{
