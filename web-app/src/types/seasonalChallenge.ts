@@ -48,6 +48,7 @@ export interface SeasonalChallengeProgress {
   achievement_id?: string
   start_date: string
   end_date: string
+  requires_invitation?: boolean
   enrolled: boolean
   routes: SeasonalRouteProgress[]
   routes_completed_count: number

@@ -1,3 +1,4 @@
+import { submitSeasonalInvitation } from '../lib/seasonalInvitation'
 import { useMemo } from 'react'
 import {
   useInfiniteQuery,
@@ -629,9 +630,9 @@ export function useSeasonalPastChallenges() {
 }
 
 export function useSeasonalProgress(challengeId: string | undefined) {
-  const { accessToken } = useAuth()
+  const { accessToken, user } = useAuth()
   return useQuery({
-    queryKey: ['seasonal', 'progress', challengeId],
+    queryKey: ['seasonal', 'progress', challengeId, user?.id],
     queryFn: () =>
       migrationInvoke<SeasonalChallengeProgress>(
         'seasonal',
@@ -647,14 +648,12 @@ export function useJoinSeasonalChallenge() {
   const { accessToken } = useAuth()
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (challengeId: string) =>
-      migrationInvoke<Record<string, never>>(
-        'seasonal',
-        'joinChallenge',
-        { challenge_id: challengeId },
-        accessToken!,
+    mutationFn: ({ challengeId, invitationCode }: { challengeId: string; invitationCode: string }) =>
+      submitSeasonalInvitation(
+        params => migrationInvoke<Record<string, never>>('seasonal', 'joinChallenge', params, accessToken!),
+        challengeId, invitationCode,
       ),
-    onSuccess: (_data, challengeId) => {
+    onSuccess: (_data, { challengeId }) => {
       qc.invalidateQueries({ queryKey: ['seasonal', 'progress', challengeId] })
       qc.invalidateQueries({ queryKey: ['seasonal', 'spotlight'] })
       qc.invalidateQueries({ queryKey: ['community', 'challenges'] })
