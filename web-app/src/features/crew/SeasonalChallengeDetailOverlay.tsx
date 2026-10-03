@@ -1,4 +1,6 @@
-import { useMemo } from 'react'
+import { invitationErrorMessage, invitationFormKey } from '../../lib/seasonalInvitation'
+import { useMemo, useState } from 'react'
+import { useAuth } from '../auth/AuthProvider'
 import { Icon } from '../../components/Icon'
 import { TopoLines } from '../../components/TopoLines'
 import {
@@ -104,6 +106,46 @@ function GradeBucket({
   )
 }
 
+function SeasonalJoinBlock({ progress, isGuest, onSignIn }: Readonly<{
+  progress: SeasonalChallengeProgress
+  isGuest: boolean
+  onSignIn?: () => void
+}>) {
+  const joinM = useJoinSeasonalChallenge()
+  const [invitationCode, setInvitationCode] = useState('')
+  return (
+        <div className="seasonal-join-block">
+          <p className="muted">
+            Join to track progress and unlock the finisher badge for this season.
+          </p>
+          {progress.requires_invitation && !isGuest ? (
+            <label>
+              <span>Invitation code</span>
+              <input type="password" autoComplete="off" spellCheck={false} value={invitationCode}
+                onChange={(event) => setInvitationCode(event.target.value)} aria-label="Invitation code" />
+            </label>
+          ) : null}
+          {isGuest ? (
+            <button type="button" className="btn btn-primary" onClick={onSignIn}>
+              Sign in to join
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={joinM.isPending || (progress.requires_invitation && !invitationCode.trim())}
+              onClick={() => joinM.mutate({ challengeId: progress.challenge_id, invitationCode }, { onSuccess: () => setInvitationCode('') })}
+            >
+              {joinM.isPending ? 'Joining…' : 'Join challenge'}
+            </button>
+          )}
+          {joinM.isError ? (
+            <p className="seasonal-error">{invitationErrorMessage(joinM.error)}</p>
+          ) : null}
+        </div>
+  )
+}
+
 function ChallengeBody({
   progress,
   onOpenRoute,
@@ -115,7 +157,6 @@ function ChallengeBody({
   onSignIn?: () => void
   isGuest: boolean
 }) {
-  const joinM = useJoinSeasonalChallenge()
   const buckets = useMemo(() => groupRoutesByGrade(progress.routes), [progress.routes])
   const pct = challengeProgressPct(progress)
   const daysLeft = daysLeftUntilEnd(progress.end_date)
@@ -152,30 +193,7 @@ function ChallengeBody({
         <div className="seasonal-progress-pct">{pct}% complete</div>
       </div>
 
-      {!progress.enrolled ? (
-        <div className="seasonal-join-block">
-          <p className="muted">
-            Join to track progress and unlock the finisher badge for this season.
-          </p>
-          {isGuest ? (
-            <button type="button" className="btn btn-primary" onClick={onSignIn}>
-              Sign in to join
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={joinM.isPending}
-              onClick={() => joinM.mutate(progress.challenge_id)}
-            >
-              {joinM.isPending ? 'Joining…' : 'Join challenge'}
-            </button>
-          )}
-          {joinM.isError ? (
-            <p className="seasonal-error">Could not join. Try again.</p>
-          ) : null}
-        </div>
-      ) : null}
+      {!progress.enrolled ? <SeasonalJoinBlock progress={progress} isGuest={isGuest} onSignIn={onSignIn} /> : null}
 
       <div className="seasonal-routes-section">
         <h3>Routes by grade</h3>
@@ -205,6 +223,7 @@ export function SeasonalChallengeDetailOverlay({
   onSignIn?: () => void
   isGuest: boolean
 }) {
+  const { user } = useAuth()
   const progressQ = useSeasonalProgress(challengeId)
 
   const handleOpenRoute = (routeId: string) => {
@@ -234,6 +253,7 @@ export function SeasonalChallengeDetailOverlay({
           )}
           {progressQ.data ? (
             <ChallengeBody
+              key={invitationFormKey(challengeId, user?.id, progressQ.data.enrolled)}
               progress={progressQ.data}
               onOpenRoute={handleOpenRoute}
               onSignIn={onSignIn}
