@@ -28,7 +28,7 @@ jobs:
 
       - name: Lint passport and invitation feature
         working-directory: web-app
-        run: npx eslint src/features/passport src/features/crew/InvitationForm.tsx src/features/crew/SeasonalChallengeDetailOverlay.tsx src/lib/passport* screen-smoke/passport
+        run: node node_modules/eslint/bin/eslint.js src/features/passport src/features/crew/InvitationForm.tsx src/features/crew/SeasonalChallengeDetailOverlay.tsx src/lib/passport* screen-smoke/passport
 
       - name: Verify key files exist
         run: |

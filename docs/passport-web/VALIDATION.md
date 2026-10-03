@@ -18,6 +18,8 @@ All browser evidence uses the actual React application in Chrome, served from a 
 
 ## Existing limitations, separately measured
 
+Sonar security follow-up: CI invokes the lockfile-installed ESLint entry point directly, so missing tooling fails rather than fetching an arbitrary package through `npx`. The Blender exporter accepts no output-path argument and writes only to this repository's `web-app/public/passport` directory. Re-exporting the original source after this change produced byte-identical GLB/provenance; GLB verification, 13 tests, targeted lint and production build were rerun successfully. No security rules were suppressed.
+
 Full `npm run lint` fails on **35 errors and 21 warnings**, exactly matching a clean archive of main `627879d`; there are **zero new rule/file/severity violations**. Existing errors include set-state-in-effect, refresh-only exports and unused locals across existing app modules. No rules are suppressed for production code. The established screen-smoke-only refresh exception now includes its nested test host. CI runs targeted feature lint in addition to tests, GLB budget verification and build.
 
 Dependency audit reports nine existing advisories (2 moderate, 6 high, 1 critical), in pre-existing maplibre/react-router/vite/transitive packages. The lockfile additions for MIT Three.js `0.170.0` and its types introduce no reported advisory. Broad dependency upgrades are outside this feature. Production build retains pre-existing font-resolution and large main-chunk warnings; the new renderer is a lazy chunk (~145 KB gzip).

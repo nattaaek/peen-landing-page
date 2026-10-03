@@ -1,9 +1,12 @@
-"""Run Blender -b SOURCE.blend --python export_web.py -- OUTPUT_DIRECTORY.
+"""Run Blender -b SOURCE.blend --python scripts/passport/export_web.py.
 Source: Library libfile_d14c77da792481918a2c5bc4a64ae0c1, PassportCraftV5.
 Exports authored geometry/skin to glTF; USDZ is never loaded in the browser.
 """
-import bpy, sys, pathlib, json
-out = pathlib.Path(sys.argv[sys.argv.index('--') + 1]); out.mkdir(parents=True, exist_ok=True)
+import bpy, pathlib, json
+# Export only to this repository's designated asset directory. CLI arguments
+# must never select arbitrary filesystem destinations for generated assets.
+out = pathlib.Path(__file__).resolve().parents[2] / 'web-app' / 'public' / 'passport'
+out.mkdir(parents=True, exist_ok=True)
 # Fictional prototype campaign/history printing is replaced by live DOM UI.
 for name in ['Index_label','Index_title','Current_label','Current_name','Current_date','Past_label','Past_name','Index_foot']:
     obj = bpy.data.objects.get(name)
