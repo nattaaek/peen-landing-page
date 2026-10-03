@@ -1,3 +1,4 @@
+import { PassportView } from './features/passport/PassportView'
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
@@ -197,6 +198,7 @@ function AppLayout() {
             path="crew"
             element={<CrewView onSignIn={() => openLogin()} onOpenRoute={openRouteById} />}
           />
+          <Route path="passport" element={<PassportView onSignIn={() => openLogin()} onOpenRoute={openRouteById} />} />
           <Route path="profile" element={<ProfileView onSignIn={() => openLogin()} onToast={setToast} />} />
         </Route>
       </Routes>

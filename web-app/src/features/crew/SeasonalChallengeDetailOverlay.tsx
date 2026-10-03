@@ -1,5 +1,7 @@
-import { invitationErrorMessage, invitationFormKey } from '../../lib/seasonalInvitation'
-import { useMemo, useState } from 'react'
+import { InvitationForm } from './InvitationForm'
+import { Link } from 'react-router-dom'
+import { invitationFormKey } from '../../lib/seasonalInvitation'
+import { useEffect, useMemo, useRef } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { Icon } from '../../components/Icon'
 import { TopoLines } from '../../components/TopoLines'
@@ -112,38 +114,10 @@ function SeasonalJoinBlock({ progress, isGuest, onSignIn }: Readonly<{
   onSignIn?: () => void
 }>) {
   const joinM = useJoinSeasonalChallenge()
-  const [invitationCode, setInvitationCode] = useState('')
-  return (
-        <div className="seasonal-join-block">
-          <p className="muted">
-            Join to track progress and unlock the finisher badge for this season.
-          </p>
-          {progress.requires_invitation && !isGuest ? (
-            <label>
-              <span>Invitation code</span>
-              <input type="password" autoComplete="off" spellCheck={false} value={invitationCode}
-                onChange={(event) => setInvitationCode(event.target.value)} aria-label="Invitation code" />
-            </label>
-          ) : null}
-          {isGuest ? (
-            <button type="button" className="btn btn-primary" onClick={onSignIn}>
-              Sign in to join
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={joinM.isPending || (progress.requires_invitation && !invitationCode.trim())}
-              onClick={() => joinM.mutate({ challengeId: progress.challenge_id, invitationCode }, { onSuccess: () => setInvitationCode('') })}
-            >
-              {joinM.isPending ? 'Joining…' : 'Join challenge'}
-            </button>
-          )}
-          {joinM.isError ? (
-            <p className="seasonal-error">{invitationErrorMessage(joinM.error)}</p>
-          ) : null}
-        </div>
-  )
+  return <div className="seasonal-join-block"><InvitationForm
+    required={Boolean(progress.requires_invitation)} isGuest={isGuest} onSignIn={onSignIn}
+    onSubmit={code => joinM.mutateAsync({ challengeId: progress.challenge_id, invitationCode: code })}
+  /></div>
 }
 
 function ChallengeBody({
@@ -151,7 +125,9 @@ function ChallengeBody({
   onOpenRoute,
   onSignIn,
   isGuest,
+  onOpenPassport,
 }: {
+  onOpenPassport: () => void
   progress: SeasonalChallengeProgress
   onOpenRoute?: (routeId: string) => void
   onSignIn?: () => void
@@ -196,6 +172,7 @@ function ChallengeBody({
       {!progress.enrolled ? <SeasonalJoinBlock progress={progress} isGuest={isGuest} onSignIn={onSignIn} /> : null}
 
       <div className="seasonal-routes-section">
+        <Link onClick={onOpenPassport} className="btn btn-secondary" to={`/passport?challenge=${encodeURIComponent(progress.challenge_id)}`}>Open 3D passport</Link>
         <h3>Routes by grade</h3>
         {buckets.map((b) => (
           <GradeBucket
@@ -225,6 +202,22 @@ export function SeasonalChallengeDetailOverlay({
 }) {
   const { user } = useAuth()
   const progressQ = useSeasonalProgress(challengeId)
+  const dialog = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const node = dialog.current
+    node?.querySelector<HTMLButtonElement>('button')?.focus()
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
+      if (event.key !== 'Tab' || !node) return
+      const controls = Array.from(node.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), [tabindex="0"]')).filter(item => item.getClientRects().length > 0)
+      const first = controls[0], last = controls.at(-1)
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    document.addEventListener('keydown', keyboard)
+    return () => { document.removeEventListener('keydown', keyboard); previous?.focus() }
+  }, [onClose])
 
   const handleOpenRoute = (routeId: string) => {
     onClose()
@@ -235,6 +228,8 @@ export function SeasonalChallengeDetailOverlay({
     <>
       <div className="slideover-backdrop" onClick={onClose} role="presentation" />
       <div
+        ref={dialog}
+        aria-modal="true"
         className="slideover seasonal-challenge-slideover"
         role="dialog"
         aria-label="Seasonal challenge"
@@ -258,6 +253,7 @@ export function SeasonalChallengeDetailOverlay({
               onOpenRoute={handleOpenRoute}
               onSignIn={onSignIn}
               isGuest={isGuest}
+              onOpenPassport={onClose}
             />
           ) : null}
         </div>

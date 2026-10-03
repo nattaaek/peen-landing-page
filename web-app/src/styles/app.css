@@ -1082,7 +1082,7 @@ button.feed-route {
   }
   .sidebar { display: none; }
   .topbar { padding: 0 14px; gap: 8px; }
-  .search { display: none; }
+  .search, .search-wrap { display: none; }
   .main { padding: 16px 14px 96px; }
   .mobile-tabs {
     display: flex;
@@ -1094,11 +1094,11 @@ button.feed-route {
     z-index: 40;
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
-  .mobile-tabs button {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  .mobile-tabs button, .mobile-tabs > a {
+    flex: 1; min-height: var(--hit-target); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
     font-size: 10px; font-weight: 600; color: var(--fg-2);
   }
-  .mobile-tabs button.active { color: var(--tint); }
+  .mobile-tabs button.active, .mobile-tabs > a.active { color: var(--tint); }
   .slideover { width: 100%; }
   .page-head { flex-direction: column; align-items: flex-start; gap: 10px; }
   .crags-list { max-height: none; }
