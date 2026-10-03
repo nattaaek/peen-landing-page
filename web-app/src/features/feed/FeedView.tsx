@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { FeedCard } from '../../components/FeedCard'
 import { FeedCardSkeleton } from '../../components/FeedCardSkeleton'
@@ -265,6 +266,7 @@ export function FeedView({
             <p className="page-sub">Sends from your crew and the wider community.</p>
           </div>
         </div>
+        <Link className="btn btn-secondary" to="/crew" state={{ tab: 'Challenges' }}>View seasonal challenges</Link>
         <LoginRequired
           icon="feed"
           title="Sign in to see the feed"
@@ -315,6 +317,8 @@ export function FeedView({
           </div>
         </div>
       </div>
+
+      <Link className="btn btn-secondary" to="/crew" state={{ tab: 'Challenges' }}>View seasonal challenges</Link>
 
       {(reelsQ.data?.length ?? 0) > 0 ? (
         <FeedReelsCarousel

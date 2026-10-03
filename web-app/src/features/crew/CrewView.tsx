@@ -16,7 +16,7 @@ import {
   useWeeklyLeaderboard,
 } from '../../hooks/useMigration'
 import { SeasonalChallengeDetailOverlay } from './SeasonalChallengeDetailOverlay'
-import { SeasonalSpotlightCard } from './SeasonalSpotlightCard'
+import { SeasonalSpotlightSection } from './SeasonalSpotlightSection'
 
 type CrewTab = 'Crew' | 'Partners' | 'Challenges'
 type CrewLocationState = { tab?: CrewTab; challengeId?: string }
@@ -310,15 +310,13 @@ export function CrewView({
 
       {tab === 'Challenges' && (
         <section className="crew-challenges">
-          {seasonalQ.isLoading && !seasonal && <p className="muted">Loading challenge…</p>}
-          {seasonal ? (
-            <SeasonalSpotlightCard
-              spotlight={seasonal}
-              onOpen={() => setSelectedChallengeId(seasonal.challenge_id)}
-            />
-          ) : !seasonalQ.isLoading ? (
-            <p className="muted">No seasonal challenge is active right now.</p>
-          ) : null}
+          <SeasonalSpotlightSection
+            spotlight={seasonal}
+            isLoading={seasonalQ.isLoading}
+            isError={seasonalQ.isError}
+            onRetry={() => { void seasonalQ.refetch() }}
+            onOpen={setSelectedChallengeId}
+          />
 
           {pastSeasons.length > 0 ? (
             <div className="past-seasons-block">

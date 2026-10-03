@@ -601,9 +601,9 @@ export function useMyCrewRank(userId: string | undefined) {
 }
 
 export function useSeasonalSpotlight() {
-  const { accessToken } = useAuth()
+  const { accessToken, user } = useAuth()
   return useQuery({
-    queryKey: ['seasonal', 'spotlight'],
+    queryKey: ['seasonal', 'spotlight', user?.id],
     queryFn: async () => {
       const raw = await migrationInvoke<unknown>('seasonal', 'seasonal_challenge_spotlight', {}, accessToken!)
       return parseSeasonalSpotlight(raw)
