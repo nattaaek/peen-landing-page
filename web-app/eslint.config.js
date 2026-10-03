@@ -19,4 +19,9 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // Standalone synthetic entry points combine their host and test hooks; HMR is not used.
+    files: ['screen-smoke/*.tsx'],
+    rules: { 'react-refresh/only-export-components': 'off' },
+  },
 ])
