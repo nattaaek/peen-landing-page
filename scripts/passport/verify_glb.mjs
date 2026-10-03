@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+const path=new URL('../../web-app/public/passport/passport-v5.glb',import.meta.url)
+const bytes=fs.readFileSync(path)
+assert.equal(bytes.toString('ascii',0,4),'glTF')
+assert.equal(bytes.readUInt32LE(4),2)
+assert.equal(bytes.readUInt32LE(8),bytes.length)
+assert.ok(bytes.length<6*1024*1024,'bounded first-version GLB budget: 6 MiB')
+const gltf=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString())
+assert.equal(gltf.skins.length,1); assert.equal(gltf.skins[0].joints.length,8)
+assert.ok(gltf.meshes.flatMap(m=>m.primitives).filter(p=>p.attributes.JOINTS_0!==undefined && p.attributes.WEIGHTS_0!==undefined).length>=20)
+assert.ok(gltf.animations.some(a=>a.name==='CollectionPageRig'&&a.channels.filter(c=>c.target.path==='rotation').length===8))
+assert.ok(gltf.animations.some(a=>a.name==='CoverPivot'))
+for(let i=0;i<6;i++) assert.ok(gltf.nodes.some(n=>n.name===`grade${i}`))
+assert.ok(gltf.materials.some(m=>m.name.includes('On the Wall')))
+assert.ok(!gltf.nodes.some(n=>n.name.startsWith('InsideCover_Charcoal_ink')))
+console.log(JSON.stringify({bytes:bytes.length,bones:8,skinnedMeshes:gltf.nodes.filter(n=>n.skin!==undefined).length,animations:gltf.animations.map(a=>a.name),materials:gltf.materials.length,images:gltf.images.length}))

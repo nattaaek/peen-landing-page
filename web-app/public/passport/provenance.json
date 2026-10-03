@@ -1,0 +1,19 @@
+{
+  "source_library_id": "libfile_d14c77da792481918a2c5bc4a64ae0c1",
+  "source": "PassportCraftV5/Models/Peen-Passport-Craft-v5.blend",
+  "blender": "5.1.0",
+  "bytes": 5380204,
+  "source_frames": [
+    1,
+    50,
+    56,
+    116
+  ],
+  "source_fps": 30,
+  "license": "User-provided artwork and original authored geometry; same-project reuse only.",
+  "changes": [
+    "glTF export with skeleton and animation",
+    "cover texture bounded to 1024px",
+    "fictional index labels removed"
+  ]
+}

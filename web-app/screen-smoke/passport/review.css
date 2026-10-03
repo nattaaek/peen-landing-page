@@ -1,0 +1,4 @@
+.fixture-review-banner { position: fixed; bottom: 0; left:0; right:0; z-index:110; background:#174C5D;color:white; font-size:11px; padding:5px 12px; display:flex;justify-content:center;gap:12px;align-items:center; }
+.fixture-review-banner button { background:#fff;color:#174C5D;padding:5px 8px;border-radius:4px; }
+.fixture-audit { position:fixed;right:4px;bottom:34px;z-index:110;background:white;font-size:10px;padding:4px; }
+@media(max-width:640px){.fixture-review-banner{bottom:64px;font-size:8px;gap:6px;padding:3px 4px}.fixture-review-banner button{font-size:8px}.fixture-audit{bottom:90px}}

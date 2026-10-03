@@ -1,3 +1,4 @@
+import { PassportEntry } from '../passport/PassportEntry'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { FeedCard } from '../../components/FeedCard'
@@ -265,6 +266,7 @@ export function FeedView({
             <p className="page-sub">Sends from your crew and the wider community.</p>
           </div>
         </div>
+        <PassportEntry />
         <LoginRequired
           icon="feed"
           title="Sign in to see the feed"
@@ -315,6 +317,8 @@ export function FeedView({
           </div>
         </div>
       </div>
+
+      <PassportEntry />
 
       {(reelsQ.data?.length ?? 0) > 0 ? (
         <FeedReelsCarousel
