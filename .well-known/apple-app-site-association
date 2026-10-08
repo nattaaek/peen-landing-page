@@ -7,6 +7,10 @@
           {
             "/": "/auth/callback",
             "comment": "Handles Supabase auth deep links (email confirmation, password reset)"
+          },
+          {
+            "/": "/app/invite/*",
+            "comment": "Handles seasonal challenge QR invitation links"
           }
         ]
       }
