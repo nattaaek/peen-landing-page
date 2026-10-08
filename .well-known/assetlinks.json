@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.harvestidea.peen",
+      "sha256_cert_fingerprints": [
+        "00:A5:BE:4F:9B:78:28:6B:8B:EF:F4:99:A1:EE:A0:E4:A1:E7:32:74:AE:E2:53:A3:CB:B2:C5:B0:8D:CD:B1:84"
+      ]
+    }
+  }
+]
