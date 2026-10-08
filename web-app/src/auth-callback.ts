@@ -1,43 +1,46 @@
+import { browserInvitationSession } from './lib/invitationBootstrap'
 import { createClient } from '@supabase/supabase-js'
 import { supabaseAuthOptions } from './lib/supabase-auth-options'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
-function showError(message: string) {
-  document.body.innerHTML = `<p>${message}</p><p><a href="/app/">Back to peen</a></p>`
+function showError() {
+  const message = document.createElement('p')
+  message.textContent = 'Sign-in could not be completed. Return to peen and try signing in again in this same browser tab.'
+  const recovery = document.createElement('p')
+  const link = document.createElement('a')
+  link.textContent = 'Back to peen'
+  link.href = browserInvitationSession.returnPath()
+  recovery.append(link)
+  document.body.replaceChildren(message, recovery)
 }
 
 if (!url || !key) {
-  showError('Auth is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.')
+  showError()
 } else {
   const params = new URLSearchParams(window.location.search)
   const oauthError = params.get('error_description') ?? params.get('error')
   if (oauthError) {
-    showError(`Sign-in was cancelled or denied. (${oauthError})`)
+    showError()
   } else {
     const code = params.get('code')
     if (!code) {
-      showError('Sign-in link is missing a code. Try signing in again from the app.')
+      showError()
     } else {
-      const supabase = createClient(url, key, { auth: supabaseAuthOptions })
-      supabase.auth
-        .exchangeCodeForSession(code)
-        .then(({ error }) => {
-          if (error) {
-            console.error(error)
-            const hint =
-              error.message.includes('code verifier') || error.message.includes('PKCE')
-                ? ' Open peen at /app/, sign in again, and complete Google in the same browser tab.'
-                : ''
-            showError(`Sign-in failed: ${error.message}.${hint}`)
+      Promise.resolve()
+        .then(() => createClient(url, key, { auth: supabaseAuthOptions })
+          .auth.exchangeCodeForSession(code))
+        .then(({ data, error }) => {
+          if (error || !data.session) {
+            showError()
             return
           }
-          window.location.replace('/app/')
+          browserInvitationSession.observeAccount(data.session.user.id)
+          window.location.replace(browserInvitationSession.returnPath())
         })
-        .catch((err: unknown) => {
-          console.error(err)
-          showError('Sign-in failed unexpectedly. Try again from the app.')
+        .catch(() => {
+          showError()
         })
     }
   }

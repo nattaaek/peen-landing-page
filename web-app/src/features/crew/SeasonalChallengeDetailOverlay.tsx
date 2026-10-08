@@ -1,7 +1,8 @@
 import { InvitationForm } from './InvitationForm'
 import { Link } from 'react-router-dom'
 import { invitationFormKey } from '../../lib/seasonalInvitation'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react'
+import { browserInvitationSession } from '../../lib/invitationBootstrap'
 import { useAuth } from '../auth/AuthProvider'
 import { Icon } from '../../components/Icon'
 import { TopoLines } from '../../components/TopoLines'
@@ -114,9 +115,58 @@ function SeasonalJoinBlock({ progress, isGuest, onSignIn }: Readonly<{
   onSignIn?: () => void
 }>) {
   const joinM = useJoinSeasonalChallenge()
+  const { user, accessToken, loading } = useAuth()
+  const accountId = user?.id ?? null
+  const revision = useSyncExternalStore(
+    callback => browserInvitationSession.subscribe(callback),
+    () => browserInvitationSession.revision(),
+    () => browserInvitationSession.revision(),
+  )
+  const origin = useMemo(() => Object.freeze({ accountId, revision }), [accountId, revision])
+  const committedAuth = useRef({ accountId, accessToken, loading, isGuest })
+  const epoch = useRef<{ live: boolean } | null>(null)
+  useLayoutEffect(() => {
+    committedAuth.current = { accountId, accessToken, loading, isGuest }
+  }, [accountId, accessToken, loading, isGuest])
+  useLayoutEffect(() => {
+    const lifetime = { live: true }
+    epoch.current = lifetime
+    return () => { lifetime.live = false }
+  }, [])
+  const isCurrent = () => !loading && accountId === origin.accountId &&
+    browserInvitationSession.accountId() === origin.accountId &&
+    browserInvitationSession.revision() === origin.revision &&
+    (isGuest ? !accessToken : Boolean(accountId && accessToken))
+  const isCurrentAction = () => {
+    const auth = committedAuth.current
+    const lifetime = epoch.current
+    return Boolean(lifetime?.live && !auth.loading && auth.accountId === origin.accountId &&
+      browserInvitationSession.accountId() === origin.accountId &&
+      browserInvitationSession.revision() === origin.revision &&
+      (auth.isGuest ? !auth.accessToken : auth.accountId && auth.accessToken))
+  }
   return <div className="seasonal-join-block"><InvitationForm
+    key={`${invitationFormKey(progress.challenge_id, user?.id, progress.enrolled)}:${revision}`}
+    isCurrent={isCurrent} isCurrentAction={isCurrentAction}
     required={Boolean(progress.requires_invitation)} isGuest={isGuest} onSignIn={onSignIn}
-    onSubmit={code => joinM.mutateAsync({ challengeId: progress.challenge_id, invitationCode: code })}
+    accountLabel={user?.email || user?.id}
+    onSubmit={async code => {
+      const lifetime = epoch.current
+      const requireCurrent = () => {
+        if (!lifetime?.live || epoch.current !== lifetime || !isCurrent() ||
+            !isCurrentAction() || committedAuth.current.isGuest) {
+          throw new Error('Could not join. Try again.')
+        }
+      }
+      requireCurrent()
+      const receipt = await joinM.mutateAsync({
+        challengeId: progress.challenge_id,
+        origin,
+        readCode: () => { requireCurrent(); return code },
+      })
+      requireCurrent()
+      if (!receipt.isCurrent()) throw new Error('Could not join. Try again.')
+    }}
   /></div>
 }
 

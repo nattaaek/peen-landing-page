@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './features/auth/AuthProvider'
 import { LoginGate } from './features/auth/LoginGate'
 import { CragsView } from './features/crags/CragsView'
 import { CrewView } from './features/crew/CrewView'
+import { InvitationLanding } from './features/crew/InvitationLanding'
 import { AscentDetailOverlay } from './features/feed/AscentDetailOverlay'
 import { FeedView } from './features/feed/FeedView'
 import { NotificationsDrawer } from './features/notifications/NotificationsDrawer'
@@ -155,6 +156,7 @@ function AppLayout() {
   return (
     <>
       <Routes>
+        <Route path="invite/*" element={<InvitationLanding />} />
         <Route
           element={
             <AppShell

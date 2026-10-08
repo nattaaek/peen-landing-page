@@ -1,5 +1,6 @@
 import React, {useState} from 'react'
 import {createRoot} from 'react-dom/client'
+import {MemoryRouter} from 'react-router-dom'
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query'
 import {SyntheticAuthHost} from './AuthProvider'
 import {SeasonalChallengeDetailOverlay} from '../src/features/crew/SeasonalChallengeDetailOverlay'
@@ -22,4 +23,4 @@ window.fetch = (input, init) => {
   catch (error) { return Promise.reject(error) }
 }
 function Host(){const [open,setOpen]=useState(true);return <><p>SYNTHETIC LOCAL SCREEN TEST</p><button onClick={()=>setOpen(true)}>Open synthetic challenge</button>{open&&<SeasonalChallengeDetailOverlay challengeId="synthetic" isGuest={false} onClose={()=>setOpen(false)}/>}</>}
-createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><SyntheticAuthHost><Host/></SyntheticAuthHost></QueryClientProvider></React.StrictMode>)
+createRoot(document.getElementById('root')!).render(<React.StrictMode><QueryClientProvider client={new QueryClient({defaultOptions:{queries:{retry:false}}})}><MemoryRouter><SyntheticAuthHost><Host/></SyntheticAuthHost></MemoryRouter></QueryClientProvider></React.StrictMode>)
