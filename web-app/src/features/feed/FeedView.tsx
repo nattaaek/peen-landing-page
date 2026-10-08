@@ -1,3 +1,4 @@
+import { PassportEntry } from '../passport/PassportEntry'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
@@ -267,6 +268,7 @@ export function FeedView({
           </div>
         </div>
         <Link className="btn btn-secondary" to="/crew" state={{ tab: 'Challenges' }}>View seasonal challenges</Link>
+        <PassportEntry />
         <LoginRequired
           icon="feed"
           title="Sign in to see the feed"
@@ -319,6 +321,7 @@ export function FeedView({
       </div>
 
       <Link className="btn btn-secondary" to="/crew" state={{ tab: 'Challenges' }}>View seasonal challenges</Link>
+      <PassportEntry />
 
       {(reelsQ.data?.length ?? 0) > 0 ? (
         <FeedReelsCarousel

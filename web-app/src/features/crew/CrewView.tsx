@@ -1,3 +1,4 @@
+import { PassportEntry } from '../passport/PassportEntry'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Avatar, Icon } from '../../components/Icon'
@@ -76,6 +77,7 @@ export function CrewView({
             <h1 className="page-title">Climb together</h1>
           </div>
         </div>
+        <PassportEntry compact />
         <LoginRequired
           icon="crew"
           title="Sign in to find your crew"
@@ -308,6 +310,7 @@ export function CrewView({
         </section>
       )}
 
+      <PassportEntry compact />
       {tab === 'Challenges' && (
         <section className="crew-challenges">
           <SeasonalSpotlightSection

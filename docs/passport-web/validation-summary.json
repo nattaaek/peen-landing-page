@@ -1,0 +1,24 @@
+{
+  "baseline": "627879d",
+  "baseline_lint": {
+    "errors": 35,
+    "warnings": 21
+  },
+  "feature_lint": {
+    "errors": 35,
+    "warnings": 21
+  },
+  "new_violations": [],
+  "unit_tests_passed": 13,
+  "browser": "Chrome, actual local React application; synthetic isolated API",
+  "viewports": [
+    320,
+    390,
+    768,
+    1440
+  ],
+  "video_frames": 48,
+  "video_fps": 5,
+  "video_seconds": 9.6,
+  "video_bytes": 481484
+}

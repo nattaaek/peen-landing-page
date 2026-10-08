@@ -10,6 +10,7 @@ import {
 import type { Session, User } from '@supabase/supabase-js'
 import { createDevAuthSession, isDevAuthBypassEnabled } from '../../lib/devAuth'
 import { env } from '../../lib/env'
+import { browserInvitationSession } from '../../lib/invitationBootstrap'
 import { getSupabase } from '../../lib/supabase'
 
 interface AuthContextValue {
@@ -37,22 +38,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (devBypass && !env.isConfigured()) {
+      browserInvitationSession.observeAccount(createDevAuthSession().user.id)
       setLoading(false)
       return
     }
     if (!env.isConfigured()) {
+      browserInvitationSession.observeAccount(null)
       setLoading(false)
       return
     }
     const sb = getSupabase()
-    sb.auth.getSession().then(({ data }) => {
-      setSession(data.session ?? (devBypass ? createDevAuthSession() : null))
+    let live = true
+    let eventCount = 0
+    const initialEventCount = eventCount
+    const { data: sub } = sb.auth.onAuthStateChange((_event, next) => {
+      eventCount++
+      if (!live) return
+      const resolvedSession = next ?? (devBypass ? createDevAuthSession() : null)
+      browserInvitationSession.observeAccount(resolvedSession?.user.id ?? null)
+      setSession(resolvedSession)
       setLoading(false)
     })
-    const { data: sub } = sb.auth.onAuthStateChange((_event, next) => {
-      setSession(next ?? (devBypass ? createDevAuthSession() : null))
+    sb.auth.getSession().then(({ data }) => {
+      if (!live || eventCount !== initialEventCount) return
+      const resolvedSession = data.session ?? (devBypass ? createDevAuthSession() : null)
+      browserInvitationSession.observeAccount(resolvedSession?.user.id ?? null)
+      setSession(resolvedSession)
+      setLoading(false)
+    }).catch(() => {
+      if (!live || eventCount !== initialEventCount) return
+      const fallback = devBypass ? createDevAuthSession() : null
+      browserInvitationSession.observeAccount(fallback?.user.id ?? null)
+      setSession(fallback)
+      setLoading(false)
     })
-    return () => sub.subscription.unsubscribe()
+    return () => {
+      live = false
+      sub.subscription.unsubscribe()
+    }
   }, [devBypass])
 
   const signInWithGoogle = useCallback(async () => {
@@ -72,10 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
+    browserInvitationSession.clear()
     if (env.isConfigured()) {
       await getSupabase().auth.signOut()
     }
-    setSession(devBypass ? createDevAuthSession() : null)
+    const next = devBypass ? createDevAuthSession() : null
+    browserInvitationSession.observeAccount(next?.user.id ?? null)
+    setSession(next)
   }, [devBypass])
 
   const value = useMemo(

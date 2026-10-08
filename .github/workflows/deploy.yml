@@ -24,7 +24,18 @@ jobs:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-anon-key
           VITE_PEEN_API_URL: https://api.peen.app
-        run: npm ci --prefix web-app && npm test --prefix web-app && npm run build --prefix web-app
+        run: npm ci --prefix web-app && npm test --prefix web-app && node scripts/passport/verify_glb.mjs && npm run build --prefix web-app
+
+      - name: Lint passport and invitation feature
+        working-directory: web-app
+        run: node node_modules/eslint/bin/eslint.js src/features/passport src/features/crew/InvitationForm.tsx src/features/crew/SeasonalChallengeDetailOverlay.tsx src/lib/passport* screen-smoke/passport src/features/crew/InvitationLanding.tsx src/lib/invitation* src/lib/pendingInvitation* src/lib/seasonalJoinController* src/lib/seasonalInvitation* screen-smoke/invitation
+
+      - name: Verify synthetic invitation fixture is excluded from production bundles
+        run: |
+          if grep -rqsE "SYNTHETIC LOCAL FIXTURE|Synthetic fixture rejects nonlocal requests|peen\.fixture\." app auth/callback; then
+            echo "Synthetic invitation fixture found in production output"; exit 1
+          fi
+          echo "Production bundles exclude synthetic invitation fixture"
 
       - name: Verify key files exist
         run: |

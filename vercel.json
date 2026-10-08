@@ -3,6 +3,30 @@
   "outputDirectory": ".",
   "headers": [
     {
+      "source": "/app/invite/:path*",
+      "headers": [
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Cache-Control", "value": "private,no-store" },
+        { "key": "X-Robots-Tag", "value": "noindex,nofollow" }
+      ]
+    },
+    {
+      "source": "/auth/callback",
+      "headers": [
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Cache-Control", "value": "private,no-store" },
+        { "key": "X-Robots-Tag", "value": "noindex,nofollow" }
+      ]
+    },
+    {
+      "source": "/auth/callback/:path*",
+      "headers": [
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Cache-Control", "value": "private,no-store" },
+        { "key": "X-Robots-Tag", "value": "noindex,nofollow" }
+      ]
+    },
+    {
       "source": "/.well-known/apple-app-site-association",
       "headers": [
         {

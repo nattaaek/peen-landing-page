@@ -1,5 +1,8 @@
-import { invitationErrorMessage, invitationFormKey } from '../../lib/seasonalInvitation'
-import { useMemo, useState } from 'react'
+import { InvitationForm } from './InvitationForm'
+import { Link } from 'react-router-dom'
+import { invitationFormKey } from '../../lib/seasonalInvitation'
+import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react'
+import { browserInvitationSession } from '../../lib/invitationBootstrap'
 import { useAuth } from '../auth/AuthProvider'
 import { Icon } from '../../components/Icon'
 import { TopoLines } from '../../components/TopoLines'
@@ -112,38 +115,59 @@ function SeasonalJoinBlock({ progress, isGuest, onSignIn }: Readonly<{
   onSignIn?: () => void
 }>) {
   const joinM = useJoinSeasonalChallenge()
-  const [invitationCode, setInvitationCode] = useState('')
-  return (
-        <div className="seasonal-join-block">
-          <p className="muted">
-            Join to track progress and unlock the finisher badge for this season.
-          </p>
-          {progress.requires_invitation && !isGuest ? (
-            <label>
-              <span>Invitation code</span>
-              <input type="password" autoComplete="off" spellCheck={false} value={invitationCode}
-                onChange={(event) => setInvitationCode(event.target.value)} aria-label="Invitation code" />
-            </label>
-          ) : null}
-          {isGuest ? (
-            <button type="button" className="btn btn-primary" onClick={onSignIn}>
-              Sign in to join
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={joinM.isPending || (progress.requires_invitation && !invitationCode.trim())}
-              onClick={() => joinM.mutate({ challengeId: progress.challenge_id, invitationCode }, { onSuccess: () => setInvitationCode('') })}
-            >
-              {joinM.isPending ? 'Joining…' : 'Join challenge'}
-            </button>
-          )}
-          {joinM.isError ? (
-            <p className="seasonal-error">{invitationErrorMessage(joinM.error)}</p>
-          ) : null}
-        </div>
+  const { user, accessToken, loading } = useAuth()
+  const accountId = user?.id ?? null
+  const revision = useSyncExternalStore(
+    callback => browserInvitationSession.subscribe(callback),
+    () => browserInvitationSession.revision(),
+    () => browserInvitationSession.revision(),
   )
+  const origin = useMemo(() => Object.freeze({ accountId, revision }), [accountId, revision])
+  const committedAuth = useRef({ accountId, accessToken, loading, isGuest })
+  const epoch = useRef<{ live: boolean } | null>(null)
+  useLayoutEffect(() => {
+    committedAuth.current = { accountId, accessToken, loading, isGuest }
+  }, [accountId, accessToken, loading, isGuest])
+  useLayoutEffect(() => {
+    const lifetime = { live: true }
+    epoch.current = lifetime
+    return () => { lifetime.live = false }
+  }, [])
+  const isCurrent = () => !loading && accountId === origin.accountId &&
+    browserInvitationSession.accountId() === origin.accountId &&
+    browserInvitationSession.revision() === origin.revision &&
+    (isGuest ? !accessToken : Boolean(accountId && accessToken))
+  const isCurrentAction = () => {
+    const auth = committedAuth.current
+    const lifetime = epoch.current
+    return Boolean(lifetime?.live && !auth.loading && auth.accountId === origin.accountId &&
+      browserInvitationSession.accountId() === origin.accountId &&
+      browserInvitationSession.revision() === origin.revision &&
+      (auth.isGuest ? !auth.accessToken : auth.accountId && auth.accessToken))
+  }
+  return <div className="seasonal-join-block"><InvitationForm
+    key={`${invitationFormKey(progress.challenge_id, user?.id, progress.enrolled)}:${revision}`}
+    isCurrent={isCurrent} isCurrentAction={isCurrentAction}
+    required={Boolean(progress.requires_invitation)} isGuest={isGuest} onSignIn={onSignIn}
+    accountLabel={user?.email || user?.id}
+    onSubmit={async code => {
+      const lifetime = epoch.current
+      const requireCurrent = () => {
+        if (!lifetime?.live || epoch.current !== lifetime || !isCurrent() ||
+            !isCurrentAction() || committedAuth.current.isGuest) {
+          throw new Error('Could not join. Try again.')
+        }
+      }
+      requireCurrent()
+      const receipt = await joinM.mutateAsync({
+        challengeId: progress.challenge_id,
+        origin,
+        readCode: () => { requireCurrent(); return code },
+      })
+      requireCurrent()
+      if (!receipt.isCurrent()) throw new Error('Could not join. Try again.')
+    }}
+  /></div>
 }
 
 function ChallengeBody({
@@ -151,7 +175,9 @@ function ChallengeBody({
   onOpenRoute,
   onSignIn,
   isGuest,
+  onOpenPassport,
 }: {
+  onOpenPassport: () => void
   progress: SeasonalChallengeProgress
   onOpenRoute?: (routeId: string) => void
   onSignIn?: () => void
@@ -196,6 +222,7 @@ function ChallengeBody({
       {!progress.enrolled ? <SeasonalJoinBlock progress={progress} isGuest={isGuest} onSignIn={onSignIn} /> : null}
 
       <div className="seasonal-routes-section">
+        <Link onClick={onOpenPassport} className="btn btn-secondary" to={`/passport?challenge=${encodeURIComponent(progress.challenge_id)}`}>Open 3D passport</Link>
         <h3>Routes by grade</h3>
         {buckets.map((b) => (
           <GradeBucket
@@ -225,6 +252,22 @@ export function SeasonalChallengeDetailOverlay({
 }) {
   const { user } = useAuth()
   const progressQ = useSeasonalProgress(challengeId)
+  const dialog = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const node = dialog.current
+    node?.querySelector<HTMLButtonElement>('button')?.focus()
+    const keyboard = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
+      if (event.key !== 'Tab' || !node) return
+      const controls = Array.from(node.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), [tabindex="0"]')).filter(item => item.getClientRects().length > 0)
+      const first = controls[0], last = controls.at(-1)
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    document.addEventListener('keydown', keyboard)
+    return () => { document.removeEventListener('keydown', keyboard); previous?.focus() }
+  }, [onClose])
 
   const handleOpenRoute = (routeId: string) => {
     onClose()
@@ -235,6 +278,8 @@ export function SeasonalChallengeDetailOverlay({
     <>
       <div className="slideover-backdrop" onClick={onClose} role="presentation" />
       <div
+        ref={dialog}
+        aria-modal="true"
         className="slideover seasonal-challenge-slideover"
         role="dialog"
         aria-label="Seasonal challenge"
@@ -258,6 +303,7 @@ export function SeasonalChallengeDetailOverlay({
               onOpenRoute={handleOpenRoute}
               onSignIn={onSignIn}
               isGuest={isGuest}
+              onOpenPassport={onClose}
             />
           ) : null}
         </div>
