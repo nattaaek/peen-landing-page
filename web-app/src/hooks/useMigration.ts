@@ -1,5 +1,14 @@
-import { submitSeasonalInvitation } from '../lib/seasonalInvitation'
-import { useMemo } from 'react'
+import {
+  SeasonalJoinController,
+  type SeasonalJoinAuthority,
+  type SeasonalJoinReceipt,
+} from '../lib/seasonalJoinController'
+import { useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react'
+import type { Session } from '@supabase/supabase-js'
+import { browserInvitationSession } from '../lib/invitationBootstrap'
+import { getSupabase } from '../lib/supabase'
+import { env } from '../lib/env'
+import { createDevAuthSession, isDevAuthBypassEnabled } from '../lib/devAuth'
 import {
   useInfiniteQuery,
   useMutation,
@@ -630,33 +639,216 @@ export function useSeasonalPastChallenges() {
 }
 
 export function useSeasonalProgress(challengeId: string | undefined) {
-  const { accessToken, user } = useAuth()
-  return useQuery({
-    queryKey: ['seasonal', 'progress', challengeId, user?.id],
-    queryFn: () =>
-      migrationInvoke<SeasonalChallengeProgress>(
-        'seasonal',
-        'seasonal_challenge_progress',
-        { p_challenge_id: challengeId },
-        accessToken!,
-      ),
-    enabled: !!accessToken && !!challengeId,
+  const { accessToken, user, loading, devAuthBypass } = useAuth()
+  const accountId = user?.id
+  const committedAuth = useRef({ accountId, accessToken, loading, devAuthBypass })
+  useLayoutEffect(() => {
+    committedAuth.current = { accountId, accessToken, loading, devAuthBypass }
+    return () => {
+      committedAuth.current = { accountId, accessToken: null, loading: true, devAuthBypass }
+    }
+  }, [accountId, accessToken, loading, devAuthBypass])
+  const revision = useSyncExternalStore(
+    callback => browserInvitationSession.subscribe(callback),
+    () => browserInvitationSession.revision(),
+    () => browserInvitationSession.revision(),
+  )
+  const renderAuthorized = !!challengeId && !!accountId && !!accessToken && !loading &&
+    browserInvitationSession.accountId() === accountId &&
+    browserInvitationSession.revision() === revision &&
+    (!devAuthBypass || isDevAuthBypassEnabled()) &&
+    (env.isConfigured() || (devAuthBypass && isDevAuthBypassEnabled()))
+  const query = useQuery({
+    queryKey: ['seasonal', 'progress', challengeId, accountId, revision] as const,
+    queryFn: async ({ queryKey, signal }): Promise<SeasonalChallengeProgress> => {
+      const [, , requestedChallenge, requestedAccount, requestedRevision] = queryKey
+      const failure = () => new Error('Could not load challenge progress. Try again.')
+      let synthetic = false
+      const requireCurrent = () => {
+        const auth = committedAuth.current
+        if (signal.aborted || !requestedChallenge || !requestedAccount ||
+            browserInvitationSession.accountId() !== requestedAccount ||
+            browserInvitationSession.revision() !== requestedRevision ||
+            auth.accountId !== requestedAccount || !auth.accessToken || auth.loading ||
+            (auth.devAuthBypass && !isDevAuthBypassEnabled()) ||
+            (synthetic && (!auth.devAuthBypass || !isDevAuthBypassEnabled()))) {
+          throw failure()
+        }
+      }
+      try {
+        requireCurrent()
+        let session: Session | null = null
+        if (env.isConfigured()) {
+          const result = await getSupabase().auth.getSession()
+          requireCurrent()
+          if (result.error) throw failure()
+          session = result.data.session
+        }
+        requireCurrent()
+        if (session === null) {
+          synthetic = true
+          requireCurrent()
+          session = createDevAuthSession()
+        }
+        const resolvedAccount = session.user.id
+        const resolvedToken = session.access_token
+        requireCurrent()
+        if (resolvedAccount !== requestedAccount || !resolvedToken) throw failure()
+        requireCurrent()
+        const progress = await migrationInvoke<SeasonalChallengeProgress>(
+          'seasonal',
+          'seasonal_challenge_progress',
+          { p_challenge_id: requestedChallenge },
+          resolvedToken,
+        )
+        requireCurrent()
+        if (progress.challenge_id !== requestedChallenge) throw failure()
+        return progress
+      } catch {
+        throw failure()
+      }
+    },
+    enabled: renderAuthorized,
   })
+  const visible = renderAuthorized &&
+    browserInvitationSession.accountId() === accountId &&
+    browserInvitationSession.revision() === revision && !query.isPlaceholderData
+  return {
+    ...query,
+    data: visible && query.data?.challenge_id === challengeId ? query.data : undefined,
+    error: visible ? query.error : null,
+    isError: visible && query.isError,
+    isLoading: visible && query.isLoading,
+    isPending: visible && query.isPending,
+    isFetching: visible && query.isFetching,
+    isRefetching: visible && query.isRefetching,
+    isLoadingError: visible && query.isLoadingError,
+    isRefetchError: visible && query.isRefetchError,
+  }
 }
 
+type SeasonalJoinVariables = { challengeId: string; origin?: SeasonalJoinAuthority } & (
+  | { invitationCode: string; readCode?: () => string }
+  | { invitationCode?: never; readCode: () => string }
+)
+
 export function useJoinSeasonalChallenge() {
-  const { accessToken } = useAuth()
+  const { accessToken, user, loading, devAuthBypass } = useAuth()
+  const accountId = user?.id
   const qc = useQueryClient()
+  const committedAuth = useRef({ accountId, accessToken, loading, devAuthBypass })
+  const controllerState = useRef<{
+    controller: SeasonalJoinController
+    live: boolean
+    readAuthority: () => SeasonalJoinAuthority
+  } | null>(null)
+  useLayoutEffect(() => {
+    committedAuth.current = { accountId, accessToken, loading, devAuthBypass }
+  }, [accountId, accessToken, loading, devAuthBypass])
+  useLayoutEffect(() => {
+    let synthetic = false
+    const failure = () => new Error('Could not join. Try again.')
+    const readAuthority = (): SeasonalJoinAuthority => {
+      const auth = committedAuth.current
+      const observedAccount = browserInvitationSession.accountId()
+      const revision = browserInvitationSession.revision()
+      const bypass = auth.devAuthBypass && isDevAuthBypassEnabled()
+      if (!state.live || controllerState.current !== state || !auth.accountId ||
+          !auth.accessToken || auth.loading || observedAccount !== auth.accountId ||
+          (auth.devAuthBypass && !bypass) || (synthetic && !bypass) ||
+          (!env.isConfigured() && !bypass)) {
+        return { accountId: null, revision: -1 }
+      }
+      return { accountId: observedAccount, revision }
+    }
+    const requireCurrent = (origin: SeasonalJoinAuthority) => {
+      const current = readAuthority()
+      if (!origin.accountId || current.accountId !== origin.accountId ||
+          current.revision !== origin.revision) throw failure()
+    }
+    const controller = new SeasonalJoinController(
+      readAuthority,
+      async () => {
+        const origin = readAuthority()
+        requireCurrent(origin)
+        synthetic = false
+        try {
+          let session: Session | null = null
+          requireCurrent(origin)
+          if (env.isConfigured()) {
+            requireCurrent(origin)
+            const result = await getSupabase().auth.getSession()
+            requireCurrent(origin)
+            if (result.error) throw failure()
+            session = result.data.session
+          }
+          requireCurrent(origin)
+          if (session === null) {
+            if (!committedAuth.current.devAuthBypass || !isDevAuthBypassEnabled()) {
+              throw failure()
+            }
+            synthetic = true
+            requireCurrent(origin)
+            session = createDevAuthSession()
+          }
+          requireCurrent(origin)
+          const userId = session.user.id
+          const resolvedToken = session.access_token
+          requireCurrent(origin)
+          if (userId !== origin.accountId || !resolvedToken) throw failure()
+          return { userId, accessToken: resolvedToken }
+        } catch {
+          throw failure()
+        }
+      },
+      async (params, resolvedToken) => {
+        const origin = readAuthority()
+        requireCurrent(origin)
+        const result = await migrationInvoke<Record<string, never>>(
+          'seasonal', 'joinChallenge', params, resolvedToken,
+        )
+        requireCurrent(origin)
+        return result
+      },
+    )
+    const state = { controller, live: true, readAuthority }
+    controllerState.current = state
+    return () => {
+      state.live = false
+      controller.cancel()
+      if (controllerState.current === state) controllerState.current = null
+    }
+  }, [])
   return useMutation({
-    mutationFn: ({ challengeId, invitationCode }: { challengeId: string; invitationCode: string }) =>
-      submitSeasonalInvitation(
-        params => migrationInvoke<Record<string, never>>('seasonal', 'joinChallenge', params, accessToken!),
-        challengeId, invitationCode,
-      ),
-    onSuccess: (_data, { challengeId }) => {
-      qc.invalidateQueries({ queryKey: ['seasonal', 'progress', challengeId] })
-      qc.invalidateQueries({ queryKey: ['seasonal', 'spotlight'] })
-      qc.invalidateQueries({ queryKey: ['community', 'challenges'] })
+    mutationFn: async (variables: SeasonalJoinVariables): Promise<SeasonalJoinReceipt> => {
+      const state = controllerState.current
+      if (!state || !state.live) throw new Error('Could not join. Try again.')
+      const snapshot = state.readAuthority()
+      if (!snapshot.accountId) throw new Error('Could not join. Try again.')
+      const suppliedOrigin = variables.origin
+      const origin = Object.freeze({
+        accountId: suppliedOrigin ? suppliedOrigin.accountId : snapshot.accountId,
+        revision: suppliedOrigin ? suppliedOrigin.revision : snapshot.revision,
+      })
+      const receipt = await state.controller.submit(variables.challengeId, () => {
+        const getter = variables.readCode
+        return getter ? getter() : variables.invitationCode ?? ''
+      }, origin)
+      const isCurrent = () => state.live && controllerState.current === state && receipt.isCurrent()
+      if (!isCurrent()) throw new Error('Could not join. Try again.')
+      return Object.freeze({ isCurrent })
+    },
+    onSuccess: async (receipt, { challengeId }) => {
+      const targets = [
+        ['seasonal', 'progress', challengeId],
+        ['seasonal', 'spotlight'],
+        ['community', 'challenges'],
+      ]
+      for (const queryKey of targets) {
+        if (!receipt.isCurrent()) return
+        await qc.invalidateQueries({ queryKey })
+        if (!receipt.isCurrent()) return
+      }
     },
   })
 }
