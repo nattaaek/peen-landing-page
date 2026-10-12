@@ -6,10 +6,13 @@ import { invalidateCatalogCache } from '../../lib/catalogSearch'
 import { useAuth } from '../auth/AuthProvider'
 import { useCatalogAllRoutes, useCatalogAreas, useCatalogGyms } from '../../hooks/useCatalog'
 import { useGeolocation } from '../../hooks/useGeolocation'
+import { useGymEditCapability } from '../../hooks/useGymVisit'
+import { httpGymWriter } from '../../lib/peen-api/gyms'
 import {
   formatCragDistance,
   gradeBandLabel,
   haversineKm,
+  isPlaceListed,
   layersChipLabel,
   resolveAreaCoordinate,
   resolveGymCoordinate,
@@ -31,6 +34,9 @@ import { CragThumb, type CragPanelRow } from './CragShared'
 import { CreateRouteSheet } from './CreateRouteSheet'
 import { CragsFilterSortSheet } from './CragsFilterSortSheet'
 import { CragsMap, type CragMapPin, type CragsMapHandle } from './CragsMap'
+import { CreateGymSheet } from './CreateGymSheet'
+import { EditGymSheet } from './EditGymSheet'
+import { GymVisitSection } from './GymVisitSection'
 
 type CragKind = 'area' | 'gym'
 
@@ -56,6 +62,7 @@ function buildCragRow(
     id: place.id,
     kind,
     name: place.name,
+    gym: kind === 'gym' ? (place as ApiGym) : undefined,
     regionOrAddress: kind === 'area' ? (place as ApiArea).region : (place as ApiGym).address,
     routeCount: placeRoutes.length,
     wallCount: wallCountForRoutes(placeRoutes),
@@ -74,10 +81,13 @@ export function CragsView({
   onSignIn?: (message?: string) => void
   onToast?: (msg: string) => void
 }) {
-  const { accessToken } = useAuth()
+  const { accessToken, user } = useAuth()
   const qc = useQueryClient()
   const location = useLocation()
   const isGuest = !accessToken
+  const accountId = accessToken ? (user?.id ?? null) : null
+  const [createGymFor, setCreateGymFor] = useState<string | null>(null)
+  const [editGymFor, setEditGymFor] = useState<{ accountId: string; gymId: string } | null>(null)
   const [filter, setFilter] = useState<'all' | 'crags' | 'gym'>('all')
   const [query, setQuery] = useState('')
   const [activeKey, setActiveKey] = useState<string | null>(null)
@@ -111,13 +121,13 @@ export function CragsView({
       .filter(() => filter !== 'gym')
       .filter((a) => (!q ? true : a.name.toLowerCase().includes(q)))
       .map((a) => buildCragRow('area', a, routes, userLat, userLng))
-      .filter((c) => (routes.length ? c.routeCount > 0 : true))
+      .filter((c) => isPlaceListed('area', c.routeCount, routes.length > 0))
 
     const gymRows = gyms
       .filter(() => filter !== 'crags')
       .filter((g) => (!q ? true : g.name.toLowerCase().includes(q)))
       .map((g) => buildCragRow('gym', g, routes, userLat, userLng))
-      .filter((c) => (routes.length ? c.routeCount > 0 : true))
+      .filter((c) => isPlaceListed('gym', c.routeCount, routes.length > 0))
 
     return [...areaRows, ...gymRows]
   }, [areas, gymsQ.data, routes, filter, query, userLat, userLng])
@@ -133,6 +143,9 @@ export function CragsView({
     if (!activeKey) return allCrags[0] ?? null
     return allCrags.find((c) => `${c.kind}:${c.id}` === activeKey) ?? allCrags[0] ?? null
   }, [activeKey, allCrags])
+
+  const activeGym = activeCrag?.kind === 'gym' ? (activeCrag.gym ?? null) : null
+  const { capability: gymEditCapability, retry: retryGymEditAccess } = useGymEditCapability(activeGym)
 
   const activeRoutes = useMemo(() => {
     if (!activeCrag) return []
@@ -183,6 +196,14 @@ export function CragsView({
       return
     }
     setCreateOpen(true)
+  }
+
+  const openCreateGym = () => {
+    if (!accountId) {
+      onSignIn?.('Sign in to add a gym.')
+      return
+    }
+    setCreateGymFor(accountId)
   }
 
   const refreshCatalog = async () => {
@@ -273,6 +294,12 @@ export function CragsView({
             </div>
           </div>
 
+          <div className="crag-list-actions">
+            <button type="button" className="btn btn-ghost" style={{ height: 32, padding: '0 12px' }} onClick={openCreateGym}>
+              <Icon name="plus" size={14} /> Add gym
+            </button>
+          </div>
+
           <label className="search" style={{ flex: 1, height: 36 }}>
             <Icon name="search" size={14} />
             <input placeholder="Filter by name…" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -301,10 +328,12 @@ export function CragsView({
                 <div className="info">
                   <div className="name">{c.name}</div>
                   <div className="meta">
-                    <span>
-                      <Icon name="pin" size={12} />
-                      {c.regionOrAddress ?? '—'}
-                    </span>
+                    {(c.kind === 'area' || c.regionOrAddress) && (
+                      <span>
+                        <Icon name="pin" size={12} />
+                        {c.regionOrAddress ?? '—'}
+                      </span>
+                    )}
                     {gradeBandLabel(
                       routesForPlace(routes, c.id, c.kind)
                         .map((r) => r.grade ?? '')
@@ -406,6 +435,17 @@ export function CragsView({
           <ActiveCragPanel
             crag={activeCrag}
             routes={activeRoutes}
+            routesLoaded={routesQ.isSuccess}
+            visitSection={
+              activeGym ? (
+                <GymVisitSection
+                  gym={activeGym}
+                  capability={gymEditCapability}
+                  onEdit={accountId ? () => setEditGymFor({ accountId, gymId: activeGym.id }) : undefined}
+                  onRetryAccess={retryGymEditAccess}
+                />
+              ) : undefined
+            }
             onDismiss={() => setPreviewHidden(true)}
             onOpenRoute={onOpenRoute}
             onApproach={
@@ -480,6 +520,37 @@ export function CragsView({
           }}
         />
       )}
+
+      {createGymFor && createGymFor === accountId && (
+        <CreateGymSheet
+          key={createGymFor}
+          writer={httpGymWriter}
+          onClose={() => setCreateGymFor(null)}
+          onCreated={(gym) => {
+            setCreateGymFor(null)
+            setFilter('all')
+            setQuery('')
+            selectCrag(`gym:${gym.id}`)
+            onToast?.(`Added ${gym.name}`)
+          }}
+        />
+      )}
+
+      {editGymFor &&
+        editGymFor.accountId === accountId &&
+        activeGym?.id === editGymFor.gymId &&
+        gymEditCapability.kind === 'allowed' && (
+          <EditGymSheet
+            key={`${editGymFor.accountId}:${editGymFor.gymId}`}
+            gym={activeGym}
+            writer={httpGymWriter}
+            onClose={() => setEditGymFor(null)}
+            onSaved={() => {
+              setEditGymFor(null)
+              onToast?.('Posted info saved')
+            }}
+          />
+        )}
     </div>
   )
 }

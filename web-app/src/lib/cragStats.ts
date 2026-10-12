@@ -115,6 +115,11 @@ export function resolveGymCoordinate(gym: ApiGym): { lat: number; lng: number } 
   return { lat: gym.latitude, lng: gym.longitude }
 }
 
+/** Gyms stay listed with zero recorded routes. Crags need a route once the route catalog has loaded. */
+export function isPlaceListed(kind: 'area' | 'gym', routeCount: number, routesLoaded: boolean): boolean {
+  return kind === 'gym' || !routesLoaded || routeCount > 0
+}
+
 export function routesForPlace(
   routes: ApiRoute[],
   id: string,

@@ -1,0 +1,133 @@
+{
+  "fixture_kind": "synthetic_local_only",
+  "contract": "gym.visit_info schema_version 1 (docs/gym-visit-info/CONTRACT.md)",
+  "notes": [
+    "Synthetic preview fixture. Do not seed, import or ship as catalogue data.",
+    "IDs are synthetic. Values come from user-supplied photos of posted signs; verification date unknown.",
+    "Unknown: full address, phone, owner, routes, areas, grade counts, student eligibility, membership terms, pass expiry.",
+    "color_hex values are presentation approximations, not sampled from the sign."
+  ],
+  "chillout_gym": {
+    "id": "5e5e5e5e-0000-4000-8000-000000000001",
+    "name": "Chillout",
+    "latitude": 13.149183747069928,
+    "longitude": 100.91708319565952,
+    "address": null,
+    "created_by": null,
+    "created_at": null,
+    "updated_at": null,
+    "visit_info": {
+      "schema_version": 1,
+      "hours": [
+        { "label": "Every day", "opens_at": "10:00", "closes_at": "22:00", "note": null }
+      ],
+      "admission": [
+        { "label": "Day pass", "amount_minor": 38000, "currency": "THB", "conditions": null },
+        { "label": "Student day pass", "amount_minor": 22000, "currency": "THB", "conditions": null },
+        { "label": "Monthly", "amount_minor": 210000, "currency": "THB", "conditions": null },
+        { "label": "Student monthly", "amount_minor": 140000, "currency": "THB", "conditions": null },
+        { "label": "10 visits", "amount_minor": 340000, "currency": "THB", "conditions": null }
+      ],
+      "rentals": [
+        { "label": "Shoe rental", "amount_minor": 5000, "currency": "THB", "conditions": null },
+        { "label": "Chalk", "amount_minor": 2000, "currency": "THB", "conditions": null }
+      ],
+      "grade_legend": [
+        { "grade": "V0", "color_name": "White", "color_hex": "#FFFFFF" },
+        { "grade": "V1", "color_name": "Green", "color_hex": "#2E9E4F" },
+        { "grade": "V2", "color_name": "Pink", "color_hex": "#F28AB2" },
+        { "grade": "V3", "color_name": "Cyan / light blue", "color_hex": "#5BC8E8" },
+        { "grade": "V4", "color_name": "Red", "color_hex": "#D93A2B" },
+        { "grade": "V5", "color_name": "Yellow", "color_hex": "#F2C94C" },
+        { "grade": "V6", "color_name": "Dark blue", "color_hex": "#1F3F8F" },
+        { "grade": "V7", "color_name": "Orange", "color_hex": "#F2994A" }
+      ],
+      "provenance": {
+        "source": "posted_sign",
+        "verified_at": null,
+        "note": "From user-supplied photos of posted signs."
+      }
+    }
+  },
+  "expected_chillout_major_amounts": {
+    "Day pass": "380",
+    "Student day pass": "220",
+    "Monthly": "2100",
+    "Student monthly": "1400",
+    "10 visits": "3400",
+    "Shoe rental": "50",
+    "Chalk": "20"
+  },
+  "decode_cases": [
+    {
+      "name": "legacy_gym_without_visit_info",
+      "gym": {
+        "id": "5e5e5e5e-0000-4000-8000-000000000002",
+        "name": "Synthetic Legacy Gym",
+        "latitude": 13.7,
+        "longitude": 100.5,
+        "address": "Synthetic address",
+        "created_by": null,
+        "created_at": null,
+        "updated_at": null
+      },
+      "expect": { "visit_info_present": false }
+    },
+    {
+      "name": "unsupported_schema_version_is_unknown",
+      "gym": {
+        "id": "5e5e5e5e-0000-4000-8000-000000000003",
+        "name": "Synthetic Future Gym",
+        "latitude": 13.7,
+        "longitude": 100.5,
+        "visit_info": { "schema_version": 2, "hours": [] }
+      },
+      "expect": { "visit_info_present": false }
+    },
+    {
+      "name": "malformed_visit_info_is_unknown",
+      "gym": {
+        "id": "5e5e5e5e-0000-4000-8000-000000000004",
+        "name": "Synthetic Malformed Gym",
+        "latitude": 13.7,
+        "longitude": 100.5,
+        "visit_info": "not an object"
+      },
+      "expect": { "visit_info_present": false }
+    },
+    {
+      "name": "invalid_items_dropped_valid_items_kept",
+      "gym": {
+        "id": "5e5e5e5e-0000-4000-8000-000000000005",
+        "name": "Synthetic Partial Gym",
+        "latitude": 13.7,
+        "longitude": 100.5,
+        "visit_info": {
+          "schema_version": 1,
+          "hours": [
+            { "label": "Every day", "opens_at": "10am", "closes_at": "22:00", "note": null },
+            { "label": "Weekdays", "opens_at": "09:00", "closes_at": "21:30", "note": null }
+          ],
+          "admission": [
+            { "label": "Fractional", "amount_minor": 380.5, "currency": "THB", "conditions": null },
+            { "label": "Lowercase currency", "amount_minor": 38000, "currency": "thb", "conditions": null },
+            { "label": "Negative", "amount_minor": -1, "currency": "THB", "conditions": null },
+            { "label": "Day pass", "amount_minor": 38000, "currency": "THB", "conditions": null }
+          ],
+          "grade_legend": [
+            { "grade": "V0", "color_name": "", "color_hex": "#FFFFFF" },
+            { "grade": "V1", "color_name": "Green", "color_hex": "green" }
+          ],
+          "provenance": { "source": "posted_sign", "verified_at": null, "note": null }
+        }
+      },
+      "expect": {
+        "visit_info_present": true,
+        "hours_labels": ["Weekdays"],
+        "admission_labels": ["Day pass"],
+        "rentals_labels": [],
+        "grade_legend": [{ "grade": "V1", "color_name": "Green", "color_hex": null }]
+      }
+    }
+  ]
+}
