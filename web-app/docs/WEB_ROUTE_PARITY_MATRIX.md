@@ -26,7 +26,7 @@ Mobile reference (iOS/Android):
 | Capability | Designer prototype | iOS | Android | Current web |
 |---|---|---|---|---|
 | Primary list in Crags screen | **Crag/gyms rows** with thumbnails + meta | Routes list (map + list of routes) | Routes list (map + list of routes) | **Crag/gyms rows** (region, grade sample, routes·walls, distance chip) + MapLibre map |
-| “Active crag” behavior | Selecting a crag changes map focus and shows **ActiveCragPreview** card with sample routes | Selects area/gym pin and filters routes | Selects area/gym pin and filters routes | **`ActiveCragPanel`**: dismiss, approach, add route, route previews, “+ N more”, gym directions |
+| “Active crag” behavior | Selecting a crag changes map focus and shows **ActiveCragPreview** card with sample routes | Selects area/gym pin and filters routes | Selects area/gym pin and filters routes | **`ActiveCragPanel`**: dismiss, approach, add route, route previews, “+ N more”. Gyms show **`GymVisitSection`** (posted visit info, coordinates, directions, copy) before the route list. See `docs/gym-visit-info/README.md` |
 | Wishlist filter placement | Wishlist is a filter for the route list within the crag context | Wishlist chip in Crags route list | Wishlist chip in Crags route list | Not on Crags list (wishlist remains on route detail / route list elsewhere) |
 | List filter / sort | Distance + region + route count filters; sort by distance/name/routes/walls | Rich route-list filters (grades, status, areas) | Similar to iOS route list | **`CragsFilterSortSheet`**: max distance, regions, min routes; sort distance/name/routes/walls |
 | Full route list for crag | Sheet / navigation to all routes | Area routes sheet | Area routes | **`AreaRoutesSheet`** |

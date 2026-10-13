@@ -1,3 +1,5 @@
+import type { GymVisitInfo } from './gymVisitInfo'
+
 export interface ApiArea {
   id: string
   name: string
@@ -14,6 +16,9 @@ export interface ApiGym {
   latitude?: number
   longitude?: number
   address?: string
+  created_by?: string | null
+  /** `null` means visit info unknown: absent, malformed, or an unsupported schema_version. */
+  visit_info?: GymVisitInfo | null
 }
 
 export interface ApiRouteType {

@@ -1,9 +1,13 @@
+import type { ApiGym } from '../../types/api'
+
 export type CragKind = 'area' | 'gym'
 
 export type CragPanelRow = {
   id: string
   kind: CragKind
   name: string
+  /** Catalog gym row (with `visit_info`) when `kind` is `gym`. */
+  gym?: ApiGym
   regionOrAddress?: string
   routeCount: number
   wallCount: number

@@ -1,4 +1,5 @@
 import { apiJson } from './client'
+import { normalizeApiGyms } from '../gymVisitInfo'
 import type { ApiArea, ApiGym, ApiRoute } from '../../types/api'
 
 export async function catalogAreas(): Promise<ApiArea[]> {
@@ -6,7 +7,7 @@ export async function catalogAreas(): Promise<ApiArea[]> {
 }
 
 export async function catalogGyms(): Promise<ApiGym[]> {
-  return apiJson<ApiGym[]>('/v1/catalog/gyms')
+  return normalizeApiGyms(await apiJson<unknown>('/v1/catalog/gyms'))
 }
 
 export async function catalogRoutes(page = 0, limit = 50): Promise<ApiRoute[]> {

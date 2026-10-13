@@ -7,6 +7,7 @@ export type MigrationDomain =
   | 'community'
   | 'seasonal'
   | 'notifications'
+  | 'place-crew'
 
 export async function migrationInvoke<T>(
   domain: MigrationDomain,

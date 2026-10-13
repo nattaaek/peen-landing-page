@@ -1,6 +1,6 @@
+import type { ReactNode } from 'react'
 import { Icon } from '../../components/Icon'
 import { formatCragDistance, gradeBandLabel } from '../../lib/cragStats'
-import { googleMapsDirectionsUrl } from '../../lib/approachGpx'
 import type { ApiRoute } from '../../types/api'
 import { CragThumb, type CragPanelRow } from './CragShared'
 
@@ -9,25 +9,34 @@ export type { CragPanelRow }
 export function ActiveCragPanel({
   crag,
   routes,
+  routesLoaded,
+  visitSection,
   onDismiss,
   onOpenRoute,
   onApproach,
   onAddRoute,
   onShowAllRoutes,
-  onGetDirections,
 }: {
   crag: CragPanelRow
   routes: ApiRoute[]
+  routesLoaded: boolean
+  /** Posted gym info, shown before the recorded route list. */
+  visitSection?: ReactNode
   onDismiss: () => void
   onOpenRoute: (route: ApiRoute) => void
   onApproach?: () => void
   onAddRoute?: () => void
   onShowAllRoutes?: () => void
-  onGetDirections?: () => void
 }) {
   const sample = routes.slice(0, 3)
   const gradeBand = gradeBandLabel(routes.map((r) => r.grade ?? '').filter(Boolean))
   const moreCount = routes.length - sample.length
+  const meta = [
+    crag.kind === 'gym' ? crag.regionOrAddress : (crag.regionOrAddress ?? '—'),
+    `${crag.routeCount} routes`,
+    `${crag.wallCount} walls`,
+    crag.distanceKm != null ? formatCragDistance(crag.distanceKm) : null,
+  ].filter(Boolean)
 
   return (
     <div className="active-crag-preview active-crag-panel">
@@ -35,15 +44,12 @@ export function ActiveCragPanel({
         <CragThumb crag={crag} size={52} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>{crag.name}</div>
+            <h2 style={{ fontWeight: 700, fontSize: 16, margin: 0 }}>{crag.name}</h2>
             <span className="chip outline" style={{ height: 22 }}>
               {crag.kind === 'gym' ? 'Gym' : 'Outdoor'}
             </span>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 4 }}>
-            {crag.regionOrAddress ?? '—'} · {crag.routeCount} routes · {crag.wallCount} walls
-            {crag.distanceKm != null ? ` · ${formatCragDistance(crag.distanceKm)}` : ''}
-          </div>
+          <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 4 }}>{meta.join(' · ')}</div>
           {gradeBand && (
             <div style={{ marginTop: 8 }}>
               <span className="chip blue" style={{ fontWeight: 700 }}>
@@ -56,6 +62,8 @@ export function ActiveCragPanel({
           <Icon name="close" size={18} />
         </button>
       </div>
+
+      {visitSection}
 
       <div className="crag-action-list">
         {crag.kind === 'area' && onApproach && (
@@ -70,20 +78,6 @@ export function ActiveCragPanel({
             <Icon name="plus" size={18} />
             <span style={{ flex: 1, fontWeight: 700 }}>Add route here</span>
             <Icon name="chevR" size={16} style={{ color: 'var(--fg-2)' }} />
-          </button>
-        )}
-        {crag.kind === 'gym' && crag.lat != null && crag.lng != null && (
-          <button
-            type="button"
-            className="crag-action-row crag-action-primary"
-            onClick={() => {
-              if (onGetDirections) onGetDirections()
-              else window.open(googleMapsDirectionsUrl(crag.lat!, crag.lng!, crag.name), '_blank', 'noopener')
-            }}
-          >
-            <Icon name="pin" size={18} />
-            <span style={{ flex: 1, fontWeight: 700 }}>Get directions</span>
-            <Icon name="chevR" size={16} />
           </button>
         )}
       </div>
@@ -106,6 +100,7 @@ export function ActiveCragPanel({
           )}
         </div>
       )}
+      {routes.length === 0 && routesLoaded && <p className="crag-routes-empty">No routes recorded in Peen yet.</p>}
     </div>
   )
 }
