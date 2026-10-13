@@ -8,9 +8,12 @@ import { Icon } from '../../components/Icon'
 import { TopoLines } from '../../components/TopoLines'
 import {
   useJoinSeasonalChallenge,
+  useMyProfile,
   useSeasonalProgress,
 } from '../../hooks/useMigration'
+import { challengeJoiningName, challengeNickname } from '../../lib/challengeIdentity'
 import {
+  challengeEligibilityRules,
   challengeProgressPct,
   daysLeftUntilEnd,
   groupRoutesByGrade,
@@ -117,6 +120,8 @@ function SeasonalJoinBlock({ progress, isGuest, onSignIn }: Readonly<{
   const joinM = useJoinSeasonalChallenge()
   const { user, accessToken, loading } = useAuth()
   const accountId = user?.id ?? null
+  const profileQ = useMyProfile()
+  const nickname = challengeNickname(accountId, profileQ.data)
   const revision = useSyncExternalStore(
     callback => browserInvitationSession.subscribe(callback),
     () => browserInvitationSession.revision(),
@@ -149,7 +154,7 @@ function SeasonalJoinBlock({ progress, isGuest, onSignIn }: Readonly<{
     key={`${invitationFormKey(progress.challenge_id, user?.id, progress.enrolled)}:${revision}`}
     isCurrent={isCurrent} isCurrentAction={isCurrentAction}
     required={Boolean(progress.requires_invitation)} isGuest={isGuest} onSignIn={onSignIn}
-    accountLabel={user?.email || user?.id}
+    accountLabel={accountId ? challengeJoiningName(nickname) : undefined}
     onSubmit={async code => {
       const lifetime = epoch.current
       const requireCurrent = () => {
@@ -187,6 +192,7 @@ function ChallengeBody({
   const pct = challengeProgressPct(progress)
   const daysLeft = daysLeftUntilEnd(progress.end_date)
   const windowPhrase = seasonWindowPhrase(progress.start_date, progress.end_date)
+  const rules = challengeEligibilityRules(progress.start_date, progress.end_date)
 
   return (
     <div className="seasonal-challenge-body">
@@ -205,6 +211,7 @@ function ChallengeBody({
         <p className="seasonal-challenge-subtitle">{progress.challenge_subtitle}</p>
       ) : null}
       {windowPhrase ? <p className="seasonal-challenge-window">{windowPhrase}</p> : null}
+      {rules ? rules.map(rule => <p key={rule} className="muted">{rule}</p>) : null}
 
       <div className="seasonal-progress-card">
         <div className="seasonal-progress-head">
