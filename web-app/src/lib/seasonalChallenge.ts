@@ -48,6 +48,31 @@ export function seasonWindowPhrase(start: string, end: string): string {
   return a && b ? `${a} – ${b}` : ''
 }
 
+const EVENT_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+function eventDay(iso: string): string | null {
+  const day = iso.slice(0, 10)
+  if (!EVENT_DATE.test(day)) return null
+  const d = new Date(`${day}T00:00:00Z`)
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== day) return null
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+}
+
+/**
+ * Eligibility copy for the server-configured event window, or null when the dates are unusable.
+ * The server alone decides what counts; this only describes the rule.
+ */
+export function challengeEligibilityRules(start: string, end: string): string[] | null {
+  const from = eventDay(start)
+  const to = eventDay(end)
+  if (!from || !to || end.slice(0, 10) < start.slice(0, 10)) return null
+  return [
+    `A climb counts only if you climbed it from ${from} through ${to} (UTC) and your log first reaches Peen by the end of ${to} UTC.`,
+    'Logs saved offline or sent after the event closes do not count, even when the climb date is inside the event. There is no grace period.',
+    'Those logs still save to your climbing history as usual.',
+  ]
+}
+
 export function groupRoutesByGrade(
   routes: SeasonalRouteProgress[],
 ): { grade: string; routes: SeasonalRouteProgress[] }[] {

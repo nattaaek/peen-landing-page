@@ -4,11 +4,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../auth/AuthProvider'
 import { LoginGate } from '../auth/LoginGate'
 import { InvitationForm } from './InvitationForm'
+import { useMyProfile } from '../../hooks/useMigration'
+import { challengeAccountLine, challengeJoiningName, challengeNickname } from '../../lib/challengeIdentity'
 import { browserInvitationSession as invitations } from '../../lib/invitationBootstrap'
 import { invitationChallengeId } from '../../lib/invitationEntry'
 import { CT_CLASSICS_CHALLENGE_ID, normalizeInvitationCode } from '../../lib/invitationLink'
 import type { RouteLease } from '../../lib/invitationSession'
 import { INVITATION_TTL_MS } from '../../lib/pendingInvitation'
+import { challengeEligibilityRules } from '../../lib/seasonalChallenge'
 import { invitationErrorMessage, submitSeasonalInvitation } from '../../lib/seasonalInvitation'
 import { getSupabase } from '../../lib/supabase'
 import { migrationInvoke } from '../../lib/peen-api/migration'
@@ -38,6 +41,8 @@ export function InvitationLanding() {
   const cache = useQueryClient()
   const revision = useSyncExternalStore(subscribe, revisionSnapshot)
   const accountId = auth.user?.id ?? null
+  const profile = useMyProfile()
+  const nickname = challengeNickname(accountId, profile.data)
   const observedAccount = invitations.accountId()
   const challengeId = invitationChallengeId(window.location.pathname)
   const validPath = challengeId !== null &&
@@ -166,11 +171,13 @@ export function InvitationLanding() {
   }
   const title = matchingProgress?.title ?? (challengeId === CT_CLASSICS_CHALLENGE_ID
     ? 'CT Classics 2026' : 'Seasonal challenge')
+  const rules = matchingProgress ? challengeEligibilityRules(matchingProgress.start_date, matchingProgress.end_date) : null
   return <main className="invitation-panel" aria-labelledby="invitation-title">
     <h1 id="invitation-title">{validPath ? title : 'Invitation unavailable'}</h1>
     {!validPath ? <p role="status">Open a fresh invitation or return to Crew to enter a code.</p> : <>
-      <p className="caption">{accountId ? `Account: ${auth.user?.email ?? accountId}` : 'Sign in to prepare your invitation.'}</p>
+      <p className="caption">{accountId ? challengeAccountLine(nickname) : 'Sign in to prepare your invitation.'}</p>
       <p className="caption">Reading an invitation does not join the challenge. Expired invitations require fresh code entry.</p>
+      {rules?.map(rule => <p key={rule} className="caption">{rule}</p>)}
       {currentOutcome && <p role="status">{currentOutcome.message}</p>}
       {currentOutcome?.status === 'joined' || matchingProgress?.enrolled ?
         <Link className="btn btn-primary" to={`/passport?challenge=${challengeId}`}>View challenge progress</Link> :
@@ -178,7 +185,7 @@ export function InvitationLanding() {
           <InvitationForm key={`${revision}:guest:${challengeId}`} required isGuest onSubmit={join}
             onSignIn={() => setLoginRequested(true)} /> :
           canJoin ? <InvitationForm key={`${revision}:${accountId}:${challengeId}`} required isGuest={false}
-            initialCode={initialCode} accountLabel={auth.user?.email ?? accountId ?? undefined} onSubmit={join} /> :
+            initialCode={initialCode} accountLabel={challengeJoiningName(nickname)} onSubmit={join} /> :
             <p role="status">{currentOutcome?.closed ? 'Registration is closed.' :
               currentOutcome && now < currentOutcome.retryAt ? 'Wait before trying again. You can enter a fresh code when the wait ends.' :
                 progress.isError ? 'Could not load this challenge. Retry or open a fresh invitation.' : 'Preparing challenge…'}</p>}
