@@ -40,13 +40,73 @@
 .passport-footer, .passport-data-state { margin: var(--space-xl); padding: var(--space-xl); background: var(--surface); border-radius: var(--radius-lg); display: flex; gap: var(--space-md); flex-wrap: wrap; align-items: center; }
 .passport-footer h3 { margin: 0 0 8px; font-size: var(--fs-headline); }
 .passport-footer > div { flex: 1 1 100%; }
-.passport-entry { display: flex; align-items: center; gap: var(--space-lg); margin: 0 var(--space-xl) var(--space-xl); padding: var(--space-lg); border-radius: var(--radius-lg); background: var(--surface); color: var(--fg-1); border: 1px solid var(--separator); }
-.passport-entry img { width: 58px; height: 82px; object-fit: cover; box-shadow: 3px 4px 8px #174c5d20; transform: rotate(-5deg); }
-.passport-entry > span:nth-child(2) { flex: 1; display: grid; gap: 6px; }
-.passport-entry strong { font-size: var(--fs-headline); line-height: var(--lh-headline); }
-.passport-entry .wordmark { font-size: 10px; }
-.passport-entry-arrow { color: var(--tint); font-size: 24px; }
-.passport-entry:hover { border-color: var(--tint); }
+.passport-entry { display: flex; align-items: center; gap: var(--space-lg); margin: 0 var(--space-xl) var(--space-xl); padding: var(--space-lg) var(--space-xl); border-radius: var(--radius-lg); background: var(--edition-cream); color: var(--edition-teal); border: 1px solid #174c5d1f; transition: border-color .2s ease, box-shadow .2s ease; }
+.passport-entry img { flex-shrink: 0; width: 72px; height: auto; aspect-ratio: 720 / 1024; object-fit: cover; border-radius: 2px; box-shadow: 4px 8px 16px #174c5d2e; transform: rotate(-4deg); }
+.passport-entry-copy { flex: 1; min-width: 0; display: grid; gap: 6px; justify-items: start; }
+.passport-entry .seasonal-edition-name { font-size: 24px; }
+.passport-entry.compact .seasonal-edition-name { font-size: 21px; }
+.passport-entry.compact img { width: 60px; }
+.passport-entry .seasonal-edition-rule { margin-top: 2px; }
+.passport-entry .footnote { color: var(--edition-ink); max-width: 52ch; }
+.passport-entry-arrow { color: var(--edition-teal); font-size: 24px; }
+.passport-entry:hover { border-color: #174c5d59; box-shadow: 0 6px 16px #174c5d14; }
+
+/* CT Classics edition: the approved cover's cream, teal, editorial serif and orange rule, scoped to the edition. */
+.passport-entry, .passport-title-row, .seasonal-edition-art, .seasonal-edition-hero, .seasonal-spotlight-card.is-edition, .seasonal-challenge-body.is-edition {
+  --edition-cream: #F3EFE6; --edition-teal: #174C5D; --edition-ink: #3F5359;
+  --edition-serif: "Noto Serif", "Source Serif 4", Georgia, "Times New Roman", serif;
+}
+.seasonal-edition-kicker { display: block; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--edition-teal); }
+.seasonal-edition-name { display: block; margin: 0; font-family: var(--edition-serif); font-size: 28px; font-weight: 700; line-height: 1.04; letter-spacing: -.01em; color: var(--edition-teal); text-wrap: balance; }
+.seasonal-edition-name em { font-weight: 400; }
+.seasonal-edition-publisher { display: block; margin-bottom: 4px; font-size: .6em; letter-spacing: 0; }
+.seasonal-edition-rule { display: block; width: 44px; height: 4px; margin-top: 10px; border-radius: 1px; background: var(--peen-orange); }
+.passport-title-row .seasonal-edition-name { font-size: 36px; }
+
+.seasonal-spotlight-card.is-edition { background: var(--edition-cream); border-color: #174c5d1f; box-shadow: 0 4px 12px #174c5d14; }
+.seasonal-spotlight-card:focus-visible { outline: 2px solid var(--tint); outline-offset: 3px; }
+.seasonal-spotlight-hero.seasonal-edition-art { height: auto; overflow: visible; background: none; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--space-xl); align-items: center; padding: var(--space-xl) var(--space-xl) var(--space-xs); }
+.seasonal-edition-art img, .seasonal-edition-hero img { width: 96px; height: auto; aspect-ratio: 720 / 1024; border-radius: 2px; box-shadow: 5px 10px 20px #174c5d2e; transform: rotate(-3deg); }
+.seasonal-edition-copy { display: grid; gap: 8px; justify-items: start; min-width: 0; }
+.seasonal-spotlight-card.is-edition .seasonal-spotlight-body { padding: var(--space-md) var(--space-xl) var(--space-xl); }
+.seasonal-spotlight-card.is-edition .seasonal-spotlight-eyebrow { color: var(--edition-teal); }
+.seasonal-spotlight-card.is-edition .seasonal-spotlight-subtitle,
+.seasonal-spotlight-card.is-edition .seasonal-spotlight-progress-head,
+.seasonal-spotlight-card.is-edition .seasonal-spotlight-meta { color: var(--edition-ink); }
+.seasonal-spotlight-card.is-edition .seasonal-spotlight-progress-head strong { color: var(--edition-teal); font-variant-numeric: tabular-nums; }
+.seasonal-spotlight-card.is-edition .seasonal-spotlight-progress-bar { background: #174c5d1f; }
+
+.seasonal-edition-hero { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--space-xl); align-items: center; padding: var(--space-xxl) var(--space-lg) var(--space-xl); background: var(--edition-cream); }
+.seasonal-edition-hero img { width: 112px; }
+.seasonal-edition-count { margin: 4px 0 0; color: var(--edition-ink); font-size: var(--fs-footnote); font-variant-numeric: tabular-nums; }
+.seasonal-edition-count strong { color: var(--edition-teal); font-size: var(--fs-title3); }
+.seasonal-edition-replay { min-height: 48px; padding: 0 var(--space-md); border-radius: var(--radius-pill); border: 1px solid #174c5d59; background: transparent; color: var(--edition-teal); font-size: var(--fs-subheadline); font-weight: 600; cursor: pointer; transition: background-color .2s ease; }
+.seasonal-edition-replay:hover { background: #174c5d0f; }
+.seasonal-edition-replay:active { transform: translateY(1px); }
+.seasonal-edition-replay:focus-visible { outline: 2px solid var(--tint); outline-offset: 3px; }
+.seasonal-challenge-body.is-edition .seasonal-challenge-eyebrow { color: var(--edition-teal); padding-top: var(--space-lg); }
+.seasonal-challenge-rules { margin: 0 var(--space-lg) var(--space-lg); padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-xxl); max-width: 62ch; border-radius: var(--radius-md); background: var(--surface); color: #45454b; font-size: 14px; line-height: 1.5; text-wrap: pretty; }
+.seasonal-challenge-rules li + li { margin-top: var(--space-xs); }
+.seasonal-challenge-rules li::marker { color: var(--peen-orange); }
+
+/* Full-screen CT Classics intro film over the already-loading challenge. */
+.challenge-intro { position: fixed; inset: 0; z-index: 160; display: grid; place-items: center; background: #121110; outline: none; transition: opacity .65s ease-in-out; }
+.challenge-intro[data-phase='fading'] { opacity: 0; }
+.challenge-intro-stage { position: relative; aspect-ratio: 9 / 20; height: min(100dvh, calc(100vw * 20 / 9)); overflow: hidden; }
+.challenge-intro-film { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #121110; }
+@media (min-aspect-ratio: 2 / 5) and (max-aspect-ratio: 1 / 2) {
+ .challenge-intro-stage { width: 100vw; height: 100dvh; aspect-ratio: auto; }
+ .challenge-intro-film { object-fit: cover; }
+}
+.challenge-intro-bar { position: absolute; top: max(var(--space-sm), env(safe-area-inset-top)); left: var(--space-sm); right: var(--space-sm); display: flex; justify-content: space-between; gap: var(--space-sm); }
+.challenge-intro-control { min-width: 48px; min-height: 48px; padding: 0 var(--space-md); display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-pill); border: 1px solid #ffffff2e; background: #121110a6; color: #fff; font-size: var(--fs-subheadline); font-weight: 600; cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: background-color .2s ease; }
+.challenge-intro-control:has(svg) { padding: 0; }
+.challenge-intro-control:hover { background: #121110d9; }
+.challenge-intro-open { position: absolute; left: 50%; bottom: max(28px, calc(env(safe-area-inset-bottom) + var(--space-lg))); transform: translateX(-50%); min-height: 52px; padding: 0 28px; display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; border-radius: var(--radius-pill); background: var(--peen-orange); color: #fff; font-size: 19px; font-weight: 700; cursor: pointer; box-shadow: 0 10px 24px #0000004d; animation: challengeIntroOpenIn .3s ease both; }
+.challenge-intro-open:active { transform: translateX(-50%) translateY(1px); }
+.challenge-intro-control:focus-visible, .challenge-intro-open:focus-visible { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 6px #121110b3; }
+.challenge-intro-status { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+@keyframes challengeIntroOpenIn { from { opacity: 0; } to { opacity: 1; } }
 .passport-view button, .invitation-panel button { min-height: var(--hit-target); }
 .passport-view button:focus-visible, .passport-view a:focus-visible, .passport-entry:focus-visible, .invitation-panel button:focus-visible { outline: 2px solid var(--tint); outline-offset: 3px; }
 .passport-view button:disabled, .invitation-panel button:disabled { cursor: default; opacity: .55; }
@@ -76,10 +136,21 @@
  .passport-page-controls > span { order: 3; width: 100%; text-align: center; }
  .passport-footer, .passport-data-state { margin: var(--space-md); padding: var(--space-lg); }
  .passport-entry { margin: 0 var(--space-md) var(--space-lg); gap: var(--space-md); padding: var(--space-md); }
+ .passport-entry .seasonal-edition-name, .passport-entry.compact .seasonal-edition-name { font-size: 20px; }
+ .passport-entry img, .passport-entry.compact img { width: 56px; }
+ .passport-title-row .seasonal-edition-name { font-size: 30px; }
+ .seasonal-spotlight-hero.seasonal-edition-art { gap: var(--space-md); padding: var(--space-lg) var(--space-md) var(--space-xs); }
+ .seasonal-spotlight-card.is-edition .seasonal-spotlight-body { padding: var(--space-sm) var(--space-md) var(--space-md); }
+ .seasonal-edition-art img { width: 76px; }
+ .seasonal-edition-hero { grid-template-columns: 92px minmax(0, 1fr); gap: var(--space-md); padding: var(--space-xl) var(--space-md) var(--space-lg); }
+ .seasonal-edition-hero img { width: 92px; }
+ .seasonal-edition-name { font-size: 24px; }
+ .seasonal-challenge-rules { margin-left: var(--space-md); margin-right: var(--space-md); }
  .invitation-panel { padding: var(--space-md); }
 }
 @media (prefers-reduced-motion: reduce) {
- .passport-view *, .invitation-panel *, .passport-entry * { transition: none !important; animation: none !important; }
+ .passport-view *, .invitation-panel *, .passport-entry, .passport-entry *, .seasonal-spotlight-card.is-edition, .seasonal-edition-replay,
+ .challenge-intro, .challenge-intro * { transition: none !important; animation: none !important; }
 }
 /* Let the passport own its spacing inside the existing shell. */
 .main:has(> .passport-view) { padding: 0 0 80px; }

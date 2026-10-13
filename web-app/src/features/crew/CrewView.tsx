@@ -18,6 +18,8 @@ import {
 } from '../../hooks/useMigration'
 import { SeasonalChallengeDetailOverlay } from './SeasonalChallengeDetailOverlay'
 import { SeasonalSpotlightSection } from './SeasonalSpotlightSection'
+import { challengeIntroSession } from '../../lib/challengeIntro'
+import { introEnvironment } from '../passport/introEnvironment'
 
 type CrewTab = 'Crew' | 'Partners' | 'Challenges'
 type CrewLocationState = { tab?: CrewTab; challengeId?: string }
@@ -33,7 +35,7 @@ export function CrewView({
   const location = useLocation()
   const navigate = useNavigate()
   const [tab, setTab] = useState<CrewTab>('Crew')
-  const [selectedChallengeId, setSelectedChallengeId] = useState<string | null>(null)
+  const [selectedChallenge, setSelectedChallenge] = useState<{ id: string; intro: boolean } | null>(null)
   const [partnerWhen, setPartnerWhen] = useState<string>('Any')
   const [partnerStyle, setPartnerStyle] = useState<string>('Any')
 
@@ -51,7 +53,7 @@ export function CrewView({
     if (state?.tab) setTab(state.tab)
     if (state?.challengeId) {
       setTab('Challenges')
-      setSelectedChallengeId(state.challengeId)
+      setSelectedChallenge({ id: state.challengeId, intro: false })
     }
   }, [location.state])
 
@@ -318,7 +320,10 @@ export function CrewView({
             isLoading={seasonalQ.isLoading}
             isError={seasonalQ.isError}
             onRetry={() => { void seasonalQ.refetch() }}
-            onOpen={setSelectedChallengeId}
+            onOpen={(id) => setSelectedChallenge({
+              id,
+              intro: challengeIntroSession.claim(id, seasonal?.challenge_id, introEnvironment()),
+            })}
           />
 
           {pastSeasons.length > 0 ? (
@@ -330,7 +335,7 @@ export function CrewView({
                     key={row.challenge_id}
                     type="button"
                     className="past-season-row"
-                    onClick={() => setSelectedChallengeId(row.challenge_id)}
+                    onClick={() => setSelectedChallenge({ id: row.challenge_id, intro: false })}
                   >
                     <div className="past-season-main">
                       <div className="past-season-title">{row.title}</div>
@@ -345,10 +350,12 @@ export function CrewView({
         </section>
       )}
 
-      {selectedChallengeId ? (
+      {selectedChallenge ? (
         <SeasonalChallengeDetailOverlay
-          challengeId={selectedChallengeId}
-          onClose={() => setSelectedChallengeId(null)}
+          key={selectedChallenge.id}
+          challengeId={selectedChallenge.id}
+          intro={selectedChallenge.intro}
+          onClose={() => setSelectedChallenge(null)}
           onOpenRoute={onOpenRoute}
           onSignIn={onSignIn}
           isGuest={!accessToken}
