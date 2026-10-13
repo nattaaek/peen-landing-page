@@ -1,8 +1,11 @@
 import { InvitationForm } from './InvitationForm'
 import { Link } from 'react-router-dom'
 import { invitationFormKey } from '../../lib/seasonalInvitation'
-import { useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from 'react'
 import { browserInvitationSession } from '../../lib/invitationBootstrap'
+import { introReducer, passportEdition, type PassportEdition } from '../../lib/challengeIntro'
+import { ChallengeIntro } from '../passport/ChallengeIntro'
+import { EditionName } from '../passport/EditionName'
 import { useAuth } from '../auth/AuthProvider'
 import { Icon } from '../../components/Icon'
 import { TopoLines } from '../../components/TopoLines'
@@ -175,43 +178,74 @@ function SeasonalJoinBlock({ progress, isGuest, onSignIn }: Readonly<{
   /></div>
 }
 
+function EditionHero({ edition, routesTotal, grades, onReplayIntro }: Readonly<{
+  edition: PassportEdition
+  routesTotal: number
+  grades: number
+  onReplayIntro: () => void
+}>) {
+  return (
+    <div className="seasonal-edition-hero">
+      <img src={`${import.meta.env.BASE_URL}passport/cover.png`} width={720} height={1024}
+        alt={`${edition.name} passport cover, ${edition.edition}`} />
+      <div className="seasonal-edition-copy">
+        <p className="seasonal-edition-kicker">Passport · {edition.edition}</p>
+        <EditionName edition={edition} />
+        <p className="seasonal-edition-count"><strong>{routesTotal}</strong> routes · {grades} grades</p>
+        <button type="button" className="seasonal-edition-replay" onClick={onReplayIntro}>Play intro film</button>
+      </div>
+    </div>
+  )
+}
+
 function ChallengeBody({
   progress,
   onOpenRoute,
   onSignIn,
   isGuest,
   onOpenPassport,
+  onReplayIntro,
 }: {
   onOpenPassport: () => void
   progress: SeasonalChallengeProgress
   onOpenRoute?: (routeId: string) => void
   onSignIn?: () => void
   isGuest: boolean
+  onReplayIntro: () => void
 }) {
   const buckets = useMemo(() => groupRoutesByGrade(progress.routes), [progress.routes])
   const pct = challengeProgressPct(progress)
   const daysLeft = daysLeftUntilEnd(progress.end_date)
   const windowPhrase = seasonWindowPhrase(progress.start_date, progress.end_date)
   const rules = challengeEligibilityRules(progress.start_date, progress.end_date)
+  const edition = passportEdition(progress.challenge_id)
 
   return (
-    <div className="seasonal-challenge-body">
-      <div className="seasonal-challenge-hero-panel">
-        <TopoLines />
-        <div className="seasonal-challenge-hero-count">{progress.routes_total}</div>
-        <div className="seasonal-challenge-hero-tag">routes to send</div>
-      </div>
+    <div className={`seasonal-challenge-body${edition ? ' is-edition' : ''}`}>
+      {edition ? (
+        <EditionHero edition={edition} routesTotal={progress.routes_total} grades={buckets.length} onReplayIntro={onReplayIntro} />
+      ) : (
+        <div className="seasonal-challenge-hero-panel">
+          <TopoLines />
+          <div className="seasonal-challenge-hero-count">{progress.routes_total}</div>
+          <div className="seasonal-challenge-hero-tag">routes to send</div>
+        </div>
+      )}
 
       {daysLeft != null && daysLeft >= 0 ? (
         <div className="seasonal-challenge-eyebrow">Seasonal · {daysLeft}d left</div>
       ) : null}
 
-      <h2 className="seasonal-challenge-title">{progress.title}</h2>
+      {edition ? null : <h2 className="seasonal-challenge-title">{progress.title}</h2>}
       {progress.challenge_subtitle ? (
         <p className="seasonal-challenge-subtitle">{progress.challenge_subtitle}</p>
       ) : null}
       {windowPhrase ? <p className="seasonal-challenge-window">{windowPhrase}</p> : null}
-      {rules ? rules.map(rule => <p key={rule} className="muted">{rule}</p>) : null}
+      {rules ? (
+        <ul className="seasonal-challenge-rules" aria-label="Which climbs count">
+          {rules.map(rule => <li key={rule}>{rule}</li>)}
+        </ul>
+      ) : null}
 
       <div className="seasonal-progress-card">
         <div className="seasonal-progress-head">
@@ -250,20 +284,41 @@ export function SeasonalChallengeDetailOverlay({
   onOpenRoute,
   onSignIn,
   isGuest,
+  intro = false,
 }: {
   challengeId: string
   onClose: () => void
   onOpenRoute?: (routeId: string) => void
   onSignIn?: () => void
   isGuest: boolean
+  /** Granted once per launch by the caller's intro policy; the challenge loads underneath while it plays. */
+  intro?: boolean
 }) {
   const { user } = useAuth()
   const progressQ = useSeasonalProgress(challengeId)
   const dialog = useRef<HTMLDivElement>(null)
+  const [opener] = useState(() => document.activeElement instanceof HTMLElement ? document.activeElement : null)
+  const [introPhase, dispatchIntro] = useReducer(introReducer, intro ? 'loading' : 'done')
+  const [introOwner, setIntroOwner] = useState({ accountId: user?.id, challengeId })
+  if (introOwner.accountId !== user?.id || introOwner.challengeId !== challengeId) {
+    setIntroOwner({ accountId: user?.id, challengeId })
+    dispatchIntro('abandon')
+  }
+  const replayButton = useRef<HTMLElement | null>(null)
+  const covered = introPhase !== 'done'
+  const replayIntro = () => {
+    replayButton.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    dispatchIntro('replay')
+  }
+  useEffect(() => () => opener?.focus(), [opener])
   useEffect(() => {
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    if (covered) return
+    const target = replayButton.current?.isConnected ? replayButton.current : dialog.current?.querySelector<HTMLButtonElement>('button')
+    replayButton.current = null
+    target?.focus()
+  }, [covered])
+  useEffect(() => {
     const node = dialog.current
-    node?.querySelector<HTMLButtonElement>('button')?.focus()
     const keyboard = (event: KeyboardEvent) => {
       if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
       if (event.key !== 'Tab' || !node) return
@@ -273,7 +328,7 @@ export function SeasonalChallengeDetailOverlay({
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
     }
     document.addEventListener('keydown', keyboard)
-    return () => { document.removeEventListener('keydown', keyboard); previous?.focus() }
+    return () => document.removeEventListener('keydown', keyboard)
   }, [onClose])
 
   const handleOpenRoute = (routeId: string) => {
@@ -286,10 +341,13 @@ export function SeasonalChallengeDetailOverlay({
       <div className="slideover-backdrop" onClick={onClose} role="presentation" />
       <div
         ref={dialog}
-        aria-modal="true"
+        aria-modal={covered ? undefined : 'true'}
+        aria-hidden={covered || undefined}
+        inert={covered}
         className="slideover seasonal-challenge-slideover"
         role="dialog"
         aria-label="Seasonal challenge"
+        data-challenge-id={challengeId}
       >
         <div className="slideover-head">
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">
@@ -311,10 +369,12 @@ export function SeasonalChallengeDetailOverlay({
               onSignIn={onSignIn}
               isGuest={isGuest}
               onOpenPassport={onClose}
+              onReplayIntro={replayIntro}
             />
           ) : null}
         </div>
       </div>
+      {covered ? <ChallengeIntro phase={introPhase} dispatch={dispatchIntro} /> : null}
     </>
   )
 }

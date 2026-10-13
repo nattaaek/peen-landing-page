@@ -6,6 +6,8 @@ import { passportBands, passportPage, PASSPORT_GRADES } from '../../lib/passport
 import { routeStatusLabel } from '../../lib/seasonalChallenge'
 import { SeasonalChallengeDetailOverlay } from '../crew/SeasonalChallengeDetailOverlay'
 import { PassportScene } from './PassportScene'
+import { EditionName } from './EditionName'
+import { passportEdition } from '../../lib/challengeIntro'
 import type { SeasonalChallengeProgress } from '../../types/seasonalChallenge'
 
 /** Local visual review only: never used by live account progress or enrollment. */
@@ -26,6 +28,7 @@ export function PassportView({ onSignIn, onOpenRoute }: Readonly<{ onSignIn: () 
   const challengeId = params.get('challenge') ?? spotlight.data?.challenge_id
   const progress = useSeasonalProgress(isPreview ? undefined : challengeId)
   const data = isPreview ? preview() : accessToken ? progress.data : undefined
+  const edition = passportEdition(data?.challenge_id)
   const mode = params.get('view') === 'collection' ? 'collection' : '3d'
   const page = passportPage(params.get('page'))
   const update = (values: Record<string, string>) => setParams(prev => {
@@ -37,7 +40,7 @@ export function PassportView({ onSignIn, onOpenRoute }: Readonly<{ onSignIn: () 
     <header className="passport-header">
       <Link to="/feed" className="passport-back">← Back to Feed</Link>
       <span className="wordmark">Your climbing passport</span>
-      <div className="passport-title-row"><div><h1>{data?.title ?? 'A book of good routes.'}</h1>
+      <div className="passport-title-row"><div>{edition ? <EditionName edition={edition} as="h1" /> : <h1>{data?.title ?? 'A book of good routes.'}</h1>}
         <p className="footnote">{isPreview ? 'Design preview · fictional routes · no earned stamps or enrollment' : 'Your seasonal routes, one grade at a time.'}</p></div>
         <div className="seg-control" aria-label="Passport presentation">
           <button type="button" className={mode === '3d' ? 'active' : ''} aria-pressed={mode === '3d'} onClick={() => update({ view: '3d' })}>3D Passport</button>
