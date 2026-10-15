@@ -35,8 +35,10 @@ export function LogComposer({
   onSuccess: () => void
 }) {
   const { accessToken, user } = useAuth()
+  const accountId = user?.id
   const log = useLogClimb()
   const fileRef = useRef<HTMLInputElement>(null)
+  const accountIdRef = useRef(user?.id)
 
   const [pickedRoute, setPickedRoute] = useState<ApiRoute | null>(route)
   const [routeQuery, setRouteQuery] = useState('')
@@ -50,6 +52,8 @@ export function LogComposer({
   const [notes, setNotes] = useState('')
   const [isPublic, setIsPublic] = useState(true)
   const [belayer, setBelayer] = useState<BelayerPick | null>(null)
+  const [belayerAccountId, setBelayerAccountId] = useState<string | null>(null)
+  const [belayerSearchAccountId, setBelayerSearchAccountId] = useState(accountId)
   const [belayerQuery, setBelayerQuery] = useState('')
   const [belayerHits, setBelayerHits] = useState<BelayerPick[]>([])
   const [belayerSearchLoading, setBelayerSearchLoading] = useState(false)
@@ -60,6 +64,18 @@ export function LogComposer({
   const followingQ = useFollowingIds()
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+
+  // Reset identity-bound selection before the new account can interact with this render.
+  if (belayerSearchAccountId !== accountId) {
+    setBelayerSearchAccountId(accountId)
+    setBelayer(null)
+    setBelayerAccountId(null)
+    setBelayerQuery('')
+    setBelayerHits([])
+    setCrewPicks([])
+    setBelayerSearchLoading(false)
+    setBelayerSearchDone(false)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -85,6 +101,10 @@ export function LogComposer({
     })
     setSubmitError(null)
   }, [open, route])
+
+  useEffect(() => {
+    accountIdRef.current = accountId
+  }, [accountId])
 
   useEffect(() => {
     if (sendType === 'onsight' || sendType === 'flash') setAttempts(1)
@@ -189,7 +209,7 @@ export function LogComposer({
         .then((rows) => {
           if (!cancelled) {
             setBelayerHits(
-              rows.filter((r) => r.user_id !== user?.id).map((r) => ({
+              rows.filter((r) => user?.id && r.user_id && r.user_id.toLowerCase() !== user.id.toLowerCase()).map((r) => ({
                 user_id: r.user_id,
                 nickname: r.nickname,
                 username: r.username,
@@ -230,11 +250,13 @@ export function LogComposer({
       for (const c of filteredCrewPicks) {
         if (!merged.some((m) => m.user_id === c.user_id)) merged.push(c)
       }
-      return merged.slice(0, 6)
+      return merged.filter(c => accountId && c.user_id && c.user_id.toLowerCase() !== accountId.toLowerCase()).slice(0, 6)
     }
-    if (q.length === 1) return filteredCrewPicks
-    return crewPicks
-  }, [belayerQuery, belayerHits, filteredCrewPicks, crewPicks])
+    const safeCrewPicks = (q.length === 1 ? filteredCrewPicks : crewPicks).filter(
+      c => accountId && c.user_id && c.user_id.toLowerCase() !== accountId.toLowerCase(),
+    )
+    return safeCrewPicks
+  }, [belayerQuery, belayerHits, filteredCrewPicks, crewPicks, accountId])
 
   const showBelayerNoMatch = useMemo(() => {
     const q = belayerQuery.trim()
@@ -269,6 +291,8 @@ export function LogComposer({
 
   const submit = async () => {
     if (!pickedRoute || !accessToken || !user) return
+    const verifier = belayer && belayerAccountId === user.id &&
+      belayer.user_id.toLowerCase() !== user.id.toLowerCase() ? belayer : null
     setSubmitError(null)
     setUploading(true)
     try {
@@ -279,6 +303,10 @@ export function LogComposer({
           pickedRoute.id,
           photos.map((p) => p.file),
         )
+      }
+      if (accountIdRef.current !== user.id) {
+        setSubmitError('Your signed-in account changed. Review your log before saving.')
+        return
       }
       const climbed_date = new Date().toISOString().slice(0, 10)
       const saved = await log.mutateAsync({
@@ -292,12 +320,12 @@ export function LogComposer({
         attempts,
         photo_urls,
       })
-      if (belayer && saved.id && isSendForBelay(sendType)) {
+      if (verifier && saved.id && isSendForBelay(sendType) && accountIdRef.current === user.id) {
         try {
           await migrationInvoke('climbs', 'createBelayVerificationRequest', {
             climb_id: saved.id,
             climber_id: user.id,
-            belayer_id: belayer.user_id,
+            belayer_id: verifier.user_id,
           }, accessToken)
         } catch {
           /* belay request is best-effort */
@@ -468,7 +496,7 @@ export function LogComposer({
 
           <div className="field log-field-gap">
             <label>
-              Belayer{' '}
+              Belayer or witness{' '}
               <span className="field-label-optional">· optional</span>
             </label>
             {belayer ? (
@@ -484,14 +512,14 @@ export function LogComposer({
                   <button
                     type="button"
                     className="icon-btn"
-                    aria-label="Remove belayer"
+                    aria-label="Remove belayer or witness"
                     onClick={() => setBelayer(null)}
                   >
                     <Icon name="close" size={16} />
                   </button>
                 </div>
                 <p className="log-belayer-helper">
-                  They&apos;ll get a notification to verify this send.
+                  They&apos;ll be asked to confirm this send. For challenge credit, they must confirm in Peen before the event closes in Bangkok time (UTC+7).
                 </p>
               </>
             ) : (
@@ -515,6 +543,8 @@ export function LogComposer({
                         type="button"
                         className="belayer-chip"
                         onClick={() => {
+                          if (!user?.id || !c.user_id || c.user_id.toLowerCase() === user.id.toLowerCase()) return
+                          setBelayerAccountId(user.id)
                           setBelayer(c)
                           setBelayerQuery('')
                           setBelayerHits([])
@@ -537,7 +567,7 @@ export function LogComposer({
                 )}
                 {!belayerQuery.trim() && crewPicks.length === 0 && !belayerSearchLoading && (
                   <p className="log-belayer-helper">
-                    Pick a belayer to get a Verified badge. You can still log without one.
+                    Choose another signed-in climber as your belayer or bouldering witness. For challenge credit, they must confirm in Peen before the event closes in Bangkok time (UTC+7). You can still log without one; the send stays unconfirmed.
                   </p>
                 )}
               </>
